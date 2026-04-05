@@ -78,8 +78,8 @@ export default function TabCard(props: TabCardProps) {
         </div>
         {/* Starred indicator - always visible when starred */}
         <Show when={props.tab.starred}>
-          <div class="absolute top-2 left-2 text-yellow-400 group-hover:opacity-0 transition-opacity">
-            <Star size={16} fill="currentColor" />
+          <div class="absolute top-2 left-2 text-yellow-400 group-hover:opacity-0 transition-opacity drop-shadow-md">
+            <Star size={22} fill="currentColor" />
           </div>
         </Show>
       </div>
