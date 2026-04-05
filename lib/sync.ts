@@ -13,7 +13,8 @@ async function syncRequest(
 ): Promise<Response> {
   const settings = await getSettings();
   const baseUrl = getSyncUrl(settings.syncUrl, settings.syncLocalUrl, settings.syncEnv);
-  const token = tokenOverride ?? settings.syncToken;
+  const activeToken = settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken;
+  const token = tokenOverride ?? activeToken;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",

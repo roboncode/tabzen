@@ -38,6 +38,7 @@ export interface Settings {
   aiModel: string;
   syncEnabled: boolean;
   syncToken: string | null;
+  syncLocalToken: string | null;
   syncUrl: string;
   syncLocalUrl: string;
   syncEnv: "local" | "remote";
@@ -51,6 +52,7 @@ export const DEFAULT_SETTINGS: Settings = {
   aiModel: "openai/gpt-4o-mini",
   syncEnabled: false,
   syncToken: null,
+  syncLocalToken: null,
   syncUrl: "",
   syncLocalUrl: "http://localhost:8787",
   syncEnv: "local",
