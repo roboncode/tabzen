@@ -389,7 +389,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                           </div>
                         </div>
                         <button
-                          class="px-3 py-1.5 text-sm text-red-400 hover:text-red-300 transition-colors"
+                          class="px-3 py-2 text-sm bg-red-900/30 text-red-300 rounded-lg hover:bg-red-900/50 transition-colors"
                           onClick={() => save({ [tokenKey()]: null, syncEnabled: false })}
                         >
                           Disconnect
