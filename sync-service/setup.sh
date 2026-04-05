@@ -18,16 +18,15 @@ if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
   echo "Detecting Cloudflare accounts..."
   ACCOUNTS_OUTPUT=$(wrangler whoami 2>&1) || true
 
-  # Parse account names and IDs
-  ACCOUNT_LINES=$(echo "$ACCOUNTS_OUTPUT" | grep -E '^\s+\S+.*[a-f0-9]{32}' | sed 's/│//g' | awk '{
-    id = $NF
-    $NF = ""
-    name = $0
-    gsub(/^[[:space:]]+|[[:space:]]+$/, "", name)
-    print name "|" id
+  # Parse account names and IDs from the Unicode table
+  # Lines look like: │ Jombee       │ d1fbd52963af543c9e7b19ee3f05f1bb │
+  ACCOUNT_LINES=$(echo "$ACCOUNTS_OUTPUT" | grep -E '[a-f0-9]{32}' | sed 's/│/|/g' | awk -F'|' '{
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2)
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", $3)
+    if ($2 != "" && $3 != "") print $2 "|" $3
   }')
 
-  ACCOUNT_COUNT=$(echo "$ACCOUNT_LINES" | grep -c '|' || true)
+  ACCOUNT_COUNT=$(echo "$ACCOUNT_LINES" | grep -c '|' 2>/dev/null || echo "0")
 
   if [ "$ACCOUNT_COUNT" -gt 1 ]; then
     echo ""
