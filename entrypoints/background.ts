@@ -325,13 +325,23 @@ export default defineBackground(() => {
 
   async function handleSyncNow(): Promise<MessageResponse> {
     try {
-      if (!(await isSyncActive())) {
-        return { type: "ERROR", message: "Sync is not enabled" };
+      const settings = await getSettings();
+      const activeToken = settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken;
+      console.log("[TabZen] Sync Now:", {
+        syncEnabled: settings.syncEnabled,
+        syncEnv: settings.syncEnv,
+        hasToken: !!activeToken,
+        tokenPreview: activeToken?.slice(0, 8),
+      });
+
+      if (!activeToken) {
+        return { type: "ERROR", message: "No sync token configured" };
       }
 
       // Push local data first
       const data = await getAllData();
       let pushed = data.tabs.length;
+      console.log("[TabZen] Pushing", pushed, "tabs,", data.groups.length, "groups,", data.captures.length, "captures");
       await pushSync({
         tabs: data.tabs,
         groups: data.groups,
