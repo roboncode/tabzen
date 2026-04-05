@@ -171,6 +171,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   <option value="anthropic/claude-haiku-4-5-20251001">Claude Haiku</option>
                   <option value="anthropic/claude-sonnet-4-6">Claude Sonnet</option>
                   <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
+                  <option value="google/gemma-4-26b-a4b-it">Gemma 4 26B</option>
                   <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
                 </select>
                 <p class="text-xs text-muted-foreground mt-1.5">
