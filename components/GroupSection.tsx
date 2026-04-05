@@ -1,4 +1,5 @@
 import { createSignal, For, Show } from "solid-js";
+import { ChevronRight, ChevronDown } from "lucide-solid";
 import type { Tab, Group } from "@/lib/types";
 import TabCard from "./TabCard";
 import TabRow from "./TabRow";
@@ -39,10 +40,10 @@ export default function GroupSection(props: GroupSectionProps) {
       <div class="flex items-center justify-between px-4 py-2">
         <div class="flex items-center gap-2">
           <button
-            class="text-xs text-slate-400 hover:text-slate-200"
+            class="text-slate-400 hover:text-slate-200"
             onClick={() => setCollapsed(!collapsed())}
           >
-            {collapsed() ? "▶" : "▼"}
+            {collapsed() ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
           </button>
           <Show
             when={!editing()}

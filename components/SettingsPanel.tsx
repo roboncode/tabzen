@@ -1,4 +1,5 @@
 import { createSignal, createResource, Show } from "solid-js";
+import { ArrowLeft } from "lucide-solid";
 import { getSettings, updateSettings } from "@/lib/settings";
 import {
   exportAsJson,
@@ -60,10 +61,10 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
         <h1 class="text-base font-bold text-slate-50">Settings</h1>
         <button
-          class="text-xs text-slate-400 hover:text-slate-200"
+          class="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200"
           onClick={props.onClose}
         >
-          ← Back
+          <ArrowLeft size={14} /> Back
         </button>
       </div>
 

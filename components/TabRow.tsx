@@ -1,3 +1,4 @@
+import { Eye, StickyNote } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 
 interface TabRowProps {
@@ -31,16 +32,18 @@ export default function TabRow(props: TabRowProps) {
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
         {props.tab.viewCount > 0 && (
-          <span class="text-[10px] text-blue-400">👁 {props.tab.viewCount}</span>
+          <span class="text-[10px] text-blue-400 flex items-center gap-0.5">
+            <Eye size={10} /> {props.tab.viewCount}
+          </span>
         )}
         <button
-          class={`text-[10px] ${props.tab.notes ? "text-slate-400" : "text-slate-600"} hover:text-slate-300`}
+          class={`${props.tab.notes ? "text-slate-400" : "text-slate-600"} hover:text-slate-300`}
           onClick={(e) => {
             e.stopPropagation();
             props.onEditNotes(props.tab);
           }}
         >
-          📝
+          <StickyNote size={12} />
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { createSignal, createResource, For, Show } from "solid-js";
+import { Maximize2, Settings as SettingsIcon } from "lucide-solid";
 import type {
   Tab,
   Group,
@@ -25,6 +26,7 @@ interface TabCollectionProps {
   viewMode: Settings["viewMode"];
   onViewModeChange: (mode: "cards" | "rows") => void;
   showExpandButton?: boolean;
+  onOpenSettings?: () => void;
 }
 
 export default function TabCollection(props: TabCollectionProps) {
@@ -133,13 +135,20 @@ export default function TabCollection(props: TabCollectionProps) {
           />
           <Show when={props.showExpandButton}>
             <button
-              class="w-7 h-7 bg-slate-800 rounded-md flex items-center justify-center text-xs text-slate-400 hover:text-slate-200"
+              class="w-7 h-7 bg-slate-800 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-200"
               onClick={openFullPage}
               title="Open full page"
             >
-              ⛶
+              <Maximize2 size={14} />
             </button>
           </Show>
+          <button
+            class="w-7 h-7 bg-slate-800 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-200"
+            onClick={() => props.onOpenSettings?.()}
+            title="Settings"
+          >
+            <SettingsIcon size={14} />
+          </button>
         </div>
       </div>
 

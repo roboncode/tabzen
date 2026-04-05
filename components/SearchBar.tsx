@@ -1,4 +1,5 @@
 import { createSignal } from "solid-js";
+import { Search } from "lucide-solid";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -27,8 +28,8 @@ export default function SearchBar(props: SearchBarProps) {
   return (
     <div class="px-4 pt-3 pb-2">
       <div class="relative">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
-          🔍
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+          <Search size={14} />
         </span>
         <input
           type="text"

@@ -26,6 +26,7 @@ export default function App() {
             viewMode={viewMode()}
             onViewModeChange={handleViewModeChange}
             showExpandButton={false}
+            onOpenSettings={() => setShowSettings(true)}
           />
         </Show>
       </div>
