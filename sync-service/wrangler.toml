@@ -9,4 +9,4 @@ database_id = "db220d17-6573-4757-9636-9de85fd28cf5"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "placeholder-replace-after-create"
+id = "643f8335f6414f4f80d8d1c7e78c0a8e"

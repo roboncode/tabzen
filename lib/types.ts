@@ -39,6 +39,7 @@ export interface Settings {
   syncEnabled: boolean;
   syncToken: string | null;
   syncUrl: string;
+  syncEnv: "production" | "local";
   viewMode: "cards" | "rows";
   activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates";
 }
@@ -49,7 +50,8 @@ export const DEFAULT_SETTINGS: Settings = {
   aiModel: "openai/gpt-4o-mini",
   syncEnabled: false,
   syncToken: null,
-  syncUrl: "https://tab-zen-sync.workers.dev",
+  syncUrl: "",
+  syncEnv: "local",
   viewMode: "cards",
   activeFilter: "all",
 };

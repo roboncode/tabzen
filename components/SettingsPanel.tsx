@@ -9,6 +9,7 @@ import {
   downloadFile,
 } from "@/lib/export";
 import { clearAllData } from "@/lib/db";
+import { initSync, verifySync } from "@/lib/sync";
 import type { Settings } from "@/lib/types";
 
 interface SettingsPanelProps {
@@ -20,6 +21,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [saving, setSaving] = createSignal(false);
   const [importResult, setImportResult] = createSignal<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = createSignal(false);
+  const [syncStatus, setSyncStatus] = createSignal<string | null>(null);
+  const [syncLoading, setSyncLoading] = createSignal(false);
 
   const save = async (updates: Partial<Settings>) => {
     setSaving(true);
@@ -136,39 +139,142 @@ export default function SettingsPanel(props: SettingsPanelProps) {
 
             {/* Sync */}
             <div>
-              <label class="block text-xs font-medium text-muted-foreground mb-1.5">
+              <label class="block text-xs font-medium text-muted-foreground mb-3">
                 Sync
               </label>
-              <div class="flex items-center gap-3 mb-2">
+
+              {/* Environment toggle */}
+              <div class="flex bg-muted/40 rounded-lg p-1 mb-4">
                 <button
-                  class={`px-3 py-1.5 text-xs rounded ${
-                    s().syncEnabled
-                      ? "bg-green-600 text-white"
-                      : "bg-muted/40 text-muted-foreground hover:text-foreground"
+                  class={`flex-1 px-3 py-2 text-sm rounded-md transition-colors ${
+                    s().syncEnv === "local"
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
-                  onClick={() => save({ syncEnabled: !s().syncEnabled })}
+                  onClick={() => save({ syncEnv: "local" })}
                 >
-                  {s().syncEnabled ? "Sync Enabled" : "Enable Sync"}
+                  Local Dev
+                </button>
+                <button
+                  class={`flex-1 px-3 py-2 text-sm rounded-md transition-colors ${
+                    s().syncEnv === "production"
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => save({ syncEnv: "production" })}
+                >
+                  Production
                 </button>
               </div>
-              <Show when={s().syncToken}>
-                <div class="bg-muted/40 rounded-md p-3">
-                  <p class="text-xs text-muted-foreground mb-1">Sync Token</p>
-                  <code class="text-xs text-foreground break-all">
-                    {s().syncToken}
-                  </code>
+
+              {/* Production URL (only shown in production mode) */}
+              <Show when={s().syncEnv === "production"}>
+                <div class="mb-4">
+                  <label class="block text-xs text-muted-foreground mb-1.5">
+                    Sync URL
+                  </label>
+                  <input
+                    class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors placeholder:text-muted-foreground"
+                    value={s().syncUrl}
+                    onChange={(e) => save({ syncUrl: e.currentTarget.value })}
+                    placeholder="https://tab-zen-sync.your-subdomain.workers.dev"
+                  />
                 </div>
               </Show>
-              <div class="mt-2">
-                <label class="block text-xs text-muted-foreground mb-1">
-                  Sync URL
-                </label>
-                <input
-                  class="w-full bg-muted/40 text-xs text-foreground rounded-md px-3 py-2 border border-transparent outline-none focus:bg-muted/60"
-                  value={s().syncUrl}
-                  onChange={(e) => save({ syncUrl: e.currentTarget.value })}
-                />
-              </div>
+
+              {/* Local dev info */}
+              <Show when={s().syncEnv === "local"}>
+                <div class="bg-muted/30 rounded-lg px-3 py-2.5 mb-4">
+                  <p class="text-xs text-muted-foreground">
+                    Connecting to <span class="text-foreground">http://localhost:8787</span>
+                  </p>
+                  <p class="text-xs text-muted-foreground mt-1">
+                    Run <code class="text-foreground">bun run sync:dev</code> to start the local server
+                  </p>
+                </div>
+              </Show>
+
+              {/* Sync token / connect */}
+              <Show
+                when={s().syncToken}
+                fallback={
+                  <div class="space-y-2">
+                    <button
+                      class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                      disabled={syncLoading() || (s().syncEnv === "production" && !s().syncUrl)}
+                      onClick={async () => {
+                        setSyncLoading(true);
+                        setSyncStatus(null);
+                        try {
+                          const token = await initSync();
+                          await save({ syncToken: token, syncEnabled: true });
+                          setSyncStatus("Sync initialized! Token generated.");
+                        } catch (e) {
+                          setSyncStatus(`Failed: ${e}`);
+                        }
+                        setSyncLoading(false);
+                      }}
+                    >
+                      {syncLoading() ? "Connecting..." : "Initialize Sync"}
+                    </button>
+                    <p class="text-xs text-muted-foreground">
+                      Or paste an existing token to connect to another browser's collection:
+                    </p>
+                    <input
+                      class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors placeholder:text-muted-foreground"
+                      placeholder="Paste sync token..."
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter") {
+                          const token = e.currentTarget.value.trim();
+                          if (token) {
+                            setSyncLoading(true);
+                            await save({ syncToken: token, syncEnabled: true });
+                            const valid = await verifySync();
+                            if (valid) {
+                              setSyncStatus("Connected! Token verified.");
+                            } else {
+                              setSyncStatus("Token could not be verified. Check your sync URL and try again.");
+                              await save({ syncToken: null, syncEnabled: false });
+                            }
+                            setSyncLoading(false);
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                }
+              >
+                <div class="space-y-3">
+                  <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-green-500" />
+                    <span class="text-sm text-foreground">Sync active</span>
+                  </div>
+                  <div class="bg-muted/30 rounded-lg p-3">
+                    <p class="text-xs text-muted-foreground mb-1.5">Sync Token</p>
+                    <div class="flex items-center gap-2">
+                      <code class="text-xs text-foreground break-all flex-1">
+                        {s().syncToken}
+                      </code>
+                      <button
+                        class="px-2 py-1 text-xs bg-muted/50 text-muted-foreground rounded hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
+                        onClick={() => navigator.clipboard.writeText(s().syncToken!)}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    class="px-3 py-1.5 text-xs text-red-400 hover:text-red-300 transition-colors"
+                    onClick={() => save({ syncToken: null, syncEnabled: false })}
+                  >
+                    Disconnect sync
+                  </button>
+                </div>
+              </Show>
+
+              <Show when={syncStatus()}>
+                <p class="text-xs text-muted-foreground mt-3">{syncStatus()}</p>
+              </Show>
             </div>
 
             {/* Export / Import */}
