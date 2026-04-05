@@ -165,8 +165,12 @@ export default function TabCollection(props: TabCollectionProps) {
     }
   };
 
-  const openFullPage = () => {
-    browser.tabs.create({ url: browser.runtime.getURL("/tabs.html") });
+  const openFullPage = async () => {
+    await browser.tabs.create({ url: browser.runtime.getURL("/tabs.html") });
+    // Close the side panel if we're in one
+    if (props.showExpandButton) {
+      window.close();
+    }
   };
 
   return (
