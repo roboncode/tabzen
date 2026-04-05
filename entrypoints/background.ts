@@ -68,10 +68,12 @@ export default defineBackground(() => {
   updateBadge();
 
   // --- Context Menu ---
-  browser.contextMenus.create({
-    id: "save-tab-to-tabzen",
-    title: "Save to Tab Zen",
-    contexts: ["page", "link"],
+  browser.contextMenus.removeAll().then(() => {
+    browser.contextMenus.create({
+      id: "save-tab-to-tabzen",
+      title: "Save to Tab Zen",
+      contexts: ["page", "link"],
+    });
   });
 
   browser.contextMenus.onClicked.addListener(async (info, tab) => {
