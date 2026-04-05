@@ -5,7 +5,7 @@ compatibility_date = "2025-04-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "tab-zen-sync"
-database_id = "db220d17-6573-4757-9636-9de85fd28cf5"
+database_id = "placeholder-replace-after-create"
 
 [[kv_namespaces]]
 binding = "KV"

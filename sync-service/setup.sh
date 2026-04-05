@@ -110,9 +110,21 @@ echo ""
 echo "Updating wrangler.toml..."
 
 # Replace placeholder or existing IDs
-sed -i.bak -E "s/database_id = \"[^\"]*\"/database_id = \"$D1_ID\"/" wrangler.toml
-sed -i.bak -E "/\[\[kv_namespaces\]\]/,/^$/{s/id = \"[^\"]*\"/id = \"$KV_ID\"/}" wrangler.toml
-rm -f wrangler.toml.bak
+# Write wrangler.toml fresh with the correct IDs
+cat > wrangler.toml << EOF
+name = "tab-zen-sync"
+main = "src/index.ts"
+compatibility_date = "2025-04-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tab-zen-sync"
+database_id = "$D1_ID"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "$KV_ID"
+EOF
 
 echo "wrangler.toml updated"
 
