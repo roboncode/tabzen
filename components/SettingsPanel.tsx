@@ -1,5 +1,6 @@
 import { createSignal, createResource, Show } from "solid-js";
 import { ArrowLeft } from "lucide-solid";
+import ConfirmDialog from "./ConfirmDialog";
 import { getSettings, updateSettings } from "@/lib/settings";
 import {
   exportAsJson,
@@ -18,6 +19,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [settings] = createResource(async () => getSettings());
   const [saving, setSaving] = createSignal(false);
   const [importResult, setImportResult] = createSignal<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = createSignal(false);
 
   const save = async (updates: Partial<Settings>) => {
     setSaving(true);
@@ -222,13 +224,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 Danger Zone
               </label>
               <button
-                class="px-3 py-1.5 text-xs bg-red-900/50 text-red-300 rounded hover:bg-red-900 border border-red-800"
-                onClick={async () => {
-                  if (confirm("Delete all saved tabs, groups, and captures? This cannot be undone.")) {
-                    await clearAllData();
-                    props.onClose();
-                  }
-                }}
+                class="px-3 py-1.5 text-sm bg-red-900/50 text-red-300 rounded-lg hover:bg-red-900 transition-colors"
+                onClick={() => setShowClearConfirm(true)}
               >
                 Clear All Data
               </button>
@@ -238,6 +235,21 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             </div>
           </div>
         )}
+      </Show>
+
+      <Show when={showClearConfirm()}>
+        <ConfirmDialog
+          title="Clear all data"
+          message="Delete all saved tabs, groups, and captures? This cannot be undone."
+          confirmLabel="Clear Everything"
+          destructive
+          onConfirm={async () => {
+            await clearAllData();
+            setShowClearConfirm(false);
+            props.onClose();
+          }}
+          onCancel={() => setShowClearConfirm(false)}
+        />
       </Show>
     </div>
   );

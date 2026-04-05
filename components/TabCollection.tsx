@@ -23,6 +23,7 @@ import NotesEditor from "./NotesEditor";
 import CapturePreview from "./CapturePreview";
 import EmptyState from "./EmptyState";
 import NoteCard from "./NoteCard";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface TabCollectionProps {
   viewMode: Settings["viewMode"];
@@ -35,6 +36,7 @@ export default function TabCollection(props: TabCollectionProps) {
   const [filter, setFilter] = createSignal<Settings["activeFilter"]>("all");
   const [searchResults, setSearchResults] = createSignal<Tab[] | null>(null);
   const [editingTab, setEditingTab] = createSignal<Tab | null>(null);
+  const [deletingTab, setDeletingTab] = createSignal<Tab | null>(null);
   const [capturePreview, setCapturePreview] =
     createSignal<CapturePreviewData | null>(null);
   const [refreshKey, setRefreshKey] = createSignal(0);
@@ -88,9 +90,10 @@ export default function TabCollection(props: TabCollectionProps) {
   const filteredTabs = () => {
     const tabs = searchResults() || allTabs() || [];
     const f = filter();
-    if (f === "starred") return tabs.filter((t) => t.starred);
-    if (f === "notes") return tabs.filter((t) => t.notes);
-    return tabs;
+    if (f === "archived") return tabs.filter((t) => t.archived);
+    if (f === "starred") return tabs.filter((t) => t.starred && !t.archived);
+    if (f === "notes") return tabs.filter((t) => t.notes && !t.archived);
+    return tabs.filter((t) => !t.archived);
   };
 
   const tabsForGroup = (groupId: string) => {
@@ -135,9 +138,17 @@ export default function TabCollection(props: TabCollectionProps) {
     refresh();
   };
 
-  const handleDelete = async (tab: Tab) => {
-    await deleteTab(tab.id);
-    refresh();
+  const handleDelete = (tab: Tab) => {
+    setDeletingTab(tab);
+  };
+
+  const confirmDelete = async () => {
+    const tab = deletingTab();
+    if (tab) {
+      await deleteTab(tab.id);
+      setDeletingTab(null);
+      refresh();
+    }
   };
 
   const handleRenameGroup = async (group: Group, newName: string) => {
@@ -252,6 +263,20 @@ export default function TabCollection(props: TabCollectionProps) {
             data={preview()}
             onConfirm={handleConfirmCapture}
             onCancel={() => setCapturePreview(null)}
+          />
+        )}
+      </Show>
+
+      {/* Delete Confirmation */}
+      <Show when={deletingTab()}>
+        {(tab) => (
+          <ConfirmDialog
+            title="Delete tab"
+            message={`Remove "${tab().title}" from your collection? This cannot be undone.`}
+            confirmLabel="Delete"
+            destructive
+            onConfirm={confirmDelete}
+            onCancel={() => setDeletingTab(null)}
           />
         )}
       </Show>
