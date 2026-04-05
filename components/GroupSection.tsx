@@ -93,8 +93,8 @@ export default function GroupSection(props: GroupSectionProps) {
             </div>
           }
         >
-          {/* 2-column grid like YouTube */}
-          <div class="grid grid-cols-2 gap-x-4 gap-y-6 px-4">
+          {/* Responsive grid using container queries - adapts to actual panel width */}
+          <div class="grid grid-cols-1 @[480px]:grid-cols-2 @[768px]:grid-cols-3 @[1024px]:grid-cols-4 @[1400px]:grid-cols-5 gap-x-4 gap-y-6 px-4">
             <For each={props.tabs}>
               {(tab) => (
                 <TabCard

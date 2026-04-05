@@ -166,8 +166,8 @@ export default function TabCollection(props: TabCollectionProps) {
       <SearchBar onSearch={handleSearch} onAISearch={handleAISearch} />
       <FilterPills active={filter()} onChange={setFilter} />
 
-      {/* Collection */}
-      <div class="flex-1 overflow-y-auto">
+      {/* Collection - @container for responsive card grid */}
+      <div class="flex-1 overflow-y-auto @container">
         <Show when={(allTabs() || []).length > 0} fallback={<EmptyState />}>
           <For each={filteredGroups()}>
             {(group) => {
