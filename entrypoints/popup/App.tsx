@@ -41,9 +41,9 @@ export default function App() {
   };
 
   const openSidePanel = async () => {
-    const currentWindow = await browser.windows.getCurrent();
-    if (currentWindow.id) {
-      await browser.sidePanel.open({ windowId: currentWindow.id });
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      await browser.sidePanel.open({ tabId: tab.id });
     }
     window.close();
   };
