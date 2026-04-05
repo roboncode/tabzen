@@ -32,3 +32,20 @@ export function isDuplicate(url: string, existingUrls: Set<string>): boolean {
 export function buildUrlSet(urls: string[]): Set<string> {
   return new Set(urls.map(normalizeUrl));
 }
+
+export function getDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace("www.", "");
+  } catch {
+    return "";
+  }
+}
+
+export function isDomainBlocked(url: string, blockedDomains: string[]): boolean {
+  if (!blockedDomains.length) return false;
+  const domain = getDomain(url);
+  return blockedDomains.some((blocked) => {
+    const normalizedBlocked = blocked.replace("www.", "").toLowerCase();
+    return domain === normalizedBlocked || domain.endsWith("." + normalizedBlocked);
+  });
+}

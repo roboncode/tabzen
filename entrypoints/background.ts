@@ -12,7 +12,7 @@ import {
   importData,
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { normalizeUrl, buildUrlSet, isDuplicate } from "@/lib/duplicates";
+import { normalizeUrl, buildUrlSet, isDuplicate, isDomainBlocked } from "@/lib/duplicates";
 import { groupTabsWithAI, aiSearch } from "@/lib/ai";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
 import { encrypt, decrypt } from "@/lib/crypto";
@@ -146,6 +146,7 @@ export default defineBackground(() => {
   async function updateBadge(): Promise<void> {
     const existingTabs = await getAllTabs();
     const existingUrls = buildUrlSet(existingTabs.map((t) => t.url));
+    const settings = await getSettings();
 
     const openTabs = await browser.tabs.query({});
     let uncaptured = 0;
@@ -153,7 +154,8 @@ export default defineBackground(() => {
       if (
         tab.url &&
         !tab.url.startsWith("chrome://") &&
-        !tab.url.startsWith("chrome-extension://")
+        !tab.url.startsWith("chrome-extension://") &&
+        !isDomainBlocked(tab.url, settings.blockedDomains)
       ) {
         if (!isDuplicate(tab.url, existingUrls)) {
           uncaptured++;
@@ -544,7 +546,8 @@ export default defineBackground(() => {
         t.url &&
         !t.url.startsWith("chrome://") &&
         !t.url.startsWith("chrome-extension://") &&
-        !isDuplicate(t.url!, existingUrls),
+        !isDuplicate(t.url!, existingUrls) &&
+        !isDomainBlocked(t.url!, settings.blockedDomains),
     );
 
     // Deduplicate within the batch itself

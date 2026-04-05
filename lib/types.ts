@@ -44,6 +44,7 @@ export interface Settings {
   syncUrl: string;
   syncLocalUrl: string;
   syncEnv: "local" | "remote";
+  blockedDomains: string[];
   viewMode: "cards" | "rows";
   activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates";
 }
@@ -59,6 +60,7 @@ export const DEFAULT_SETTINGS: Settings = {
   syncUrl: "",
   syncLocalUrl: "http://localhost:8787",
   syncEnv: "local",
+  blockedDomains: [],
   viewMode: "cards",
   activeFilter: "all",
 };

@@ -1,5 +1,5 @@
 import { Show } from "solid-js";
-import { Eye, Star, Archive, ArchiveRestore, Trash2 } from "lucide-solid";
+import { Eye, Star, Archive, ArchiveRestore, Trash2, ShieldBan } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 
 interface TabCardProps {
@@ -9,6 +9,7 @@ interface TabCardProps {
   onToggleStar: (tab: Tab) => void;
   onArchive: (tab: Tab) => void;
   onDelete: (tab: Tab) => void;
+  onBlockDomain: (tab: Tab) => void;
 }
 
 export default function TabCard(props: TabCardProps) {
@@ -67,6 +68,13 @@ export default function TabCard(props: TabCardProps) {
             title={props.tab.archived ? "Unarchive" : "Archive"}
           >
             {props.tab.archived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
+          </button>
+          <button
+            class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-black/60 transition-colors"
+            onClick={(e) => { e.stopPropagation(); props.onBlockDomain(props.tab); }}
+            title="Block this domain"
+          >
+            <ShieldBan size={16} />
           </button>
           <button
             class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-red-500/70 transition-colors"

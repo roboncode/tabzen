@@ -14,6 +14,7 @@ interface GroupSectionProps {
   onToggleStar: (tab: Tab) => void;
   onArchive: (tab: Tab) => void;
   onDelete: (tab: Tab) => void;
+  onBlockDomain: (tab: Tab) => void;
 }
 
 export default function GroupSection(props: GroupSectionProps) {
@@ -93,6 +94,7 @@ export default function GroupSection(props: GroupSectionProps) {
                     onToggleStar={props.onToggleStar}
                     onArchive={props.onArchive}
                     onDelete={props.onDelete}
+                    onBlockDomain={props.onBlockDomain}
                   />
                 )}
               </For>

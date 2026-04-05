@@ -15,6 +15,7 @@ import {
   deleteTab,
 } from "@/lib/db";
 import { sendMessage } from "@/lib/messages";
+import { getSettings, updateSettings } from "@/lib/settings";
 import GroupSection from "./GroupSection";
 import SearchBar from "./SearchBar";
 import FilterPills from "./FilterPills";
@@ -214,6 +215,31 @@ export default function TabCollection(props: TabCollectionProps) {
     setDeletingTab(tab);
   };
 
+  const [blockingTab, setBlockingTab] = createSignal<Tab | null>(null);
+
+  const handleBlockDomain = (tab: Tab) => {
+    setBlockingTab(tab);
+  };
+
+  const confirmBlockDomain = async () => {
+    const tab = blockingTab();
+    if (tab) {
+      const domain = (() => {
+        try { return new URL(tab.url).hostname.replace("www.", ""); }
+        catch { return ""; }
+      })();
+      if (domain) {
+        const settings = await getSettings();
+        const blocked = [...(settings.blockedDomains || [])];
+        if (!blocked.includes(domain)) {
+          blocked.push(domain);
+          await updateSettings({ blockedDomains: blocked });
+        }
+      }
+      setBlockingTab(null);
+    }
+  };
+
   const confirmDelete = async () => {
     const tab = deletingTab();
     if (tab) {
@@ -331,6 +357,7 @@ export default function TabCollection(props: TabCollectionProps) {
                   onToggleStar={handleToggleStar}
                   onArchive={handleArchive}
                   onDelete={handleDelete}
+                  onBlockDomain={handleBlockDomain}
                 />
               )}
             </For>
@@ -396,6 +423,25 @@ export default function TabCollection(props: TabCollectionProps) {
             onCancel={() => setDeletingTab(null)}
           />
         )}
+      </Show>
+
+      {/* Block Domain Confirmation */}
+      <Show when={blockingTab()}>
+        {(tab) => {
+          const domain = () => {
+            try { return new URL(tab().url).hostname.replace("www.", ""); }
+            catch { return tab().url; }
+          };
+          return (
+            <ConfirmDialog
+              title="Block domain"
+              message={`Block "${domain()}"? Future captures will skip all tabs from this domain. You can unblock it in Settings.`}
+              confirmLabel="Block"
+              onConfirm={confirmBlockDomain}
+              onCancel={() => setBlockingTab(null)}
+            />
+          );
+        }}
       </Show>
     </div>
   );

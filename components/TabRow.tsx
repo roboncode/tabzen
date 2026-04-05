@@ -1,5 +1,5 @@
 import { Show } from "solid-js";
-import { Eye, Star, Archive, ArchiveRestore, Trash2 } from "lucide-solid";
+import { Eye, Star, Archive, ArchiveRestore, Trash2, ShieldBan } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 
 interface TabRowProps {
@@ -9,6 +9,7 @@ interface TabRowProps {
   onToggleStar: (tab: Tab) => void;
   onArchive: (tab: Tab) => void;
   onDelete: (tab: Tab) => void;
+  onBlockDomain: (tab: Tab) => void;
 }
 
 export default function TabRow(props: TabRowProps) {
@@ -85,6 +86,13 @@ export default function TabRow(props: TabRowProps) {
             title={props.tab.archived ? "Unarchive" : "Archive"}
           >
             {props.tab.archived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+          </button>
+          <button
+            class="p-1.5 rounded-md bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
+            onClick={(e) => { e.stopPropagation(); props.onBlockDomain(props.tab); }}
+            title="Block this domain"
+          >
+            <ShieldBan size={15} />
           </button>
           <button
             class="p-1.5 rounded-md bg-muted/50 text-muted-foreground hover:bg-red-500/20 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
