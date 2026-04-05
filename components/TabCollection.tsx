@@ -67,7 +67,8 @@ export default function TabCollection(props: TabCollectionProps) {
 
     let filtered: Group[];
     if (f === "archived") {
-      filtered = groups.filter((g) => g.archived);
+      // Show all groups -- archived tabs can live in any group
+      filtered = [...groups];
     } else {
       filtered = groups.filter((g) => !g.archived);
     }
