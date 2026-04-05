@@ -314,35 +314,52 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                             <Show
                               when={!pasteMode()}
                               fallback={
-                                <div class="space-y-3">
-                                  <input
-                                    class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2.5 outline-none focus:bg-muted/60 transition-colors placeholder:text-muted-foreground"
-                                    placeholder="Paste token and press Enter..."
-                                    onKeyDown={async (e) => {
-                                      if (e.key === "Enter") {
-                                        const token = e.currentTarget.value.trim();
-                                        if (token) {
-                                          setSyncLoading(true);
-                                          await save({ [tokenKey()]: token, syncEnabled: true });
-                                          const valid = await verifySync();
-                                          if (valid) {
-                                            setSyncStatus("Token verified!");
-                                          } else {
-                                            setSyncStatus("Invalid token.");
-                                            await save({ [tokenKey()]: null, syncEnabled: false });
-                                          }
-                                          setSyncLoading(false);
-                                        }
-                                      }
-                                    }}
-                                  />
-                                  <button
-                                    class="px-4 py-2 text-sm bg-muted/50 text-foreground rounded-lg hover:bg-muted transition-colors"
-                                    onClick={() => setPasteMode(false)}
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
+                                {(() => {
+                                  const [pasteValue, setPasteValue] = createSignal("");
+
+                                  const handleConnect = async () => {
+                                    const token = pasteValue().trim();
+                                    if (!token) return;
+                                    setSyncLoading(true);
+                                    setSyncStatus(null);
+                                    await save({ [tokenKey()]: token, syncEnabled: true });
+                                    const valid = await verifySync();
+                                    if (valid) {
+                                      setSyncStatus("Connected! Syncing will start automatically.");
+                                    } else {
+                                      setSyncStatus("Invalid token or server unreachable.");
+                                      await save({ [tokenKey()]: null, syncEnabled: false });
+                                    }
+                                    setSyncLoading(false);
+                                  };
+
+                                  return (
+                                    <div class="space-y-3">
+                                      <input
+                                        class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2.5 outline-none focus:bg-muted/60 transition-colors placeholder:text-muted-foreground"
+                                        placeholder="Paste sync token..."
+                                        value={pasteValue()}
+                                        onInput={(e) => setPasteValue(e.currentTarget.value)}
+                                        onKeyDown={(e) => e.key === "Enter" && handleConnect()}
+                                      />
+                                      <div class="flex items-center gap-2">
+                                        <button
+                                          class="flex-1 px-4 py-2.5 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                                          disabled={syncLoading() || !pasteValue().trim()}
+                                          onClick={handleConnect}
+                                        >
+                                          {syncLoading() ? "Connecting..." : "Connect"}
+                                        </button>
+                                        <button
+                                          class="px-4 py-2.5 text-sm bg-muted/50 text-foreground rounded-lg hover:bg-muted transition-colors"
+                                          onClick={() => setPasteMode(false)}
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
                               }
                             >
                               <div class="flex items-center gap-2">
