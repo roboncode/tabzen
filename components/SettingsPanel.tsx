@@ -153,22 +153,22 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   }`}
                   onClick={() => save({ syncEnv: "local" })}
                 >
-                  Local Dev
+                  Local
                 </button>
                 <button
                   class={`flex-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                    s().syncEnv === "production"
+                    s().syncEnv === "remote"
                       ? "bg-muted text-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
-                  onClick={() => save({ syncEnv: "production" })}
+                  onClick={() => save({ syncEnv: "remote" })}
                 >
-                  Production
+                  Remote
                 </button>
               </div>
 
-              {/* Production URL (only shown in production mode) */}
-              <Show when={s().syncEnv === "production"}>
+              {/* Remote URL (only shown in production mode) */}
+              <Show when={s().syncEnv === "remote"}>
                 <div class="mb-4">
                   <label class="block text-xs text-muted-foreground mb-1.5">
                     Sync URL
@@ -201,7 +201,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   <div class="space-y-2">
                     <button
                       class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                      disabled={syncLoading() || (s().syncEnv === "production" && !s().syncUrl)}
+                      disabled={syncLoading() || (s().syncEnv === "remote" && !s().syncUrl)}
                       onClick={async () => {
                         setSyncLoading(true);
                         setSyncStatus(null);

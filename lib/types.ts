@@ -39,7 +39,7 @@ export interface Settings {
   syncEnabled: boolean;
   syncToken: string | null;
   syncUrl: string;
-  syncEnv: "production" | "local";
+  syncEnv: "local" | "remote";
   viewMode: "cards" | "rows";
   activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates";
 }
