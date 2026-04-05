@@ -20,7 +20,7 @@ export default function FilterPills(props: FilterPillsProps) {
       <For each={FILTERS}>
         {(filter) => (
           <button
-            class={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap ${
+            class={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap outline-none ${
               props.active === filter.key
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
