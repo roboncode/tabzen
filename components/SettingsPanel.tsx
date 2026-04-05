@@ -1,5 +1,5 @@
 import { createSignal, createResource, Show } from "solid-js";
-import { ArrowLeft } from "lucide-solid";
+import { ArrowLeft, User, Sparkles, RefreshCw, Database, AlertTriangle } from "lucide-solid";
 import ConfirmDialog from "./ConfirmDialog";
 import { getSettings, updateSettings } from "@/lib/settings";
 import {
@@ -85,8 +85,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           <div class="p-4 space-y-2">
 
             {/* ═══ General ═══ */}
-            <p class="text-xs font-medium uppercase tracking-wider text-muted-foreground bg-muted/50 rounded px-3 py-1.5">
-              General
+            <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
+              <User size={14} /> General
             </p>
             <div class="space-y-4 px-1 py-3">
               <div>
@@ -105,8 +105,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             </div>
 
             {/* ═══ AI ═══ */}
-            <p class="text-xs font-medium uppercase tracking-wider text-muted-foreground bg-muted/50 rounded px-3 py-1.5">
-              AI
+            <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
+              <Sparkles size={14} /> AI
             </p>
             <div class="space-y-4 px-1 py-3">
               <div>
@@ -180,8 +180,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             </div>
 
             {/* ═══ Sync ═══ */}
-            <p class="text-xs font-medium uppercase tracking-wider text-muted-foreground bg-muted/50 rounded px-3 py-1.5">
-              Sync
+            <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
+              <RefreshCw size={14} /> Sync
             </p>
             <div class="px-1 py-3 space-y-4">
 
@@ -401,8 +401,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             </div>
 
             {/* ═══ Data ═══ */}
-            <p class="text-xs font-medium uppercase tracking-wider text-muted-foreground bg-muted/50 rounded px-3 py-1.5">
-              Data
+            <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
+              <Database size={14} /> Data
             </p>
             <div class="px-1 py-3 space-y-4">
               <div class="flex flex-wrap gap-2">
@@ -441,8 +441,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             </div>
 
             {/* ═══ Danger Zone ═══ */}
-            <p class="text-xs font-medium uppercase tracking-wider text-red-400/80 bg-red-500/10 rounded px-3 py-1.5">
-              Danger Zone
+            <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-red-400/70 bg-red-500/10 -mx-4 px-4 py-2.5 mt-2">
+              <AlertTriangle size={14} /> Danger Zone
             </p>
             <div class="px-1 py-3">
               <button
