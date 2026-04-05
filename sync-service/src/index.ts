@@ -47,6 +47,35 @@ app.post("/sync/verify", async (c) => {
   return c.json({ valid });
 });
 
+app.post("/sync/status", async (c) => {
+  const token = await getToken(c);
+  if (!token || !(await validateToken(c.env.KV, token))) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const tab = await c.env.DB.prepare(
+    "SELECT MAX(updated_at) as last_updated FROM tabs WHERE sync_token = ?",
+  ).bind(token).first();
+
+  const group = await c.env.DB.prepare(
+    "SELECT MAX(updated_at) as last_updated FROM groups WHERE sync_token = ?",
+  ).bind(token).first();
+
+  const capture = await c.env.DB.prepare(
+    "SELECT MAX(updated_at) as last_updated FROM captures WHERE sync_token = ?",
+  ).bind(token).first();
+
+  const dates = [
+    tab?.last_updated as string | null,
+    group?.last_updated as string | null,
+    capture?.last_updated as string | null,
+  ].filter(Boolean).sort();
+
+  return c.json({
+    lastUpdatedAt: dates.length ? dates[dates.length - 1] : null,
+  });
+});
+
 app.post("/sync/push", async (c) => {
   const token = await getToken(c);
   if (!token || !(await validateToken(c.env.KV, token))) {

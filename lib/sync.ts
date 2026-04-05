@@ -68,6 +68,16 @@ export async function verifySync(): Promise<boolean> {
   }
 }
 
+export async function getRemoteStatus(): Promise<string | null> {
+  try {
+    const response = await syncRequest("/sync/status");
+    const data = await response.json();
+    return data.lastUpdatedAt || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function pushSync(payload: SyncPayload): Promise<void> {
   await syncRequest("/sync/push", payload);
 }

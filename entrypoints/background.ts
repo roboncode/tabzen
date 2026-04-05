@@ -14,7 +14,7 @@ import {
 import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate } from "@/lib/duplicates";
 import { groupTabsWithAI, aiSearch } from "@/lib/ai";
-import { pushSync, pullSync } from "@/lib/sync";
+import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
 import type {
   Tab,
   Group,
@@ -35,13 +35,18 @@ export default defineBackground(() => {
   // --- Sync ---
   let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   let lastSyncedAt = "1970-01-01T00:00:00Z";
+  const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+  async function isSyncActive(): Promise<boolean> {
+    const settings = await getSettings();
+    if (!settings.syncEnabled) return false;
+    const token = settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken;
+    return !!token;
+  }
 
   async function syncPush(): Promise<void> {
     try {
-      const settings = await getSettings();
-      if (!settings.syncEnabled) return;
-      const activeToken = settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken;
-      if (!activeToken) return;
+      if (!(await isSyncActive())) return;
 
       const data = await getAllData();
       await pushSync({
@@ -50,6 +55,7 @@ export default defineBackground(() => {
         captures: data.captures,
         lastSyncedAt: new Date().toISOString(),
       });
+      lastSyncedAt = new Date().toISOString();
       console.log("[TabZen] Sync pushed", data.tabs.length, "tabs");
     } catch (e) {
       console.warn("[TabZen] Sync push failed:", e);
@@ -61,21 +67,26 @@ export default defineBackground(() => {
     syncDebounceTimer = setTimeout(() => syncPush(), 2000);
   }
 
-  async function syncPull(): Promise<void> {
+  async function syncPullIfNeeded(): Promise<void> {
     try {
-      const settings = await getSettings();
-      if (!settings.syncEnabled) return;
-      const activeToken = settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken;
-      if (!activeToken) return;
+      if (!(await isSyncActive())) return;
 
+      // Lightweight check: is there anything newer on the server?
+      const remoteTimestamp = await getRemoteStatus();
+      if (!remoteTimestamp || remoteTimestamp <= lastSyncedAt) {
+        console.log("[TabZen] Sync check: server has no new data");
+        return;
+      }
+
+      // Server has newer data, do a full pull
       const remote = await pullSync(lastSyncedAt);
       if (remote && (remote.tabs.length || remote.groups.length || remote.captures.length)) {
-        // Ensure starred field exists on pulled tabs
         const tabs = remote.tabs.map((t) => ({ ...t, starred: t.starred ?? false }));
         await importData({ tabs, groups: remote.groups, captures: remote.captures });
         lastSyncedAt = remote.lastSyncedAt;
         console.log("[TabZen] Sync pulled", tabs.length, "tabs");
-        notifyDataChanged();
+        // Notify UI without triggering another push
+        browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
         await updateBadge();
       }
     } catch (e) {
@@ -84,7 +95,17 @@ export default defineBackground(() => {
   }
 
   // Pull on startup
-  syncPull();
+  syncPullIfNeeded();
+
+  // Pull on interval (every 5 minutes)
+  setInterval(() => syncPullIfNeeded(), SYNC_INTERVAL);
+
+  // Pull when browser regains focus
+  browser.windows.onFocusChanged.addListener((windowId) => {
+    if (windowId !== browser.windows.WINDOW_ID_NONE) {
+      syncPullIfNeeded();
+    }
+  });
 
   // --- Badge: Uncaptured tab count ---
   async function updateBadge(): Promise<void> {
