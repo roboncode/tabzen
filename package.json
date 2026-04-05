@@ -1,6 +1,6 @@
 {
-  "name": "wxt-solid-starter",
-  "description": "manifest.json description",
+  "name": "tab-zen",
+  "description": "AI-powered tab organization and management",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -14,7 +14,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "compile": "tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "sync:dev": "cd sync-service && npm run dev",
+    "sync:deploy": "cd sync-service && npm run deploy",
+    "sync:db:create": "cd sync-service && wrangler d1 create tab-zen-sync",
+    "sync:kv:create": "cd sync-service && wrangler kv namespace create KV",
+    "sync:db:migrate": "cd sync-service && wrangler d1 execute tab-zen-sync --file=schema.sql --remote"
   },
   "dependencies": {
     "@wxt-dev/storage": "^1.2.8",
