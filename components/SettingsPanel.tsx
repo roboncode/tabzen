@@ -314,7 +314,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                             <Show
                               when={!pasteMode()}
                               fallback={
-                                <div class="space-y-2">
+                                <div class="space-y-3">
                                   <input
                                     class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2.5 outline-none focus:bg-muted/60 transition-colors placeholder:text-muted-foreground"
                                     placeholder="Paste token and press Enter..."
@@ -337,10 +337,10 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                                     }}
                                   />
                                   <button
-                                    class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                    class="px-4 py-2 text-sm bg-muted/50 text-foreground rounded-lg hover:bg-muted transition-colors"
                                     onClick={() => setPasteMode(false)}
                                   >
-                                    Back
+                                    Cancel
                                   </button>
                                 </div>
                               }
