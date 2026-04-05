@@ -11,6 +11,8 @@
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare"
   },
@@ -24,11 +26,14 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
     "@types/uuid": "^10.0.0",
+    "@vitest/browser": "^4.1.2",
     "@wxt-dev/module-solid": "^1.1.4",
     "autoprefixer": "^10.4.27",
+    "happy-dom": "^20.8.9",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
+    "vitest": "^4.1.2",
     "wxt": "^0.20.20"
   }
 }

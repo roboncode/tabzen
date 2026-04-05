@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import {
   getAllTabs,
+  getAllGroups,
   addTabs,
   addGroups,
   addCapture,
@@ -119,9 +120,14 @@ export default defineBackground(() => {
 
   async function handleCaptureAllTabs(): Promise<MessageResponse> {
     try {
+      console.log("[TabZen] Building capture preview...");
       const preview = await buildCapturePreview();
+      console.log("[TabZen] Preview built:", preview.tabs.length, "tabs,", preview.groups.length, "groups");
+      console.log("[TabZen] Groups:", preview.groups.map((g) => `${g.groupName} (${g.tabIds.length})`));
+      console.log("[TabZen] Tabs with groupIds:", preview.tabs.filter((t) => t.groupId).length, "/", preview.tabs.length);
       return { type: "CAPTURE_PREVIEW", data: preview };
     } catch (e) {
+      console.error("[TabZen] Capture preview error:", e);
       return { type: "ERROR", message: String(e) };
     }
   }
@@ -149,9 +155,15 @@ export default defineBackground(() => {
     captureData: CapturePreviewData,
   ): Promise<MessageResponse> {
     try {
+      console.log("[TabZen] Confirming capture:", captureData.tabs.length, "tabs");
+      console.log("[TabZen] Tabs groupIds check:", captureData.tabs.map((t) => ({ id: t.id.slice(0, 8), groupId: t.groupId?.slice(0, 8) || "EMPTY" })));
       await confirmCapture(captureData);
+      const savedTabs = await getAllTabs();
+      const savedGroups = await getAllGroups();
+      console.log("[TabZen] After save - DB has", savedTabs.length, "tabs,", savedGroups.length, "groups");
       return { type: "SUCCESS" };
     } catch (e) {
+      console.error("[TabZen] Confirm capture error:", e);
       return { type: "ERROR", message: String(e) };
     }
   }
