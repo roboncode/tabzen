@@ -10,6 +10,7 @@ import {
 } from "@/lib/export";
 import { clearAllData } from "@/lib/db";
 import { initSync, verifySync, checkConnection } from "@/lib/sync";
+import { sendMessage } from "@/lib/messages";
 import type { Settings } from "@/lib/types";
 
 interface SettingsPanelProps {
@@ -383,9 +384,29 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                       {/* Connected with token */}
                       <div class="space-y-3">
                         <div class="bg-muted/30 rounded-lg p-4">
-                          <div class="flex items-center gap-2 mb-3">
-                            <div class="w-2.5 h-2.5 rounded-full bg-green-500" />
-                            <span class="text-sm text-foreground">Syncing</span>
+                          <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                              <div class="w-2.5 h-2.5 rounded-full bg-green-500" />
+                              <span class="text-sm text-foreground">Syncing</span>
+                            </div>
+                            <button
+                              class="px-3 py-1.5 text-sm bg-muted/50 text-foreground rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+                              disabled={syncLoading()}
+                              onClick={async () => {
+                                setSyncLoading(true);
+                                setSyncStatus(null);
+                                const response = await sendMessage({ type: "SYNC_NOW" });
+                                if (response.type === "SYNC_COMPLETE") {
+                                  setSyncStatus(`Synced! Pushed ${response.pushed} tabs, pulled ${response.pulled} new tabs.`);
+                                  setConnected(true);
+                                } else if (response.type === "ERROR") {
+                                  setSyncStatus(`Sync failed: ${response.message}`);
+                                }
+                                setSyncLoading(false);
+                              }}
+                            >
+                              {syncLoading() ? "Syncing..." : "Sync Now"}
+                            </button>
                           </div>
                           <p class="text-xs text-muted-foreground mb-1.5">Token</p>
                           <div class="flex items-center gap-2">

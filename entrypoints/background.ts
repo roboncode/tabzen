@@ -201,6 +201,8 @@ export default defineBackground(() => {
         return handleAISearch(message.query);
       case "OPEN_TAB":
         return handleOpenTab(message.tabId);
+      case "SYNC_NOW":
+        return handleSyncNow();
       default:
         return { type: "ERROR", message: "Unknown message type" };
     }
@@ -319,6 +321,46 @@ export default defineBackground(() => {
 
     const updated = await getTab(tabId);
     return { type: "TAB_OPENED", tab: updated! };
+  }
+
+  async function handleSyncNow(): Promise<MessageResponse> {
+    try {
+      if (!(await isSyncActive())) {
+        return { type: "ERROR", message: "Sync is not enabled" };
+      }
+
+      // Push local data first
+      const data = await getAllData();
+      let pushed = data.tabs.length;
+      await pushSync({
+        tabs: data.tabs,
+        groups: data.groups,
+        captures: data.captures,
+        lastSyncedAt: new Date().toISOString(),
+      });
+      console.log("[TabZen] Manual sync: pushed", pushed, "tabs");
+
+      // Then pull remote data
+      let pulled = 0;
+      const remote = await pullSync("1970-01-01T00:00:00Z");
+      if (remote && (remote.tabs.length || remote.groups.length || remote.captures.length)) {
+        const tabs = remote.tabs.map((t) => ({ ...t, starred: t.starred ?? false }));
+        const result = await importData({ tabs, groups: remote.groups, captures: remote.captures });
+        pulled = result.imported;
+        lastSyncedAt = remote.lastSyncedAt;
+        console.log("[TabZen] Manual sync: pulled", pulled, "new tabs");
+        if (pulled > 0) {
+          browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
+          await updateBadge();
+        }
+      }
+
+      lastSyncedAt = new Date().toISOString();
+      return { type: "SYNC_COMPLETE", pushed, pulled };
+    } catch (e) {
+      console.error("[TabZen] Manual sync error:", e);
+      return { type: "ERROR", message: String(e) };
+    }
   }
 
   // --- Capture helpers ---
