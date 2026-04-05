@@ -359,10 +359,10 @@ export default defineBackground(() => {
       }),
     );
 
-    let groups: { groupName: string; tabIds: string[] }[];
+    let aiGroups: { groupName: string; tabIds: string[] }[];
     if (settings.openRouterApiKey && tabsWithMeta.length > 0) {
       try {
-        groups = await groupTabsWithAI(
+        aiGroups = await groupTabsWithAI(
           settings.openRouterApiKey,
           settings.aiModel,
           tabsWithMeta.map((t) => ({
@@ -373,25 +373,54 @@ export default defineBackground(() => {
           })),
         );
       } catch {
-        groups = groupByDomain(tabsWithMeta);
+        aiGroups = groupByDomain(tabsWithMeta);
       }
     } else {
-      groups = groupByDomain(tabsWithMeta);
+      aiGroups = groupByDomain(tabsWithMeta);
     }
 
-    const groupObjects: { groupName: string; tabIds: string[] }[] = [];
-    for (const g of groups) {
+    // Build a lookup of valid tab IDs for fast matching
+    const validTabIds = new Set(tabsWithMeta.map((t) => t.id));
+
+    // Assign group IDs to tabs, tracking which tabs got assigned
+    const assignedTabIds = new Set<string>();
+    const groupObjects: { groupName: string; groupId: string; tabIds: string[] }[] = [];
+
+    for (const g of aiGroups) {
       const groupId = uuidv4();
-      groupObjects.push({ groupName: g.groupName, tabIds: g.tabIds });
+      const matchedTabIds: string[] = [];
       for (const tabId of g.tabIds) {
-        const tab = tabsWithMeta.find((t) => t.id === tabId);
-        if (tab) tab.groupId = groupId;
+        if (validTabIds.has(tabId)) {
+          const tab = tabsWithMeta.find((t) => t.id === tabId);
+          if (tab) {
+            tab.groupId = groupId;
+            assignedTabIds.add(tabId);
+            matchedTabIds.push(tabId);
+          }
+        }
       }
+      if (matchedTabIds.length > 0) {
+        groupObjects.push({ groupName: g.groupName, groupId, tabIds: matchedTabIds });
+      }
+    }
+
+    // Catch any unassigned tabs (AI missed them or returned wrong IDs)
+    const unassigned = tabsWithMeta.filter((t) => !assignedTabIds.has(t.id));
+    if (unassigned.length > 0) {
+      const otherGroupId = uuidv4();
+      for (const tab of unassigned) {
+        tab.groupId = otherGroupId;
+      }
+      groupObjects.push({
+        groupName: "Other",
+        groupId: otherGroupId,
+        tabIds: unassigned.map((t) => t.id),
+      });
     }
 
     return {
       captureId,
-      groups: groupObjects,
+      groups: groupObjects.map((g) => ({ groupName: g.groupName, tabIds: g.tabIds })),
       tabs: tabsWithMeta,
     };
   }
@@ -421,18 +450,27 @@ export default defineBackground(() => {
   async function confirmCapture(preview: CapturePreviewData): Promise<void> {
     const settings = await getSettings();
 
-    const groups: Group[] = preview.groups.map((g, i) => {
-      const groupId =
-        preview.tabs.find((t) => g.tabIds.includes(t.id))?.groupId ||
-        uuidv4();
-      return {
+    // Build groups from the tabs' groupIds (already assigned in buildCapturePreview)
+    const groupIdToName = new Map<string, string>();
+    for (const g of preview.groups) {
+      for (const tabId of g.tabIds) {
+        const tab = preview.tabs.find((t) => t.id === tabId);
+        if (tab && tab.groupId) {
+          groupIdToName.set(tab.groupId, g.groupName);
+          break;
+        }
+      }
+    }
+
+    const groups: Group[] = Array.from(groupIdToName.entries()).map(
+      ([groupId, name], i) => ({
         id: groupId,
-        name: g.groupName,
+        name,
         captureId: preview.captureId,
         position: i,
         archived: false,
-      };
-    });
+      }),
+    );
 
     const capture: Capture = {
       id: preview.captureId,
