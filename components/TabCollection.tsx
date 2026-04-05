@@ -101,6 +101,43 @@ export default function TabCollection(props: TabCollectionProps) {
     return filteredTabs().filter((t) => t.groupId === groupId);
   };
 
+  const formatDateLabel = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today.getTime() - 86400000);
+    const tabDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    if (tabDay.getTime() === today.getTime()) return "Today";
+    if (tabDay.getTime() === yesterday.getTime()) return "Yesterday";
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+    });
+  };
+
+  const tabsByDate = () => {
+    const tabs = filteredTabs();
+    const groups = new Map<string, { label: string; tabs: Tab[] }>();
+
+    // Sort by capturedAt descending
+    const sorted = [...tabs].sort((a, b) =>
+      b.capturedAt.localeCompare(a.capturedAt),
+    );
+
+    for (const tab of sorted) {
+      const dayKey = tab.capturedAt.slice(0, 10); // YYYY-MM-DD
+      if (!groups.has(dayKey)) {
+        groups.set(dayKey, { label: formatDateLabel(tab.capturedAt), tabs: [] });
+      }
+      groups.get(dayKey)!.tabs.push(tab);
+    }
+
+    return Array.from(groups.values());
+  };
+
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
       setSearchResults(null);
@@ -209,23 +246,48 @@ export default function TabCollection(props: TabCollectionProps) {
       {/* Collection - @container for responsive card grid */}
       <div class="flex-1 overflow-y-auto @container">
         <Show when={(allTabs() || []).length > 0} fallback={<EmptyState />}>
-          <Show
-            when={filter() !== "notes"}
-            fallback={
-              /* Notes view - note-first layout */
-              <div class="grid grid-cols-1 @[600px]:grid-cols-2 @[900px]:grid-cols-3 gap-4 p-4">
-                <For each={filteredTabs()}>
-                  {(tab) => (
-                    <NoteCard
-                      tab={tab}
-                      onOpen={handleOpenTab}
-                      onEditNotes={setEditingTab}
-                    />
-                  )}
-                </For>
-              </div>
-            }
-          >
+          {/* Notes view */}
+          <Show when={filter() === "notes"}>
+            <div class="grid grid-cols-1 @[600px]:grid-cols-2 @[900px]:grid-cols-3 gap-4 p-4">
+              <For each={filteredTabs()}>
+                {(tab) => (
+                  <NoteCard
+                    tab={tab}
+                    onOpen={handleOpenTab}
+                    onEditNotes={setEditingTab}
+                  />
+                )}
+              </For>
+            </div>
+          </Show>
+
+          {/* By Date view */}
+          <Show when={filter() === "byDate"}>
+            <For each={tabsByDate()}>
+              {(dateGroup) => (
+                <GroupSection
+                  group={{
+                    id: dateGroup.label,
+                    name: dateGroup.label,
+                    captureId: "",
+                    position: 0,
+                    archived: false,
+                  }}
+                  tabs={dateGroup.tabs}
+                  viewMode={props.viewMode}
+                  onOpenTab={handleOpenTab}
+                  onEditNotes={setEditingTab}
+                  onRenameGroup={() => {}}
+                  onToggleStar={handleToggleStar}
+                  onArchive={handleArchive}
+                  onDelete={handleDelete}
+                />
+              )}
+            </For>
+          </Show>
+
+          {/* Default group view (All, Starred, Archived, Duplicates) */}
+          <Show when={filter() !== "notes" && filter() !== "byDate"}>
             <For each={filteredGroups()}>
               {(group) => {
                 const tabs = () => tabsForGroup(group.id);
