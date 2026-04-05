@@ -49,31 +49,31 @@ export default function TabCard(props: TabCardProps) {
           </div>
         )}
         {/* Action buttons overlay */}
-        <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div class="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            class={`p-1.5 rounded-md backdrop-blur-sm transition-colors ${
+            class={`p-2 rounded-lg transition-colors ${
               props.tab.starred
-                ? "text-yellow-400 opacity-100 bg-black/30"
-                : "text-white/80 bg-black/30 hover:bg-black/50"
+                ? "text-yellow-400 bg-black/40"
+                : "text-foreground/90 bg-black/40 hover:bg-black/60"
             }`}
             onClick={(e) => { e.stopPropagation(); props.onToggleStar(props.tab); }}
             title={props.tab.starred ? "Unstar" : "Star"}
           >
-            <Star size={14} fill={props.tab.starred ? "currentColor" : "none"} />
+            <Star size={16} fill={props.tab.starred ? "currentColor" : "none"} />
           </button>
           <button
-            class="p-1.5 rounded-md text-white/80 bg-black/30 hover:bg-black/50 backdrop-blur-sm transition-colors"
+            class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-black/60 transition-colors"
             onClick={(e) => { e.stopPropagation(); props.onArchive(props.tab); }}
             title={props.tab.archived ? "Unarchive" : "Archive"}
           >
-            {props.tab.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+            {props.tab.archived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
           </button>
           <button
-            class="p-1.5 rounded-md text-white/80 bg-black/30 hover:bg-red-500/80 backdrop-blur-sm transition-colors"
+            class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-red-500/70 transition-colors"
             onClick={(e) => { e.stopPropagation(); props.onDelete(props.tab); }}
             title="Delete"
           >
-            <Trash2 size={14} />
+            <Trash2 size={16} />
           </button>
         </div>
         {/* Starred indicator - always visible when starred */}

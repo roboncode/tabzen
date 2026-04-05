@@ -80,18 +80,18 @@ export default function TabRow(props: TabRowProps) {
             </button>
           </Show>
           <button
-            class="text-muted-foreground/30 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-all"
+            class="p-1.5 rounded-md bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
             onClick={(e) => { e.stopPropagation(); props.onArchive(props.tab); }}
             title={props.tab.archived ? "Unarchive" : "Archive"}
           >
-            {props.tab.archived ? <ArchiveRestore size={13} /> : <Archive size={13} />}
+            {props.tab.archived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
           </button>
           <button
-            class="text-muted-foreground/30 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+            class="p-1.5 rounded-md bg-muted/50 text-muted-foreground hover:bg-red-500/20 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
             onClick={(e) => { e.stopPropagation(); props.onDelete(props.tab); }}
             title="Delete"
           >
-            <Trash2 size={13} />
+            <Trash2 size={15} />
           </button>
         </div>
       </div>
