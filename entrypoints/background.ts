@@ -2,16 +2,19 @@ import { v4 as uuidv4 } from "uuid";
 import {
   getAllTabs,
   getAllGroups,
+  getAllData,
   addTabs,
   addGroups,
   addCapture,
   updateTab,
   getTab,
   searchTabs,
+  importData,
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate } from "@/lib/duplicates";
 import { groupTabsWithAI, aiSearch } from "@/lib/ai";
+import { pushSync, pullSync } from "@/lib/sync";
 import type {
   Tab,
   Group,
@@ -26,7 +29,62 @@ export default defineBackground(() => {
     browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {
       // No listeners - that's fine (no UI views open)
     });
+    debouncedSyncPush();
   }
+
+  // --- Sync ---
+  let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastSyncedAt = "1970-01-01T00:00:00Z";
+
+  async function syncPush(): Promise<void> {
+    try {
+      const settings = await getSettings();
+      if (!settings.syncEnabled) return;
+      const activeToken = settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken;
+      if (!activeToken) return;
+
+      const data = await getAllData();
+      await pushSync({
+        tabs: data.tabs,
+        groups: data.groups,
+        captures: data.captures,
+        lastSyncedAt: new Date().toISOString(),
+      });
+      console.log("[TabZen] Sync pushed", data.tabs.length, "tabs");
+    } catch (e) {
+      console.warn("[TabZen] Sync push failed:", e);
+    }
+  }
+
+  function debouncedSyncPush(): void {
+    if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+    syncDebounceTimer = setTimeout(() => syncPush(), 2000);
+  }
+
+  async function syncPull(): Promise<void> {
+    try {
+      const settings = await getSettings();
+      if (!settings.syncEnabled) return;
+      const activeToken = settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken;
+      if (!activeToken) return;
+
+      const remote = await pullSync(lastSyncedAt);
+      if (remote && (remote.tabs.length || remote.groups.length || remote.captures.length)) {
+        // Ensure starred field exists on pulled tabs
+        const tabs = remote.tabs.map((t) => ({ ...t, starred: t.starred ?? false }));
+        await importData({ tabs, groups: remote.groups, captures: remote.captures });
+        lastSyncedAt = remote.lastSyncedAt;
+        console.log("[TabZen] Sync pulled", tabs.length, "tabs");
+        notifyDataChanged();
+        await updateBadge();
+      }
+    } catch (e) {
+      console.warn("[TabZen] Sync pull failed:", e);
+    }
+  }
+
+  // Pull on startup
+  syncPull();
 
   // --- Badge: Uncaptured tab count ---
   async function updateBadge(): Promise<void> {
