@@ -21,6 +21,13 @@ import type {
 import type { MessageRequest, MessageResponse } from "@/lib/messages";
 
 export default defineBackground(() => {
+  // --- Notify UI views of data changes ---
+  function notifyDataChanged(): void {
+    browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {
+      // No listeners - that's fine (no UI views open)
+    });
+  }
+
   // --- Badge: Uncaptured tab count ---
   async function updateBadge(): Promise<void> {
     const existingTabs = await getAllTabs();
@@ -495,6 +502,7 @@ export default defineBackground(() => {
     await addGroups(groups);
     await addTabs(preview.tabs);
     await updateBadge();
+    notifyDataChanged();
   }
 
   async function captureSingleTab(
@@ -546,5 +554,6 @@ export default defineBackground(() => {
     await addCapture(capture);
     await addGroups([group]);
     await addTabs([tab]);
+    notifyDataChanged();
   }
 });

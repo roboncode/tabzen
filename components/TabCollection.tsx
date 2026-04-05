@@ -1,4 +1,4 @@
-import { createSignal, createResource, For, Show } from "solid-js";
+import { createSignal, createResource, onMount, onCleanup, For, Show } from "solid-js";
 import { Maximize2, Settings as SettingsIcon } from "lucide-solid";
 import type {
   Tab,
@@ -45,6 +45,17 @@ export default function TabCollection(props: TabCollectionProps) {
   );
 
   const refresh = () => setRefreshKey((k) => k + 1);
+
+  // Listen for data changes from background worker
+  onMount(() => {
+    const listener = (message: any) => {
+      if (message.type === "DATA_CHANGED") {
+        refresh();
+      }
+    };
+    browser.runtime.onMessage.addListener(listener);
+    onCleanup(() => browser.runtime.onMessage.removeListener(listener));
+  });
 
   const filteredGroups = () => {
     const groups = allGroups() || [];
