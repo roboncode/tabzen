@@ -1,5 +1,5 @@
 import { Show } from "solid-js";
-import { Eye, Pencil } from "lucide-solid";
+import { Eye } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 
 interface TabRowProps {
@@ -53,15 +53,14 @@ export default function TabRow(props: TabRowProps) {
             }
           >
             <button
-              class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              class="text-xs text-muted-foreground hover:text-foreground transition-colors max-w-[140px] truncate"
               onClick={(e) => {
                 e.stopPropagation();
                 props.onEditNotes(props.tab);
               }}
               title={props.tab.notes!}
             >
-              <Pencil size={11} />
-              <span class="max-w-[120px] truncate">{props.tab.notes}</span>
+              {props.tab.notes}
             </button>
           </Show>
         </div>

@@ -26,12 +26,12 @@ export default function NotesEditor(props: NotesEditorProps) {
 
   return (
     <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={props.onClose}>
-      <div class="bg-card rounded-xl p-5 w-80 max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
-        <h3 class="text-sm font-semibold text-foreground mb-1">Notes</h3>
-        <p class="text-xs text-muted-foreground mb-3 truncate">{props.tab.title}</p>
+      <div class="bg-card rounded-xl p-6 w-[480px] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+        <h3 class="text-base font-semibold text-foreground mb-1">Notes</h3>
+        <p class="text-sm text-muted-foreground mb-4 truncate">{props.tab.title}</p>
         <textarea
           ref={textareaRef}
-          class="w-full h-32 bg-muted/40 text-sm text-foreground rounded-lg p-3 outline-none focus:bg-muted/60 transition-colors resize-none placeholder:text-muted-foreground"
+          class="w-full h-48 bg-muted/40 text-sm text-foreground rounded-lg p-4 outline-none focus:bg-muted/60 transition-colors resize-y placeholder:text-muted-foreground"
           value={notes()}
           onInput={(e) => setNotes(e.currentTarget.value)}
           placeholder="Add notes about this tab..."

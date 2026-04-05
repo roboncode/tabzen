@@ -1,5 +1,5 @@
 import { Show } from "solid-js";
-import { Eye, Pencil } from "lucide-solid";
+import { Eye } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 
 interface TabCardProps {
@@ -104,12 +104,9 @@ export default function TabCard(props: TabCardProps) {
               props.onEditNotes(props.tab);
             }}
           >
-            <div class="flex items-start justify-between gap-2">
-              <p class="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                {props.tab.notes}
-              </p>
-              <Pencil size={11} class="text-muted-foreground/50 mt-0.5 flex-shrink-0" />
-            </div>
+            <p class="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+              {props.tab.notes}
+            </p>
           </div>
         </Show>
       </div>
