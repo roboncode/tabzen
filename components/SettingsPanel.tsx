@@ -17,7 +17,8 @@ interface SettingsPanelProps {
 }
 
 export default function SettingsPanel(props: SettingsPanelProps) {
-  const [settings] = createResource(async () => getSettings());
+  const [refreshKey, setRefreshKey] = createSignal(0);
+  const [settings, { refetch }] = createResource(refreshKey, async () => getSettings());
   const [saving, setSaving] = createSignal(false);
   const [importResult, setImportResult] = createSignal<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = createSignal(false);
@@ -27,6 +28,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const save = async (updates: Partial<Settings>) => {
     setSaving(true);
     await updateSettings(updates);
+    setRefreshKey((k) => k + 1);
     setSaving(false);
   };
 
@@ -167,32 +169,29 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 </button>
               </div>
 
-              {/* Remote URL (only shown in production mode) */}
-              <Show when={s().syncEnv === "remote"}>
-                <div class="mb-4">
-                  <label class="block text-xs text-muted-foreground mb-1.5">
-                    Sync URL
-                  </label>
-                  <input
-                    class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors placeholder:text-muted-foreground"
-                    value={s().syncUrl}
-                    onChange={(e) => save({ syncUrl: e.currentTarget.value })}
-                    placeholder="https://tab-zen-sync.your-subdomain.workers.dev"
-                  />
-                </div>
-              </Show>
-
-              {/* Local dev info */}
-              <Show when={s().syncEnv === "local"}>
-                <div class="bg-muted/30 rounded-lg px-3 py-2.5 mb-4">
-                  <p class="text-xs text-muted-foreground">
-                    Connecting to <span class="text-foreground">http://localhost:8787</span>
-                  </p>
-                  <p class="text-xs text-muted-foreground mt-1">
+              {/* URL field - shown for both envs */}
+              <div class="mb-4">
+                <label class="block text-xs text-muted-foreground mb-1.5">
+                  {s().syncEnv === "local" ? "Local URL" : "Remote URL"}
+                </label>
+                <input
+                  class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors placeholder:text-muted-foreground"
+                  value={s().syncEnv === "local" ? (s().syncLocalUrl || "http://localhost:8787") : s().syncUrl}
+                  onChange={(e) => {
+                    if (s().syncEnv === "local") {
+                      save({ syncLocalUrl: e.currentTarget.value });
+                    } else {
+                      save({ syncUrl: e.currentTarget.value });
+                    }
+                  }}
+                  placeholder={s().syncEnv === "local" ? "http://localhost:8787" : "https://tab-zen-sync.your-subdomain.workers.dev"}
+                />
+                <Show when={s().syncEnv === "local"}>
+                  <p class="text-xs text-muted-foreground mt-1.5">
                     Run <code class="text-foreground">bun run sync:dev</code> to start the local server
                   </p>
-                </div>
-              </Show>
+                </Show>
+              </div>
 
               {/* Sync token / connect */}
               <Show
@@ -201,7 +200,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   <div class="space-y-2">
                     <button
                       class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                      disabled={syncLoading() || (s().syncEnv === "remote" && !s().syncUrl)}
+                      disabled={syncLoading()}
                       onClick={async () => {
                         setSyncLoading(true);
                         setSyncStatus(null);

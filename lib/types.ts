@@ -39,6 +39,7 @@ export interface Settings {
   syncEnabled: boolean;
   syncToken: string | null;
   syncUrl: string;
+  syncLocalUrl: string;
   syncEnv: "local" | "remote";
   viewMode: "cards" | "rows";
   activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates";
@@ -51,6 +52,7 @@ export const DEFAULT_SETTINGS: Settings = {
   syncEnabled: false,
   syncToken: null,
   syncUrl: "",
+  syncLocalUrl: "http://localhost:8787",
   syncEnv: "local",
   viewMode: "cards",
   activeFilter: "all",

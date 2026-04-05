@@ -1,10 +1,8 @@
 import type { SyncPayload } from "./types";
 import { getSettings } from "./settings";
 
-const LOCAL_URL = "http://localhost:8787";
-
-function getSyncUrl(syncUrl: string, syncEnv: string): string {
-  if (syncEnv === "local") return LOCAL_URL;
+function getSyncUrl(syncUrl: string, syncLocalUrl: string, syncEnv: string): string {
+  if (syncEnv === "local") return syncLocalUrl || "http://localhost:8787";
   return syncUrl;
 }
 
@@ -14,7 +12,7 @@ async function syncRequest(
   tokenOverride?: string | null,
 ): Promise<Response> {
   const settings = await getSettings();
-  const baseUrl = getSyncUrl(settings.syncUrl, settings.syncEnv);
+  const baseUrl = getSyncUrl(settings.syncUrl, settings.syncLocalUrl, settings.syncEnv);
   const token = tokenOverride ?? settings.syncToken;
 
   const headers: Record<string, string> = {
