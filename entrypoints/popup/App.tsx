@@ -113,17 +113,17 @@ export default function App() {
         <div class="flex bg-muted/40 rounded-lg p-1 gap-0.5">
           <button
             class="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-            onClick={openSidePanel}
-            title="Open side panel"
-          >
-            <PanelRight size={16} />
-          </button>
-          <button
-            class="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
             onClick={openFullPage}
             title="Open full page"
           >
             <Maximize2 size={16} />
+          </button>
+          <button
+            class="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            onClick={openSidePanel}
+            title="Open side panel"
+          >
+            <PanelRight size={16} />
           </button>
         </div>
       </div>
