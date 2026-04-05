@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS tabs (
   last_viewed_at TEXT,
   captured_at TEXT NOT NULL,
   source_label TEXT NOT NULL DEFAULT '',
+  device_id TEXT NOT NULL DEFAULT '',
   archived INTEGER NOT NULL DEFAULT 0,
   starred INTEGER NOT NULL DEFAULT 0,
   group_id TEXT NOT NULL,
@@ -36,6 +37,13 @@ CREATE TABLE IF NOT EXISTS captures (
   tab_count INTEGER NOT NULL DEFAULT 0,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   sync_token TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+  sync_token TEXT PRIMARY KEY,
+  ai_model TEXT,
+  encrypted_api_key TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_tabs_sync ON tabs(sync_token, updated_at);
