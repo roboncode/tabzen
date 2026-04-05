@@ -8,6 +8,8 @@ interface FilterPillsProps {
 
 const FILTERS: { key: Settings["activeFilter"]; label: string }[] = [
   { key: "all", label: "All" },
+  { key: "starred", label: "Starred" },
+  { key: "notes", label: "Notes" },
   { key: "byDate", label: "By Date" },
   { key: "archived", label: "Archived" },
   { key: "duplicates", label: "Duplicates" },

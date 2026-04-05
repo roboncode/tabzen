@@ -1,11 +1,12 @@
 import { Show } from "solid-js";
-import { Eye } from "lucide-solid";
+import { Eye, Star } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 
 interface TabRowProps {
   tab: Tab;
   onOpen: (tab: Tab) => void;
   onEditNotes: (tab: Tab) => void;
+  onToggleStar: (tab: Tab) => void;
 }
 
 export default function TabRow(props: TabRowProps) {
@@ -23,6 +24,19 @@ export default function TabRow(props: TabRowProps) {
         class="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 cursor-pointer rounded-lg transition-colors"
         onClick={() => props.onOpen(props.tab)}
       >
+        <button
+          class={`flex-shrink-0 transition-all ${
+            props.tab.starred
+              ? "text-yellow-400"
+              : "text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-muted-foreground"
+          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            props.onToggleStar(props.tab);
+          }}
+        >
+          <Star size={14} fill={props.tab.starred ? "currentColor" : "none"} />
+        </button>
         {props.tab.favicon ? (
           <img src={props.tab.favicon} alt="" class="w-5 h-5 rounded flex-shrink-0" />
         ) : (

@@ -123,6 +123,7 @@ function makeTab(id: string, url: string, title: string): Tab {
     capturedAt: new Date().toISOString(),
     sourceLabel: "Test",
     archived: false,
+    starred: false,
     groupId: "",
   };
 }

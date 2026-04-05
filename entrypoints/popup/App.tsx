@@ -132,7 +132,7 @@ export default function App() {
         {/* Current tab card */}
         <Show when={activeTab()}>
           {(tab) => (
-            <div class="mb-4 rounded-xl overflow-hidden bg-muted/30">
+            <div class="mb-4 rounded-xl overflow-hidden bg-card">
               {/* Thumbnail */}
               <div class="aspect-video bg-muted/40 overflow-hidden">
                 {(tab() as any).ogImage ? (

@@ -1,11 +1,12 @@
 import { Show } from "solid-js";
-import { Eye } from "lucide-solid";
+import { Eye, Star } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 
 interface TabCardProps {
   tab: Tab;
   onOpen: (tab: Tab) => void;
   onEditNotes: (tab: Tab) => void;
+  onToggleStar: (tab: Tab) => void;
 }
 
 export default function TabCard(props: TabCardProps) {
@@ -26,7 +27,7 @@ export default function TabCard(props: TabCardProps) {
       onClick={() => props.onOpen(props.tab)}
     >
       {/* Thumbnail - 16:9 ratio */}
-      <div class="aspect-video rounded-xl overflow-hidden bg-muted/40 mb-3">
+      <div class="aspect-video rounded-xl overflow-hidden bg-muted/40 mb-3 relative">
         {props.tab.ogImage ? (
           <img
             src={props.tab.ogImage}
@@ -45,6 +46,22 @@ export default function TabCard(props: TabCardProps) {
             )}
           </div>
         )}
+        {/* Star button - top right of thumbnail */}
+        <button
+          class={`absolute top-2 right-2 p-1 rounded-md transition-all ${
+            props.tab.starred
+              ? "text-yellow-400 opacity-100"
+              : "text-white/70 opacity-0 group-hover:opacity-100 hover:text-white"
+          }`}
+          style={props.tab.starred ? {} : { "text-shadow": "0 1px 3px rgba(0,0,0,0.5)" }}
+          onClick={(e) => {
+            e.stopPropagation();
+            props.onToggleStar(props.tab);
+          }}
+          title={props.tab.starred ? "Unstar" : "Star"}
+        >
+          <Star size={18} fill={props.tab.starred ? "currentColor" : "none"} />
+        </button>
       </div>
 
       {/* Info below thumbnail */}
@@ -81,7 +98,7 @@ export default function TabCard(props: TabCardProps) {
         </div>
       </div>
 
-      {/* Note - shown as a visible block when it exists, or "Add note" link */}
+      {/* Note */}
       <div class="mt-2 ml-9">
         <Show
           when={props.tab.notes}

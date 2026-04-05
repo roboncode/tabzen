@@ -13,6 +13,7 @@ export interface Tab {
   capturedAt: string;
   sourceLabel: string;
   archived: boolean;
+  starred: boolean;
   groupId: string;
 }
 
@@ -39,7 +40,7 @@ export interface Settings {
   syncToken: string | null;
   syncUrl: string;
   viewMode: "cards" | "rows";
-  activeFilter: "all" | "byDate" | "archived" | "duplicates";
+  activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates";
 }
 
 export const DEFAULT_SETTINGS: Settings = {

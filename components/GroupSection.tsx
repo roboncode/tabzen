@@ -11,6 +11,7 @@ interface GroupSectionProps {
   onOpenTab: (tab: Tab) => void;
   onEditNotes: (tab: Tab) => void;
   onRenameGroup: (group: Group, newName: string) => void;
+  onToggleStar: (tab: Tab) => void;
 }
 
 export default function GroupSection(props: GroupSectionProps) {
@@ -87,6 +88,7 @@ export default function GroupSection(props: GroupSectionProps) {
                     tab={tab}
                     onOpen={props.onOpenTab}
                     onEditNotes={props.onEditNotes}
+                    onToggleStar={props.onToggleStar}
                   />
                 )}
               </For>
@@ -101,6 +103,7 @@ export default function GroupSection(props: GroupSectionProps) {
                   tab={tab}
                   onOpen={props.onOpenTab}
                   onEditNotes={props.onEditNotes}
+                  onToggleStar={props.onToggleStar}
                 />
               )}
             </For>

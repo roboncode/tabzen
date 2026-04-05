@@ -373,6 +373,7 @@ export default defineBackground(() => {
           capturedAt: new Date().toISOString(),
           sourceLabel: settings.sourceLabel,
           archived: false,
+          starred: false,
           groupId: "",
         };
       }),

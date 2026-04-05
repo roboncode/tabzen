@@ -83,9 +83,16 @@ export default function TabCollection(props: TabCollectionProps) {
     return filtered;
   };
 
-  const tabsForGroup = (groupId: string) => {
+  const filteredTabs = () => {
     const tabs = searchResults() || allTabs() || [];
-    return tabs.filter((t) => t.groupId === groupId);
+    const f = filter();
+    if (f === "starred") return tabs.filter((t) => t.starred);
+    if (f === "notes") return tabs.filter((t) => t.notes);
+    return tabs;
+  };
+
+  const tabsForGroup = (groupId: string) => {
+    return filteredTabs().filter((t) => t.groupId === groupId);
   };
 
   const handleSearch = async (query: string) => {
@@ -113,6 +120,11 @@ export default function TabCollection(props: TabCollectionProps) {
 
   const handleSaveNotes = async (tabId: string, notes: string) => {
     await updateTab(tabId, { notes: notes || null });
+    refresh();
+  };
+
+  const handleToggleStar = async (tab: Tab) => {
+    await updateTab(tab.id, { starred: !tab.starred });
     refresh();
   };
 
@@ -181,6 +193,7 @@ export default function TabCollection(props: TabCollectionProps) {
                     onOpenTab={handleOpenTab}
                     onEditNotes={setEditingTab}
                     onRenameGroup={handleRenameGroup}
+                    onToggleStar={handleToggleStar}
                   />
                 </Show>
               );
