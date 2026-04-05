@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { createSignal, onMount } from "solid-js";
 import type { Tab } from "@/lib/types";
 
 interface NotesEditorProps {
@@ -9,6 +9,15 @@ interface NotesEditorProps {
 
 export default function NotesEditor(props: NotesEditorProps) {
   const [notes, setNotes] = createSignal(props.tab.notes || "");
+  let textareaRef: HTMLTextAreaElement | undefined;
+
+  onMount(() => {
+    textareaRef?.focus();
+    // Place cursor at end of existing text
+    if (textareaRef) {
+      textareaRef.selectionStart = textareaRef.value.length;
+    }
+  });
 
   const handleSave = () => {
     props.onSave(props.tab.id, notes());
@@ -21,6 +30,7 @@ export default function NotesEditor(props: NotesEditorProps) {
         <h3 class="text-sm font-semibold text-foreground mb-1">Notes</h3>
         <p class="text-xs text-muted-foreground mb-3 truncate">{props.tab.title}</p>
         <textarea
+          ref={textareaRef}
           class="w-full h-32 bg-muted/40 text-sm text-foreground rounded-lg p-3 outline-none focus:bg-muted/60 transition-colors resize-none placeholder:text-muted-foreground"
           value={notes()}
           onInput={(e) => setNotes(e.currentTarget.value)}

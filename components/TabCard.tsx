@@ -1,4 +1,5 @@
-import { Eye, StickyNote } from "lucide-solid";
+import { Show } from "solid-js";
+import { Eye, Pencil } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 
 interface TabCardProps {
@@ -24,7 +25,7 @@ export default function TabCard(props: TabCardProps) {
       class="cursor-pointer group"
       onClick={() => props.onOpen(props.tab)}
     >
-      {/* Thumbnail - 16:9 ratio like YouTube */}
+      {/* Thumbnail - 16:9 ratio */}
       <div class="aspect-video rounded-xl overflow-hidden bg-muted/40 mb-3">
         {props.tab.ogImage ? (
           <img
@@ -46,7 +47,7 @@ export default function TabCard(props: TabCardProps) {
         )}
       </div>
 
-      {/* Info below thumbnail - YouTube style */}
+      {/* Info below thumbnail */}
       <div class="flex gap-3">
         {props.tab.favicon ? (
           <img
@@ -76,18 +77,41 @@ export default function TabCard(props: TabCardProps) {
             <span class="text-xs text-muted-foreground">
               {props.tab.sourceLabel}
             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Note - shown as a visible block when it exists, or "Add note" link */}
+      <div class="mt-2 ml-9">
+        <Show
+          when={props.tab.notes}
+          fallback={
             <button
-              class={`ml-auto ${props.tab.notes ? "text-muted-foreground" : "text-muted-foreground/40"} hover:text-foreground`}
+              class="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors opacity-0 group-hover:opacity-100"
               onClick={(e) => {
                 e.stopPropagation();
                 props.onEditNotes(props.tab);
               }}
-              title={props.tab.notes ? "Edit notes" : "Add notes"}
             >
-              <StickyNote size={13} />
+              + Add note
             </button>
+          }
+        >
+          <div
+            class="bg-muted/30 rounded-lg px-3 py-2 cursor-pointer hover:bg-muted/40 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              props.onEditNotes(props.tab);
+            }}
+          >
+            <div class="flex items-start justify-between gap-2">
+              <p class="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                {props.tab.notes}
+              </p>
+              <Pencil size={11} class="text-muted-foreground/50 mt-0.5 flex-shrink-0" />
+            </div>
           </div>
-        </div>
+        </Show>
       </div>
     </div>
   );
