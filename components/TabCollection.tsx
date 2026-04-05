@@ -94,6 +94,18 @@ export default function TabCollection(props: TabCollectionProps) {
     if (f === "archived") return tabs.filter((t) => t.archived);
     if (f === "starred") return tabs.filter((t) => t.starred && !t.archived);
     if (f === "notes") return tabs.filter((t) => t.notes && !t.archived);
+    if (f === "duplicates") {
+      const live = tabs.filter((t) => !t.archived);
+      const urlCount = new Map<string, number>();
+      for (const t of live) {
+        const normalized = t.url.replace(/\/$/, "").replace(/^https?:\/\/www\./, "https://");
+        urlCount.set(normalized, (urlCount.get(normalized) || 0) + 1);
+      }
+      return live.filter((t) => {
+        const normalized = t.url.replace(/\/$/, "").replace(/^https?:\/\/www\./, "https://");
+        return urlCount.get(normalized)! > 1;
+      });
+    }
     return tabs.filter((t) => !t.archived);
   };
 
