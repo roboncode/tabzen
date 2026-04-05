@@ -40,8 +40,12 @@ export default function App() {
     }
   };
 
-  const openSidePanel = () => {
-    browser.sidePanel.open({ windowId: undefined as unknown as number });
+  const openSidePanel = async () => {
+    const currentWindow = await browser.windows.getCurrent();
+    if (currentWindow.id) {
+      await browser.sidePanel.open({ windowId: currentWindow.id });
+    }
+    window.close();
   };
 
   const openFullPage = () => {
