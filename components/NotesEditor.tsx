@@ -1,4 +1,4 @@
-import { createSignal, onMount } from "solid-js";
+import { createSignal, onMount, Show } from "solid-js";
 import type { Tab } from "@/lib/types";
 
 interface NotesEditorProps {
@@ -10,7 +10,7 @@ interface NotesEditorProps {
 export default function NotesEditor(props: NotesEditorProps) {
   const [notes, setNotes] = createSignal(props.tab.notes || "");
   const [visible, setVisible] = createSignal(false);
-  const [narrow, setNarrow] = createSignal(window.innerWidth < 500);
+  const narrow = window.innerWidth < 500;
   let textareaRef: HTMLTextAreaElement | undefined;
   let sheetRef: HTMLDivElement | undefined;
   let startY = 0;
@@ -18,13 +18,14 @@ export default function NotesEditor(props: NotesEditorProps) {
   let dragging = false;
 
   onMount(() => {
-    setNarrow(window.innerWidth < 500);
     requestAnimationFrame(() => {
       setVisible(true);
-      textareaRef?.focus();
-      if (textareaRef) {
-        textareaRef.selectionStart = textareaRef.value.length;
-      }
+      setTimeout(() => {
+        textareaRef?.focus();
+        if (textareaRef) {
+          textareaRef.selectionStart = textareaRef.value.length;
+        }
+      }, 50);
     });
   });
 
@@ -36,6 +37,12 @@ export default function NotesEditor(props: NotesEditorProps) {
   const animateClose = () => {
     setVisible(false);
     setTimeout(() => props.onClose(), 200);
+  };
+
+  const onBackdropClick = (e: MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      animateClose();
+    }
   };
 
   const onDragStart = (clientY: number) => {
@@ -65,17 +72,15 @@ export default function NotesEditor(props: NotesEditorProps) {
   return (
     <div
       class={`fixed inset-0 z-50 transition-colors duration-200 ${visible() ? "bg-black/60" : "bg-black/0"}`}
-      onClick={animateClose}
+      onClick={onBackdropClick}
     >
-      {narrow() ? (
-        /* Bottom sheet for narrow views */
-        <div class="flex items-end h-full">
+      <Show when={narrow}>
+        {/* Bottom sheet */}
+        <div class="absolute inset-x-0 bottom-0" onClick={(e) => e.stopPropagation()}>
           <div
             ref={sheetRef}
             class={`w-full bg-card rounded-t-2xl transition-transform duration-200 ${visible() ? "translate-y-0" : "translate-y-full"}`}
-            onClick={(e) => e.stopPropagation()}
           >
-            {/* Drag handle */}
             <div
               class="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
               onMouseDown={(e) => onDragStart(e.clientY)}
@@ -123,8 +128,10 @@ export default function NotesEditor(props: NotesEditorProps) {
             </div>
           </div>
         </div>
-      ) : (
-        /* Centered dialog for wide views */
+      </Show>
+
+      <Show when={!narrow}>
+        {/* Centered dialog */}
         <div class="flex items-center justify-center h-full">
           <div
             class={`bg-card rounded-xl p-6 w-[480px] max-w-[90vw] transition-all duration-200 ${visible() ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
@@ -155,7 +162,7 @@ export default function NotesEditor(props: NotesEditorProps) {
             </div>
           </div>
         </div>
-      )}
+      </Show>
     </div>
   );
 }
