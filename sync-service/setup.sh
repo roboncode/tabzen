@@ -92,10 +92,20 @@ KV_OUTPUT=$(wrangler kv namespace create KV 2>&1) || true
 KV_ID=$(echo "$KV_OUTPUT" | grep -oE '[a-f0-9]{32}' | head -1)
 
 if [ -z "$KV_ID" ]; then
-  # KV might already exist, try to find it
+  # KV might already exist, try to find it from JSON list
   echo "KV namespace may already exist, looking it up..."
   KV_LIST=$(wrangler kv namespace list 2>&1) || true
-  KV_ID=$(echo "$KV_LIST" | grep -B2 "tab-zen-sync-KV" | grep -oE '[a-f0-9]{32}' | head -1)
+  # Look for "tab-zen-sync-KV" first, then just "KV"
+  KV_ID=$(echo "$KV_LIST" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    for ns in data:
+        if ns['title'] in ('tab-zen-sync-KV', 'KV'):
+            print(ns['id'])
+            break
+except: pass
+" 2>/dev/null)
 fi
 
 if [ -z "$KV_ID" ]; then
