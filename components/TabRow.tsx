@@ -1,5 +1,5 @@
 import { Show } from "solid-js";
-import { Eye, Star } from "lucide-solid";
+import { Eye, Star, Archive, ArchiveRestore, Trash2 } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 
 interface TabRowProps {
@@ -7,6 +7,8 @@ interface TabRowProps {
   onOpen: (tab: Tab) => void;
   onEditNotes: (tab: Tab) => void;
   onToggleStar: (tab: Tab) => void;
+  onArchive: (tab: Tab) => void;
+  onDelete: (tab: Tab) => void;
 }
 
 export default function TabRow(props: TabRowProps) {
@@ -77,6 +79,20 @@ export default function TabRow(props: TabRowProps) {
               {props.tab.notes}
             </button>
           </Show>
+          <button
+            class="text-muted-foreground/30 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-all"
+            onClick={(e) => { e.stopPropagation(); props.onArchive(props.tab); }}
+            title={props.tab.archived ? "Unarchive" : "Archive"}
+          >
+            {props.tab.archived ? <ArchiveRestore size={13} /> : <Archive size={13} />}
+          </button>
+          <button
+            class="text-muted-foreground/30 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+            onClick={(e) => { e.stopPropagation(); props.onDelete(props.tab); }}
+            title="Delete"
+          >
+            <Trash2 size={13} />
+          </button>
         </div>
       </div>
     </div>

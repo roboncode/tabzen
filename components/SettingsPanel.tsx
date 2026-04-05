@@ -82,7 +82,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 value={s().sourceLabel}
                 onChange={(e) => save({ sourceLabel: e.currentTarget.value })}
               />
-              <p class="text-[10px] text-foreground0 mt-1">
+              <p class="text-xs text-muted-foreground mt-1">
                 Tags your captures so you know where they came from
               </p>
             </div>
@@ -151,14 +151,14 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               </div>
               <Show when={s().syncToken}>
                 <div class="bg-muted/40 rounded-md p-3">
-                  <p class="text-[10px] text-foreground0 mb-1">Sync Token</p>
+                  <p class="text-xs text-muted-foreground mb-1">Sync Token</p>
                   <code class="text-xs text-foreground break-all">
                     {s().syncToken}
                   </code>
                 </div>
               </Show>
               <div class="mt-2">
-                <label class="block text-[10px] text-foreground0 mb-1">
+                <label class="block text-xs text-muted-foreground mb-1">
                   Sync URL
                 </label>
                 <input
@@ -232,7 +232,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               >
                 Clear All Data
               </button>
-              <p class="text-[10px] text-foreground0 mt-1">
+              <p class="text-xs text-muted-foreground mt-1">
                 Removes all saved tabs, groups, and captures from local storage
               </p>
             </div>

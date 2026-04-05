@@ -12,6 +12,7 @@ import {
   getAllCaptures,
   updateTab,
   updateGroup,
+  deleteTab,
 } from "@/lib/db";
 import { sendMessage } from "@/lib/messages";
 import GroupSection from "./GroupSection";
@@ -128,6 +129,16 @@ export default function TabCollection(props: TabCollectionProps) {
     refresh();
   };
 
+  const handleArchive = async (tab: Tab) => {
+    await updateTab(tab.id, { archived: !tab.archived });
+    refresh();
+  };
+
+  const handleDelete = async (tab: Tab) => {
+    await deleteTab(tab.id);
+    refresh();
+  };
+
   const handleRenameGroup = async (group: Group, newName: string) => {
     await updateGroup(group.id, { name: newName });
     refresh();
@@ -194,6 +205,8 @@ export default function TabCollection(props: TabCollectionProps) {
                     onEditNotes={setEditingTab}
                     onRenameGroup={handleRenameGroup}
                     onToggleStar={handleToggleStar}
+                    onArchive={handleArchive}
+                    onDelete={handleDelete}
                   />
                 </Show>
               );

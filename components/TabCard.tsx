@@ -1,5 +1,5 @@
 import { Show } from "solid-js";
-import { Eye, Star } from "lucide-solid";
+import { Eye, Star, Archive, ArchiveRestore, Trash2 } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 
 interface TabCardProps {
@@ -7,6 +7,8 @@ interface TabCardProps {
   onOpen: (tab: Tab) => void;
   onEditNotes: (tab: Tab) => void;
   onToggleStar: (tab: Tab) => void;
+  onArchive: (tab: Tab) => void;
+  onDelete: (tab: Tab) => void;
 }
 
 export default function TabCard(props: TabCardProps) {
@@ -46,22 +48,40 @@ export default function TabCard(props: TabCardProps) {
             )}
           </div>
         )}
-        {/* Star button - top right of thumbnail */}
-        <button
-          class={`absolute top-2 right-2 p-1 rounded-md transition-all ${
-            props.tab.starred
-              ? "text-yellow-400 opacity-100"
-              : "text-white/70 opacity-0 group-hover:opacity-100 hover:text-white"
-          }`}
-          style={props.tab.starred ? {} : { "text-shadow": "0 1px 3px rgba(0,0,0,0.5)" }}
-          onClick={(e) => {
-            e.stopPropagation();
-            props.onToggleStar(props.tab);
-          }}
-          title={props.tab.starred ? "Unstar" : "Star"}
-        >
-          <Star size={18} fill={props.tab.starred ? "currentColor" : "none"} />
-        </button>
+        {/* Action buttons overlay */}
+        <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            class={`p-1.5 rounded-md backdrop-blur-sm transition-colors ${
+              props.tab.starred
+                ? "text-yellow-400 opacity-100 bg-black/30"
+                : "text-white/80 bg-black/30 hover:bg-black/50"
+            }`}
+            onClick={(e) => { e.stopPropagation(); props.onToggleStar(props.tab); }}
+            title={props.tab.starred ? "Unstar" : "Star"}
+          >
+            <Star size={14} fill={props.tab.starred ? "currentColor" : "none"} />
+          </button>
+          <button
+            class="p-1.5 rounded-md text-white/80 bg-black/30 hover:bg-black/50 backdrop-blur-sm transition-colors"
+            onClick={(e) => { e.stopPropagation(); props.onArchive(props.tab); }}
+            title={props.tab.archived ? "Unarchive" : "Archive"}
+          >
+            {props.tab.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+          </button>
+          <button
+            class="p-1.5 rounded-md text-white/80 bg-black/30 hover:bg-red-500/80 backdrop-blur-sm transition-colors"
+            onClick={(e) => { e.stopPropagation(); props.onDelete(props.tab); }}
+            title="Delete"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+        {/* Starred indicator - always visible when starred */}
+        <Show when={props.tab.starred}>
+          <div class="absolute top-2 left-2 text-yellow-400 group-hover:opacity-0 transition-opacity">
+            <Star size={16} fill="currentColor" />
+          </div>
+        </Show>
       </div>
 
       {/* Info below thumbnail */}
