@@ -172,6 +172,15 @@ export async function deleteCapture(id: string): Promise<void> {
   await db.delete("captures", id);
 }
 
+export async function clearAllData(): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction(["tabs", "groups", "captures"], "readwrite");
+  await tx.objectStore("tabs").clear();
+  await tx.objectStore("groups").clear();
+  await tx.objectStore("captures").clear();
+  await tx.done;
+}
+
 export async function getAllData(): Promise<{ tabs: Tab[]; groups: Group[]; captures: Capture[] }> {
   const db = await getDB();
   const [tabs, groups, captures] = await Promise.all([

@@ -7,6 +7,7 @@ import {
   importFromJson,
   downloadFile,
 } from "@/lib/export";
+import { clearAllData } from "@/lib/db";
 import type { Settings } from "@/lib/types";
 
 interface SettingsPanelProps {
@@ -213,6 +214,27 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               >
                 Configure Shortcuts
               </button>
+            </div>
+
+            {/* Dev: Clear All Data */}
+            <div class="pt-4 border-t border-slate-800">
+              <label class="block text-xs font-medium text-red-400 mb-1.5">
+                Danger Zone
+              </label>
+              <button
+                class="px-3 py-1.5 text-xs bg-red-900/50 text-red-300 rounded hover:bg-red-900 border border-red-800"
+                onClick={async () => {
+                  if (confirm("Delete all saved tabs, groups, and captures? This cannot be undone.")) {
+                    await clearAllData();
+                    props.onClose();
+                  }
+                }}
+              >
+                Clear All Data
+              </button>
+              <p class="text-[10px] text-slate-500 mt-1">
+                Removes all saved tabs, groups, and captures from local storage
+              </p>
             </div>
           </div>
         )}
