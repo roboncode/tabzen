@@ -12,7 +12,6 @@ const FILTERS: { key: Settings["activeFilter"]; label: string }[] = [
   { key: "notes", label: "Notes" },
   { key: "byDate", label: "By Date" },
   { key: "archived", label: "Archived" },
-  { key: "duplicates", label: "Duplicates" },
 ];
 
 export default function FilterPills(props: FilterPillsProps) {
