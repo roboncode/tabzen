@@ -34,6 +34,7 @@ interface TabCollectionProps {
 
 export default function TabCollection(props: TabCollectionProps) {
   const [filter, setFilter] = createSignal<Settings["activeFilter"]>("all");
+  const [deviceFilter, setDeviceFilter] = createSignal<string>("all");
   const [searchResults, setSearchResults] = createSignal<Tab[] | null>(null);
   const [editingTab, setEditingTab] = createSignal<Tab | null>(null);
   const [deletingTab, setDeletingTab] = createSignal<Tab | null>(null);
@@ -88,9 +89,22 @@ export default function TabCollection(props: TabCollectionProps) {
     return filtered;
   };
 
+  const uniqueDevices = () => {
+    const tabs = allTabs() || [];
+    const devices = new Set(tabs.map((t) => t.sourceLabel).filter(Boolean));
+    return Array.from(devices).sort();
+  };
+
   const filteredTabs = () => {
-    const tabs = searchResults() || allTabs() || [];
+    let tabs = searchResults() || allTabs() || [];
     const f = filter();
+    const device = deviceFilter();
+
+    // Apply device filter first
+    if (device !== "all") {
+      tabs = tabs.filter((t) => t.sourceLabel === device);
+    }
+
     if (f === "archived") return tabs.filter((t) => t.archived);
     if (f === "starred") return tabs.filter((t) => t.starred && !t.archived);
     if (f === "notes") return tabs.filter((t) => t.notes && !t.archived);
@@ -253,7 +267,23 @@ export default function TabCollection(props: TabCollectionProps) {
       </div>
 
       <SearchBar onSearch={handleSearch} onAISearch={handleAISearch} />
-      <FilterPills active={filter()} onChange={setFilter} />
+      <div class="flex items-center gap-2 px-4 pb-4">
+        <div class="flex-1 overflow-x-auto scrollbar-hide">
+          <FilterPills active={filter()} onChange={setFilter} />
+        </div>
+        <Show when={uniqueDevices().length > 1}>
+          <select
+            class="bg-muted/40 text-sm text-foreground rounded-lg px-3 py-1.5 outline-none focus:bg-muted/60 transition-colors flex-shrink-0"
+            value={deviceFilter()}
+            onChange={(e) => setDeviceFilter(e.currentTarget.value)}
+          >
+            <option value="all">All Devices</option>
+            <For each={uniqueDevices()}>
+              {(device) => <option value={device}>{device}</option>}
+            </For>
+          </select>
+        </Show>
+      </div>
 
       {/* Collection - @container for responsive card grid */}
       <div class="flex-1 overflow-y-auto @container">

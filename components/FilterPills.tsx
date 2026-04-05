@@ -16,7 +16,7 @@ const FILTERS: { key: Settings["activeFilter"]; label: string }[] = [
 
 export default function FilterPills(props: FilterPillsProps) {
   return (
-    <div class="flex gap-2 px-4 pb-4 overflow-x-auto scrollbar-hide">
+    <div class="flex gap-2 overflow-x-auto scrollbar-hide">
       <For each={FILTERS}>
         {(filter) => (
           <button
