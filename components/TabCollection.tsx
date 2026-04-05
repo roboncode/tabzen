@@ -22,6 +22,7 @@ import ViewToggle from "./ViewToggle";
 import NotesEditor from "./NotesEditor";
 import CapturePreview from "./CapturePreview";
 import EmptyState from "./EmptyState";
+import NoteCard from "./NoteCard";
 
 interface TabCollectionProps {
   viewMode: Settings["viewMode"];
@@ -192,26 +193,44 @@ export default function TabCollection(props: TabCollectionProps) {
       {/* Collection - @container for responsive card grid */}
       <div class="flex-1 overflow-y-auto @container">
         <Show when={(allTabs() || []).length > 0} fallback={<EmptyState />}>
-          <For each={filteredGroups()}>
-            {(group) => {
-              const tabs = () => tabsForGroup(group.id);
-              return (
-                <Show when={tabs().length > 0}>
-                  <GroupSection
-                    group={group}
-                    tabs={tabs()}
-                    viewMode={props.viewMode}
-                    onOpenTab={handleOpenTab}
-                    onEditNotes={setEditingTab}
-                    onRenameGroup={handleRenameGroup}
-                    onToggleStar={handleToggleStar}
-                    onArchive={handleArchive}
-                    onDelete={handleDelete}
-                  />
-                </Show>
-              );
-            }}
-          </For>
+          <Show
+            when={filter() !== "notes"}
+            fallback={
+              /* Notes view - note-first layout */
+              <div class="grid grid-cols-1 @[600px]:grid-cols-2 @[900px]:grid-cols-3 gap-4 p-4">
+                <For each={filteredTabs()}>
+                  {(tab) => (
+                    <NoteCard
+                      tab={tab}
+                      onOpen={handleOpenTab}
+                      onEditNotes={setEditingTab}
+                    />
+                  )}
+                </For>
+              </div>
+            }
+          >
+            <For each={filteredGroups()}>
+              {(group) => {
+                const tabs = () => tabsForGroup(group.id);
+                return (
+                  <Show when={tabs().length > 0}>
+                    <GroupSection
+                      group={group}
+                      tabs={tabs()}
+                      viewMode={props.viewMode}
+                      onOpenTab={handleOpenTab}
+                      onEditNotes={setEditingTab}
+                      onRenameGroup={handleRenameGroup}
+                      onToggleStar={handleToggleStar}
+                      onArchive={handleArchive}
+                      onDelete={handleDelete}
+                    />
+                  </Show>
+                );
+              }}
+            </For>
+          </Show>
         </Show>
       </div>
 
