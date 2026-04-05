@@ -9,7 +9,7 @@ import {
   downloadFile,
 } from "@/lib/export";
 import { clearAllData } from "@/lib/db";
-import { initSync, verifySync } from "@/lib/sync";
+import { initSync, verifySync, checkConnection } from "@/lib/sync";
 import type { Settings } from "@/lib/types";
 
 interface SettingsPanelProps {
@@ -24,6 +24,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [showClearConfirm, setShowClearConfirm] = createSignal(false);
   const [syncStatus, setSyncStatus] = createSignal<string | null>(null);
   const [syncLoading, setSyncLoading] = createSignal(false);
+  const [connected, setConnected] = createSignal<boolean | null>(null);
+  const [checking, setChecking] = createSignal(false);
 
   const save = async (updates: Partial<Settings>) => {
     setSaving(true);
@@ -193,95 +195,141 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 </Show>
               </div>
 
-              {/* Sync token / connect */}
+              {/* Connection status + token */}
               {(() => {
                 const isLocal = () => s().syncEnv === "local";
                 const activeToken = () => isLocal() ? s().syncLocalToken : s().syncToken;
                 const tokenKey = () => isLocal() ? "syncLocalToken" : "syncToken";
 
+                const handleCheckConnection = async () => {
+                  setChecking(true);
+                  setConnected(null);
+                  setSyncStatus(null);
+                  const ok = await checkConnection();
+                  setConnected(ok);
+                  if (!ok) {
+                    setSyncStatus(
+                      isLocal()
+                        ? "Cannot reach local server. Is it running? (bun run sync:dev)"
+                        : "Cannot reach remote server. Check the URL."
+                    );
+                  }
+                  setChecking(false);
+                };
+
                 return (
-                  <Show
-                    when={activeToken()}
-                    fallback={
-                      <div class="space-y-2">
-                        <button
-                          class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                          disabled={syncLoading()}
-                          onClick={async () => {
-                            setSyncLoading(true);
-                            setSyncStatus(null);
-                            try {
-                              const token = await initSync();
-                              await save({ [tokenKey()]: token, syncEnabled: true });
-                              setSyncStatus("Sync initialized! Token generated.");
-                            } catch (e) {
-                              setSyncStatus(`Failed: ${e}`);
-                            }
-                            setSyncLoading(false);
-                          }}
-                        >
-                          {syncLoading() ? "Connecting..." : "Initialize Sync"}
-                        </button>
-                        <p class="text-xs text-muted-foreground">
-                          Or paste an existing token to connect to another browser's collection:
-                        </p>
-                        <input
-                          class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors placeholder:text-muted-foreground"
-                          placeholder="Paste sync token..."
-                          onKeyDown={async (e) => {
-                            if (e.key === "Enter") {
-                              const token = e.currentTarget.value.trim();
-                              if (token) {
-                                setSyncLoading(true);
-                                await save({ [tokenKey()]: token, syncEnabled: true });
-                                const valid = await verifySync();
-                                if (valid) {
-                                  setSyncStatus("Connected! Token verified.");
-                                } else {
-                                  setSyncStatus("Token could not be verified. Check your URL and try again.");
-                                  await save({ [tokenKey()]: null, syncEnabled: false });
-                                }
-                                setSyncLoading(false);
-                              }
-                            }
-                          }}
-                        />
-                      </div>
-                    }
-                  >
-                    <div class="space-y-3">
-                      <div class="flex items-center gap-2">
-                        <div class="w-2 h-2 rounded-full bg-green-500" />
-                        <span class="text-sm text-foreground">Sync active</span>
-                      </div>
-                      <div class="bg-muted/30 rounded-lg p-3">
-                        <p class="text-xs text-muted-foreground mb-1.5">Sync Token</p>
-                        <div class="flex items-center gap-2">
-                          <code class="text-xs text-foreground break-all flex-1">
-                            {activeToken()}
-                          </code>
-                          <button
-                            class="px-2 py-1 text-xs bg-muted/50 text-muted-foreground rounded hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
-                            onClick={() => navigator.clipboard.writeText(activeToken()!)}
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      </div>
+                  <div class="space-y-4">
+                    {/* Connection check */}
+                    <div class="flex items-center gap-3">
                       <button
-                        class="px-3 py-1.5 text-xs text-red-400 hover:text-red-300 transition-colors"
-                        onClick={() => save({ [tokenKey()]: null, syncEnabled: false })}
+                        class="px-4 py-2 text-sm bg-muted/50 text-foreground rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+                        disabled={checking()}
+                        onClick={handleCheckConnection}
                       >
-                        Disconnect sync
+                        {checking() ? "Checking..." : "Test Connection"}
                       </button>
+                      <Show when={connected() !== null}>
+                        <div class="flex items-center gap-2">
+                          <div class={`w-2.5 h-2.5 rounded-full ${connected() ? "bg-green-500" : "bg-red-500"}`} />
+                          <span class="text-sm text-foreground">
+                            {connected() ? "Connected" : "Unreachable"}
+                          </span>
+                        </div>
+                      </Show>
                     </div>
-                  </Show>
+
+                    {/* Token section */}
+                    <Show
+                      when={activeToken()}
+                      fallback={
+                        <div class="space-y-3">
+                          <button
+                            class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                            disabled={syncLoading()}
+                            onClick={async () => {
+                              setSyncLoading(true);
+                              setSyncStatus(null);
+                              try {
+                                const token = await initSync();
+                                await save({ [tokenKey()]: token, syncEnabled: true });
+                                setConnected(true);
+                                setSyncStatus("Token generated!");
+                              } catch (e) {
+                                setConnected(false);
+                                setSyncStatus(
+                                  isLocal()
+                                    ? "Could not connect. Make sure the local server is running (bun run sync:dev)"
+                                    : `Could not connect: ${e}`
+                                );
+                              }
+                              setSyncLoading(false);
+                            }}
+                          >
+                            {syncLoading() ? "Generating..." : "Generate Token"}
+                          </button>
+                          <div>
+                            <p class="text-xs text-muted-foreground mb-1.5">
+                              Or paste a token from another browser:
+                            </p>
+                            <input
+                              class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors placeholder:text-muted-foreground"
+                              placeholder="Paste sync token and press Enter..."
+                              onKeyDown={async (e) => {
+                                if (e.key === "Enter") {
+                                  const token = e.currentTarget.value.trim();
+                                  if (token) {
+                                    setSyncLoading(true);
+                                    await save({ [tokenKey()]: token, syncEnabled: true });
+                                    const valid = await verifySync();
+                                    if (valid) {
+                                      setConnected(true);
+                                      setSyncStatus("Token verified!");
+                                    } else {
+                                      setConnected(false);
+                                      setSyncStatus("Invalid token or server unreachable.");
+                                      await save({ [tokenKey()]: null, syncEnabled: false });
+                                    }
+                                    setSyncLoading(false);
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                      }
+                    >
+                      <div class="space-y-3">
+                        <div class="bg-muted/30 rounded-lg p-3">
+                          <p class="text-xs text-muted-foreground mb-1.5">Sync Token</p>
+                          <div class="flex items-center gap-2">
+                            <code class="text-xs text-foreground break-all flex-1">
+                              {activeToken()}
+                            </code>
+                            <button
+                              class="px-2 py-1 text-xs bg-muted/50 text-muted-foreground rounded hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
+                              onClick={() => navigator.clipboard.writeText(activeToken()!)}
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                        <button
+                          class="px-3 py-1.5 text-xs text-red-400 hover:text-red-300 transition-colors"
+                          onClick={() => save({ [tokenKey()]: null, syncEnabled: false })}
+                        >
+                          Disconnect
+                        </button>
+                      </div>
+                    </Show>
+
+                    <Show when={syncStatus()}>
+                      <p class={`text-xs ${connected() ? "text-green-400" : "text-muted-foreground"}`}>
+                        {syncStatus()}
+                      </p>
+                    </Show>
+                  </div>
                 );
               })()}
-
-              <Show when={syncStatus()}>
-                <p class="text-xs text-muted-foreground mt-3">{syncStatus()}</p>
-              </Show>
             </div>
 
             {/* Export / Import */}

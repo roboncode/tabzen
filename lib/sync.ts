@@ -44,6 +44,20 @@ export async function initSync(): Promise<string> {
   return data.token;
 }
 
+export async function checkConnection(): Promise<boolean> {
+  try {
+    const settings = await getSettings();
+    const baseUrl = getSyncUrl(settings.syncUrl, settings.syncLocalUrl, settings.syncEnv);
+    const response = await fetch(baseUrl, {
+      method: "GET",
+      signal: AbortSignal.timeout(3000),
+    });
+    return response.ok || response.status === 404; // 404 means server is up, just no route for GET /
+  } catch {
+    return false;
+  }
+}
+
 export async function verifySync(): Promise<boolean> {
   try {
     const response = await syncRequest("/sync/verify");
