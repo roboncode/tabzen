@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS tabs (
   captured_at TEXT NOT NULL,
   source_label TEXT NOT NULL DEFAULT '',
   archived INTEGER NOT NULL DEFAULT 0,
+  starred INTEGER NOT NULL DEFAULT 0,
   group_id TEXT NOT NULL,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   sync_token TEXT NOT NULL

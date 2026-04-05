@@ -47,6 +47,7 @@ app.post("/sync/init", async (c) => {
       captured_at TEXT NOT NULL,
       source_label TEXT NOT NULL DEFAULT '',
       archived INTEGER NOT NULL DEFAULT 0,
+      starred INTEGER NOT NULL DEFAULT 0,
       group_id TEXT NOT NULL,
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       sync_token TEXT NOT NULL
@@ -92,8 +93,8 @@ app.post("/sync/push", async (c) => {
   if (body.tabs?.length) {
     for (const tab of body.tabs) {
       await c.env.DB.prepare(
-        `INSERT OR REPLACE INTO tabs (id, url, title, favicon, og_title, og_description, og_image, meta_description, notes, view_count, last_viewed_at, captured_at, source_label, archived, group_id, updated_at, sync_token)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT OR REPLACE INTO tabs (id, url, title, favicon, og_title, og_description, og_image, meta_description, notes, view_count, last_viewed_at, captured_at, source_label, archived, starred, group_id, updated_at, sync_token)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
         .bind(
           tab.id,
@@ -110,6 +111,7 @@ app.post("/sync/push", async (c) => {
           tab.capturedAt,
           tab.sourceLabel || "",
           tab.archived ? 1 : 0,
+          tab.starred ? 1 : 0,
           tab.groupId,
           now,
           token,
@@ -200,6 +202,7 @@ app.post("/sync/pull", async (c) => {
     capturedAt: row.captured_at,
     sourceLabel: row.source_label,
     archived: !!row.archived,
+    starred: !!row.starred,
     groupId: row.group_id,
   });
 
