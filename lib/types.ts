@@ -12,6 +12,7 @@ export interface Tab {
   lastViewedAt: string | null;
   capturedAt: string;
   sourceLabel: string;
+  deviceId: string;
   archived: boolean;
   starred: boolean;
   groupId: string;
@@ -33,6 +34,7 @@ export interface Capture {
 }
 
 export interface Settings {
+  deviceId: string;
   sourceLabel: string;
   openRouterApiKey: string;
   aiModel: string;
@@ -47,6 +49,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  deviceId: "",
   sourceLabel: "Chrome - Default",
   openRouterApiKey: "",
   aiModel: "openai/gpt-4o-mini",

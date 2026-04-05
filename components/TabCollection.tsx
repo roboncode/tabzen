@@ -91,8 +91,16 @@ export default function TabCollection(props: TabCollectionProps) {
 
   const uniqueDevices = () => {
     const tabs = allTabs() || [];
-    const devices = new Set(tabs.map((t) => t.sourceLabel).filter(Boolean));
-    return Array.from(devices).sort();
+    const deviceMap = new Map<string, string>();
+    for (const t of tabs) {
+      const id = t.deviceId || t.sourceLabel;
+      if (id && !deviceMap.has(id)) {
+        deviceMap.set(id, t.sourceLabel);
+      }
+    }
+    return Array.from(deviceMap.entries())
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   };
 
   const filteredTabs = () => {
@@ -100,9 +108,9 @@ export default function TabCollection(props: TabCollectionProps) {
     const f = filter();
     const device = deviceFilter();
 
-    // Apply device filter first
+    // Apply device filter first (by deviceId, falling back to sourceLabel for old data)
     if (device !== "all") {
-      tabs = tabs.filter((t) => t.sourceLabel === device);
+      tabs = tabs.filter((t) => (t.deviceId || t.sourceLabel) === device);
     }
 
     if (f === "archived") return tabs.filter((t) => t.archived);
@@ -279,7 +287,7 @@ export default function TabCollection(props: TabCollectionProps) {
           >
             <option value="all">All Devices</option>
             <For each={uniqueDevices()}>
-              {(device) => <option value={device}>{device}</option>}
+              {(device) => <option value={device.id}>{device.label}</option>}
             </For>
           </select>
         </Show>

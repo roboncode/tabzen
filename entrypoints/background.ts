@@ -109,9 +109,18 @@ export default defineBackground(() => {
     }
   });
 
-  // --- Auto-detect source label ---
+  // --- Auto-detect device ID and source label ---
   (async () => {
     const settings = await getSettings();
+    const updates: Partial<typeof settings> = {};
+
+    // Generate device ID if missing
+    if (!settings.deviceId) {
+      updates.deviceId = uuidv4();
+      console.log("[TabZen] Generated device ID:", updates.deviceId);
+    }
+
+    // Auto-detect source label on first run
     if (settings.sourceLabel === "Chrome - Default") {
       try {
         const userInfo = await browser.identity.getProfileUserInfo({ accountStatus: "ANY" as any });
@@ -120,12 +129,16 @@ export default defineBackground(() => {
             : navigator.userAgent.includes("OPR/") ? "Opera"
             : navigator.userAgent.includes("Brave") ? "Brave"
             : "Chrome";
-          await updateSettings({ sourceLabel: `${browserName} - ${userInfo.email}` });
-          console.log("[TabZen] Auto-detected source label:", `${browserName} - ${userInfo.email}`);
+          updates.sourceLabel = `${browserName} - ${userInfo.email}`;
+          console.log("[TabZen] Auto-detected source label:", updates.sourceLabel);
         }
       } catch (e) {
         console.log("[TabZen] Could not detect profile email, using default");
       }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await updateSettings(updates);
     }
   })();
 
@@ -560,6 +573,7 @@ export default defineBackground(() => {
           lastViewedAt: null,
           capturedAt: new Date().toISOString(),
           sourceLabel: settings.sourceLabel,
+          deviceId: settings.deviceId,
           archived: false,
           starred: false,
           groupId: "",

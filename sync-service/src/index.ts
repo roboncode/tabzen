@@ -31,7 +31,7 @@ app.post("/sync/init", async (c) => {
     JSON.stringify({ createdAt: new Date().toISOString() }),
   );
 
-  await c.env.DB.prepare("CREATE TABLE IF NOT EXISTS tabs (id TEXT PRIMARY KEY, url TEXT NOT NULL, title TEXT NOT NULL, favicon TEXT NOT NULL DEFAULT '', og_title TEXT, og_description TEXT, og_image TEXT, meta_description TEXT, notes TEXT, view_count INTEGER NOT NULL DEFAULT 0, last_viewed_at TEXT, captured_at TEXT NOT NULL, source_label TEXT NOT NULL DEFAULT '', archived INTEGER NOT NULL DEFAULT 0, starred INTEGER NOT NULL DEFAULT 0, group_id TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')), sync_token TEXT NOT NULL)").run();
+  await c.env.DB.prepare("CREATE TABLE IF NOT EXISTS tabs (id TEXT PRIMARY KEY, url TEXT NOT NULL, title TEXT NOT NULL, favicon TEXT NOT NULL DEFAULT '', og_title TEXT, og_description TEXT, og_image TEXT, meta_description TEXT, notes TEXT, view_count INTEGER NOT NULL DEFAULT 0, last_viewed_at TEXT, captured_at TEXT NOT NULL, source_label TEXT NOT NULL DEFAULT '', device_id TEXT NOT NULL DEFAULT '', archived INTEGER NOT NULL DEFAULT 0, starred INTEGER NOT NULL DEFAULT 0, group_id TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')), sync_token TEXT NOT NULL)").run();
 
   await c.env.DB.prepare("CREATE TABLE IF NOT EXISTS groups (id TEXT PRIMARY KEY, name TEXT NOT NULL, capture_id TEXT NOT NULL, position INTEGER NOT NULL DEFAULT 0, archived INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT (datetime('now')), sync_token TEXT NOT NULL)").run();
 
@@ -90,8 +90,8 @@ app.post("/sync/push", async (c) => {
   if (body.tabs?.length) {
     for (const tab of body.tabs) {
       await c.env.DB.prepare(
-        `INSERT OR REPLACE INTO tabs (id, url, title, favicon, og_title, og_description, og_image, meta_description, notes, view_count, last_viewed_at, captured_at, source_label, archived, starred, group_id, updated_at, sync_token)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT OR REPLACE INTO tabs (id, url, title, favicon, og_title, og_description, og_image, meta_description, notes, view_count, last_viewed_at, captured_at, source_label, device_id, archived, starred, group_id, updated_at, sync_token)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
         .bind(
           tab.id,
@@ -107,6 +107,7 @@ app.post("/sync/push", async (c) => {
           tab.lastViewedAt,
           tab.capturedAt,
           tab.sourceLabel || "",
+          tab.deviceId || "",
           tab.archived ? 1 : 0,
           tab.starred ? 1 : 0,
           tab.groupId,
@@ -207,6 +208,7 @@ app.post("/sync/pull", async (c) => {
     lastViewedAt: row.last_viewed_at,
     capturedAt: row.captured_at,
     sourceLabel: row.source_label,
+    deviceId: row.device_id || "",
     archived: !!row.archived,
     starred: !!row.starred,
     groupId: row.group_id,

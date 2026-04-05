@@ -122,6 +122,7 @@ function makeTab(id: string, url: string, title: string): Tab {
     lastViewedAt: null,
     capturedAt: new Date().toISOString(),
     sourceLabel: "Test",
+    deviceId: "test-device",
     archived: false,
     starred: false,
     groupId: "",
