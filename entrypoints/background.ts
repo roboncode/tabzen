@@ -223,25 +223,92 @@ export default defineBackground(() => {
 
   // --- Capture helpers ---
 
-  async function fetchMetadata(browserTabId: number): Promise<{
+  function parseOgFromHtml(html: string): {
+    ogTitle: string | null;
+    ogDescription: string | null;
+    ogImage: string | null;
+    metaDescription: string | null;
+  } {
+    const getMetaContent = (pattern: RegExp): string | null => {
+      const match = html.match(pattern);
+      return match?.[1]?.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">") || null;
+    };
+
+    return {
+      ogTitle: getMetaContent(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']*)["']/i)
+        || getMetaContent(/<meta[^>]*content=["']([^"']*)["'][^>]*property=["']og:title["']/i),
+      ogDescription: getMetaContent(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']*)["']/i)
+        || getMetaContent(/<meta[^>]*content=["']([^"']*)["'][^>]*property=["']og:description["']/i),
+      ogImage: getMetaContent(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']*)["']/i)
+        || getMetaContent(/<meta[^>]*content=["']([^"']*)["'][^>]*property=["']og:image["']/i),
+      metaDescription: getMetaContent(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i)
+        || getMetaContent(/<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["']/i),
+    };
+  }
+
+  function getYoutubeThumbnail(url: string): string | null {
+    try {
+      const u = new URL(url);
+      let videoId: string | null = null;
+      if (u.hostname.includes("youtube.com")) {
+        videoId = u.searchParams.get("v");
+      } else if (u.hostname === "youtu.be") {
+        videoId = u.pathname.slice(1);
+      }
+      if (videoId) {
+        return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+      }
+    } catch {}
+    return null;
+  }
+
+  async function fetchMetadataViaHttp(url: string): Promise<{
     ogTitle: string | null;
     ogDescription: string | null;
     ogImage: string | null;
     metaDescription: string | null;
   }> {
     try {
-      const response = await browser.tabs.sendMessage(browserTabId, {
-        type: "GET_METADATA",
+      const response = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; TabZen/1.0)" },
+        signal: AbortSignal.timeout(5000),
       });
-      return response;
+      const html = await response.text();
+      const meta = parseOgFromHtml(html);
+      // YouTube fallback: if no og:image found, construct from video ID
+      if (!meta.ogImage) {
+        meta.ogImage = getYoutubeThumbnail(url);
+      }
+      return meta;
     } catch {
+      // Last resort: try YouTube thumbnail
       return {
         ogTitle: null,
         ogDescription: null,
-        ogImage: null,
+        ogImage: getYoutubeThumbnail(url),
         metaDescription: null,
       };
     }
+  }
+
+  async function fetchMetadata(browserTabId: number, url: string): Promise<{
+    ogTitle: string | null;
+    ogDescription: string | null;
+    ogImage: string | null;
+    metaDescription: string | null;
+  }> {
+    // Try content script first (works for tabs loaded after extension install)
+    try {
+      const response = await browser.tabs.sendMessage(browserTabId, {
+        type: "GET_METADATA",
+      });
+      if (response?.ogTitle || response?.ogImage || response?.ogDescription) {
+        return response;
+      }
+    } catch {}
+
+    // Fallback: fetch the page HTML directly
+    return fetchMetadataViaHttp(url);
   }
 
   async function buildCapturePreview(): Promise<CapturePreviewData> {
@@ -251,7 +318,8 @@ export default defineBackground(() => {
     const openTabs = await browser.tabs.query({});
     const captureId = uuidv4();
 
-    const newBrowserTabs = openTabs.filter(
+    // Filter out chrome:// URLs and existing duplicates
+    const candidateTabs = openTabs.filter(
       (t) =>
         t.url &&
         !t.url.startsWith("chrome://") &&
@@ -259,9 +327,18 @@ export default defineBackground(() => {
         !isDuplicate(t.url!, existingUrls),
     );
 
+    // Deduplicate within the batch itself
+    const seenUrls = new Set<string>();
+    const newBrowserTabs = candidateTabs.filter((t) => {
+      const normalized = normalizeUrl(t.url!);
+      if (seenUrls.has(normalized)) return false;
+      seenUrls.add(normalized);
+      return true;
+    });
+
     const tabsWithMeta: Tab[] = await Promise.all(
       newBrowserTabs.map(async (bt) => {
-        const meta = await fetchMetadata(bt.id!);
+        const meta = await fetchMetadata(bt.id!, bt.url!);
         return {
           id: uuidv4(),
           url: bt.url!,
@@ -382,7 +459,7 @@ export default defineBackground(() => {
 
     if (isDuplicate(url, existingUrls)) return;
 
-    const meta = await fetchMetadata(browserTabId);
+    const meta = await fetchMetadata(browserTabId, url);
     const captureId = uuidv4();
     const groupId = uuidv4();
 
