@@ -16,25 +16,25 @@ export default function NotesEditor(props: NotesEditorProps) {
   };
 
   return (
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={props.onClose}>
-      <div class="bg-slate-800 rounded-lg p-4 w-80 max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
-        <h3 class="text-sm font-semibold text-slate-100 mb-1">Notes</h3>
-        <p class="text-xs text-slate-400 mb-3 truncate">{props.tab.title}</p>
+    <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={props.onClose}>
+      <div class="bg-card rounded-xl p-5 w-80 max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+        <h3 class="text-sm font-semibold text-foreground mb-1">Notes</h3>
+        <p class="text-xs text-muted-foreground mb-3 truncate">{props.tab.title}</p>
         <textarea
-          class="w-full h-32 bg-slate-900 text-sm text-slate-200 rounded-md p-3 border border-slate-700 outline-none focus:border-blue-500 resize-none"
+          class="w-full h-32 bg-muted/40 text-sm text-foreground rounded-lg p-3 outline-none focus:bg-muted/60 transition-colors resize-none placeholder:text-muted-foreground"
           value={notes()}
           onInput={(e) => setNotes(e.currentTarget.value)}
           placeholder="Add notes about this tab..."
         />
-        <div class="flex justify-end gap-2 mt-3">
+        <div class="flex justify-end gap-2 mt-4">
           <button
-            class="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 rounded"
+            class="px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
             onClick={props.onClose}
           >
             Cancel
           </button>
           <button
-            class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500"
+            class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
             onClick={handleSave}
           >
             Save

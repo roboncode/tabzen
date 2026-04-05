@@ -54,13 +54,13 @@ export default function App() {
   };
 
   return (
-    <div class="bg-slate-900 text-slate-200 p-4">
-      <h1 class="text-base font-bold text-slate-50 mb-4">Tab Zen</h1>
+    <div class="bg-background text-foreground p-4">
+      <h1 class="text-base font-bold text-foreground mb-4">Tab Zen</h1>
 
       <Show when={!capturePreview()}>
         <div class="space-y-2">
           <button
-            class="w-full px-3 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-full px-3 py-2.5 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleCaptureAll}
             disabled={capturing() || uncapturedCount() === 0}
           >
@@ -71,22 +71,22 @@ export default function App() {
                 : `Capture All Tabs (${uncapturedCount()} new)`}
           </button>
           <button
-            class="w-full px-3 py-2 text-sm bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700"
+            class="w-full px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60"
             onClick={handleSaveCurrentTab}
           >
             Save This Tab
           </button>
         </div>
 
-        <div class="mt-4 pt-3 border-t border-slate-800 flex gap-2">
+        <div class="mt-4 pt-3 border-t border-transparent flex gap-2">
           <button
-            class="flex-1 px-3 py-1.5 text-xs bg-slate-800 text-slate-400 rounded hover:text-slate-200"
+            class="flex-1 px-3 py-1.5 text-xs bg-muted/40 text-muted-foreground rounded hover:text-foreground"
             onClick={openSidePanel}
           >
             Side Panel
           </button>
           <button
-            class="flex-1 px-3 py-1.5 text-xs bg-slate-800 text-slate-400 rounded hover:text-slate-200"
+            class="flex-1 px-3 py-1.5 text-xs bg-muted/40 text-muted-foreground rounded hover:text-foreground"
             onClick={openFullPage}
           >
             Full Page
@@ -97,27 +97,27 @@ export default function App() {
       <Show when={capturePreview()}>
         {(preview) => (
           <div>
-            <p class="text-sm text-slate-300 mb-3">
+            <p class="text-sm text-foreground mb-3">
               {preview().tabs.length} new tabs in {preview().groups.length}{" "}
               groups
             </p>
             <div class="space-y-1 max-h-48 overflow-y-auto mb-3">
               {preview().groups.map((g) => (
-                <div class="text-xs text-slate-400">
-                  <span class="text-slate-200 font-medium">{g.groupName}</span>{" "}
+                <div class="text-xs text-muted-foreground">
+                  <span class="text-foreground font-medium">{g.groupName}</span>{" "}
                   ({g.tabIds.length})
                 </div>
               ))}
             </div>
             <div class="flex gap-2">
               <button
-                class="flex-1 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 rounded"
+                class="flex-1 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded"
                 onClick={() => setCapturePreview(null)}
               >
                 Cancel
               </button>
               <button
-                class="flex-1 px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-500"
+                class="flex-1 px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90"
                 onClick={handleConfirm}
               >
                 Confirm

@@ -15,14 +15,14 @@ const FILTERS: { key: Settings["activeFilter"]; label: string }[] = [
 
 export default function FilterPills(props: FilterPillsProps) {
   return (
-    <div class="flex gap-1.5 px-4 pb-3">
+    <div class="flex gap-2 px-4 pb-4">
       <For each={FILTERS}>
         {(filter) => (
           <button
-            class={`px-2.5 py-1 text-xs rounded-full transition-colors ${
+            class={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
               props.active === filter.key
-                ? "bg-blue-600 text-white"
-                : "bg-slate-800 text-slate-400 hover:text-slate-200"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
             onClick={() => props.onChange(filter.key)}
           >

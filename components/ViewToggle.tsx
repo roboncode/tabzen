@@ -1,3 +1,5 @@
+import { LayoutGrid, List } from "lucide-solid";
+
 interface ViewToggleProps {
   mode: "cards" | "rows";
   onChange: (mode: "cards" | "rows") => void;
@@ -5,26 +7,28 @@ interface ViewToggleProps {
 
 export default function ViewToggle(props: ViewToggleProps) {
   return (
-    <div class="flex bg-slate-800 rounded-md p-0.5 text-xs">
+    <div class="flex bg-muted/40 rounded-lg p-1 gap-0.5">
       <button
-        class={`px-2 py-1 rounded ${
+        class={`p-1.5 rounded-md transition-colors ${
           props.mode === "cards"
-            ? "bg-slate-700 text-slate-100"
-            : "text-slate-400 hover:text-slate-200"
+            ? "bg-muted text-foreground"
+            : "text-muted-foreground hover:text-foreground"
         }`}
         onClick={() => props.onChange("cards")}
+        title="Card view"
       >
-        Cards
+        <LayoutGrid size={15} />
       </button>
       <button
-        class={`px-2 py-1 rounded ${
+        class={`p-1.5 rounded-md transition-colors ${
           props.mode === "rows"
-            ? "bg-slate-700 text-slate-100"
-            : "text-slate-400 hover:text-slate-200"
+            ? "bg-muted text-foreground"
+            : "text-muted-foreground hover:text-foreground"
         }`}
         onClick={() => props.onChange("rows")}
+        title="List view"
       >
-        Rows
+        <List size={15} />
       </button>
     </div>
   );

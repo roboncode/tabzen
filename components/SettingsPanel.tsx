@@ -58,11 +58,11 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   };
 
   return (
-    <div class="h-full bg-slate-900 text-slate-200 overflow-y-auto">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
-        <h1 class="text-base font-bold text-slate-50">Settings</h1>
+    <div class="h-full bg-background text-foreground overflow-y-auto">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-transparent">
+        <h1 class="text-base font-bold text-foreground">Settings</h1>
         <button
-          class="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200"
+          class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
           onClick={props.onClose}
         >
           <ArrowLeft size={14} /> Back
@@ -74,26 +74,26 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           <div class="p-4 space-y-6">
             {/* Source Label */}
             <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5">
+              <label class="block text-xs font-medium text-muted-foreground mb-1.5">
                 Browser / Profile Name
               </label>
               <input
-                class="w-full bg-slate-800 text-sm text-slate-200 rounded-md px-3 py-2 border border-slate-700 outline-none focus:border-blue-500"
+                class="w-full bg-muted/40 text-sm text-foreground rounded-md px-3 py-2 border border-transparent outline-none focus:bg-muted/60"
                 value={s().sourceLabel}
                 onChange={(e) => save({ sourceLabel: e.currentTarget.value })}
               />
-              <p class="text-[10px] text-slate-500 mt-1">
+              <p class="text-[10px] text-foreground0 mt-1">
                 Tags your captures so you know where they came from
               </p>
             </div>
 
             {/* OpenRouter API Key */}
             <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5">
+              <label class="block text-xs font-medium text-muted-foreground mb-1.5">
                 OpenRouter API Key
               </label>
               <input
-                class="w-full bg-slate-800 text-sm text-slate-200 rounded-md px-3 py-2 border border-slate-700 outline-none focus:border-blue-500"
+                class="w-full bg-muted/40 text-sm text-foreground rounded-md px-3 py-2 border border-transparent outline-none focus:bg-muted/60"
                 type="password"
                 value={s().openRouterApiKey}
                 onChange={(e) =>
@@ -105,11 +105,11 @@ export default function SettingsPanel(props: SettingsPanelProps) {
 
             {/* AI Model */}
             <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5">
+              <label class="block text-xs font-medium text-muted-foreground mb-1.5">
                 AI Model
               </label>
               <select
-                class="w-full bg-slate-800 text-sm text-slate-200 rounded-md px-3 py-2 border border-slate-700 outline-none focus:border-blue-500"
+                class="w-full bg-muted/40 text-sm text-foreground rounded-md px-3 py-2 border border-transparent outline-none focus:bg-muted/60"
                 value={s().aiModel}
                 onChange={(e) => save({ aiModel: e.currentTarget.value })}
               >
@@ -134,7 +134,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
 
             {/* Sync */}
             <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5">
+              <label class="block text-xs font-medium text-muted-foreground mb-1.5">
                 Sync
               </label>
               <div class="flex items-center gap-3 mb-2">
@@ -142,7 +142,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   class={`px-3 py-1.5 text-xs rounded ${
                     s().syncEnabled
                       ? "bg-green-600 text-white"
-                      : "bg-slate-800 text-slate-400 hover:text-slate-200"
+                      : "bg-muted/40 text-muted-foreground hover:text-foreground"
                   }`}
                   onClick={() => save({ syncEnabled: !s().syncEnabled })}
                 >
@@ -150,19 +150,19 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 </button>
               </div>
               <Show when={s().syncToken}>
-                <div class="bg-slate-800 rounded-md p-3">
-                  <p class="text-[10px] text-slate-500 mb-1">Sync Token</p>
-                  <code class="text-xs text-slate-300 break-all">
+                <div class="bg-muted/40 rounded-md p-3">
+                  <p class="text-[10px] text-foreground0 mb-1">Sync Token</p>
+                  <code class="text-xs text-foreground break-all">
                     {s().syncToken}
                   </code>
                 </div>
               </Show>
               <div class="mt-2">
-                <label class="block text-[10px] text-slate-500 mb-1">
+                <label class="block text-[10px] text-foreground0 mb-1">
                   Sync URL
                 </label>
                 <input
-                  class="w-full bg-slate-800 text-xs text-slate-300 rounded-md px-3 py-2 border border-slate-700 outline-none focus:border-blue-500"
+                  class="w-full bg-muted/40 text-xs text-foreground rounded-md px-3 py-2 border border-transparent outline-none focus:bg-muted/60"
                   value={s().syncUrl}
                   onChange={(e) => save({ syncUrl: e.currentTarget.value })}
                 />
@@ -171,41 +171,41 @@ export default function SettingsPanel(props: SettingsPanelProps) {
 
             {/* Export / Import */}
             <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5">
+              <label class="block text-xs font-medium text-muted-foreground mb-1.5">
                 Export / Import
               </label>
               <div class="flex flex-wrap gap-2">
                 <button
-                  class="px-3 py-1.5 text-xs bg-slate-800 text-slate-300 rounded hover:bg-slate-700"
+                  class="px-3 py-1.5 text-xs bg-muted/40 text-foreground rounded hover:bg-muted/60"
                   onClick={handleExportJson}
                 >
                   Export JSON
                 </button>
                 <button
-                  class="px-3 py-1.5 text-xs bg-slate-800 text-slate-300 rounded hover:bg-slate-700"
+                  class="px-3 py-1.5 text-xs bg-muted/40 text-foreground rounded hover:bg-muted/60"
                   onClick={handleExportBookmarks}
                 >
                   Export Bookmarks
                 </button>
                 <button
-                  class="px-3 py-1.5 text-xs bg-slate-800 text-slate-300 rounded hover:bg-slate-700"
+                  class="px-3 py-1.5 text-xs bg-muted/40 text-foreground rounded hover:bg-muted/60"
                   onClick={handleImport}
                 >
                   Import JSON
                 </button>
               </div>
               <Show when={importResult()}>
-                <p class="text-xs text-slate-400 mt-2">{importResult()}</p>
+                <p class="text-xs text-muted-foreground mt-2">{importResult()}</p>
               </Show>
             </div>
 
             {/* Keyboard shortcuts */}
             <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5">
+              <label class="block text-xs font-medium text-muted-foreground mb-1.5">
                 Keyboard Shortcuts
               </label>
               <button
-                class="px-3 py-1.5 text-xs bg-slate-800 text-slate-300 rounded hover:bg-slate-700"
+                class="px-3 py-1.5 text-xs bg-muted/40 text-foreground rounded hover:bg-muted/60"
                 onClick={() =>
                   browser.tabs.create({
                     url: "chrome://extensions/shortcuts",
@@ -217,7 +217,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             </div>
 
             {/* Dev: Clear All Data */}
-            <div class="pt-4 border-t border-slate-800">
+            <div class="pt-4 border-t border-transparent">
               <label class="block text-xs font-medium text-red-400 mb-1.5">
                 Danger Zone
               </label>
@@ -232,7 +232,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               >
                 Clear All Data
               </button>
-              <p class="text-[10px] text-slate-500 mt-1">
+              <p class="text-[10px] text-foreground0 mt-1">
                 Removes all saved tabs, groups, and captures from local storage
               </p>
             </div>

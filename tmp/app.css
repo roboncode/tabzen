@@ -1,0 +1,345 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Primary - zinc/slate neutral */
+  --primary: oklch(0.21 0.006 285.75);
+  --primary-foreground: oklch(0.985 0 0);
+
+  /* Surface Colors */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+
+  /* Card */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.141 0.005 285.823);
+
+  /* Popover */
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.141 0.005 285.823);
+
+  /* Secondary */
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.75);
+
+  /* Muted */
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+
+  /* Accent */
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.21 0.006 285.75);
+
+  /* Semantic Colors */
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.62 0.18 145);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.72 0.16 60);
+  --warning-foreground: oklch(0.141 0.005 285.823);
+
+  /* Border & Input */
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  --ring: #3451b2;
+
+  /* Chart colors */
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+
+  /* Base radius */
+  --radius: 0.625rem;
+
+  /* Layout */
+  --header-height: 3.5rem;
+
+  /* Sidebar */
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-primary: oklch(0.21 0.006 285.75);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.75);
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: #3451b2;
+}
+
+.dark {
+  /* Primary — warm off-white */
+  --primary: #dfdfd6;
+  --primary-foreground: #1b1b1f;
+
+  /* Surface Colors — neutral dark grays */
+  --background: #1b1b1f;
+  --foreground: #dfdfd6;
+
+  /* Card — slightly elevated dark */
+  --card: #202127;
+  --card-foreground: #dfdfd6;
+
+  /* Popover */
+  --popover: #202127;
+  --popover-foreground: #dfdfd6;
+
+  /* Secondary */
+  --secondary: #2e2e32;
+  --secondary-foreground: #dfdfd6;
+
+  /* Muted */
+  --muted: #2e2e32;
+  --muted-foreground: #98989f;
+
+  /* Accent */
+  --accent: #2e2e32;
+  --accent-foreground: #dfdfd6;
+
+  /* Semantic Colors */
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.68 0.18 145);
+  --success-foreground: #1b1b1f;
+  --warning: oklch(0.78 0.16 60);
+  --warning-foreground: #1b1b1f;
+
+  /* Border & Input — visible but not harsh */
+  --border: #3c3f44;
+  --input: #3c3f44;
+  --ring: #a8b1ff;
+
+  /* Chart colors */
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+
+  /* Sidebar — darker than main bg */
+  --sidebar: #161618;
+  --sidebar-foreground: #dfdfd6;
+  --sidebar-primary: #a8b1ff;
+  --sidebar-primary-foreground: #1b1b1f;
+  --sidebar-accent: #2e2e32;
+  --sidebar-accent-foreground: #dfdfd6;
+  --sidebar-border: #2e2e32;
+  --sidebar-ring: #a8b1ff;
+}
+
+@theme inline {
+  /* Font size overrides — raise baseline for helpdesk readability */
+  --text-xs: 0.8125rem; /* 13px instead of 12px */
+  --text-xs--line-height: 1.25rem; /* 20px */
+  --text-sm: 0.9375rem; /* 15px instead of 14px */
+  --text-sm--line-height: 1.375rem; /* 22px */
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --spacing-header: var(--header-height);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Fix native input styling for dark mode */
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator,
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.7);
+}
+
+/* Borderless color picker */
+input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+/* ============================================
+   Design System Utilities
+   Centralized classes for consistent design.
+   See docs/design-system.md for full reference.
+   ============================================ */
+
+@layer components {
+  /* Surface levels — use instead of borders for visual separation */
+  .surface-raised {
+    @apply bg-muted/30 rounded-xl;
+  }
+
+  .surface-inset {
+    @apply bg-muted/40 rounded-lg;
+  }
+
+  .surface-header {
+    @apply bg-muted/30 px-6 py-3;
+  }
+
+  /* Borderless form controls */
+  .input-borderless {
+    @apply !border-transparent !bg-muted/40 !shadow-none focus-visible:!bg-muted/60 focus-visible:!ring-0;
+  }
+
+  .select-borderless {
+    @apply !border-transparent !bg-muted/40 !shadow-none;
+  }
+
+  .select-inline {
+    @apply !border-transparent bg-transparent !shadow-none px-3 hover:bg-muted/50;
+  }
+
+  /* Section headers — for sidebar detail panels */
+  .section-header {
+    @apply text-sm font-medium uppercase tracking-wider text-muted-foreground bg-muted/50 rounded px-3 py-1.5 mb-2;
+  }
+
+  /* Message cards in activity feed */
+  .message-card {
+    @apply ml-10 rounded-lg px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap;
+  }
+
+  .message-card-agent {
+    @apply ml-10 rounded-lg px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap bg-muted/50;
+  }
+
+  .message-card-customer {
+    @apply ml-10 rounded-lg px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap bg-muted/30;
+  }
+
+  .message-card-internal {
+    @apply ml-10 rounded-lg px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap bg-yellow-500/[0.07];
+  }
+
+  /* Pill tabs — for activity feed tabs and similar toggles */
+  .pill-tab {
+    @apply px-3 py-1 min-w-[64px] text-sm font-medium capitalize rounded-full transition-colors;
+  }
+
+  .pill-tab-active {
+    @apply px-3 py-1 min-w-[64px] text-sm font-medium capitalize rounded-full transition-colors bg-primary text-primary-foreground;
+  }
+
+  .pill-tab-inactive {
+    @apply px-3 py-1 min-w-[64px] text-sm font-medium capitalize rounded-full transition-colors text-muted-foreground hover:bg-muted hover:text-foreground;
+  }
+
+  /* Count badges — sidebar navigation */
+  .count-badge {
+    @apply ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground px-1.5;
+  }
+
+  /* Table patterns */
+  .table-header {
+    @apply bg-muted/30 rounded-t-lg;
+  }
+
+  /* NOTE: Do NOT use "table-row" as a class name — it collides with
+     Tailwind's built-in table-row utility (display: table-row).
+     Use "row-hover" or inline the styles instead. */
+  .row-hover {
+    @apply hover:bg-muted/30 transition-colors rounded-lg;
+  }
+
+  .row-hover-urgent {
+    @apply hover:bg-muted/30 transition-colors rounded-lg bg-red-500/5;
+  }
+
+  /* Chart tooltip */
+  .chart-tooltip {
+    @apply bg-popover text-popover-foreground rounded-lg shadow-md px-3 py-2 text-xs;
+  }
+
+  /* Avatar colors by role */
+  .avatar-agent {
+    @apply bg-blue-600 text-white;
+  }
+
+  .avatar-customer {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  .avatar-ai {
+    @apply bg-purple-600 text-white;
+  }
+}

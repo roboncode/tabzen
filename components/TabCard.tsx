@@ -21,57 +21,72 @@ export default function TabCard(props: TabCardProps) {
 
   return (
     <div
-      class="bg-slate-800 rounded-lg overflow-hidden cursor-pointer hover:ring-1 hover:ring-blue-500 transition-all"
+      class="cursor-pointer group"
       onClick={() => props.onOpen(props.tab)}
     >
-      {props.tab.ogImage && (
-        <div class="h-32 overflow-hidden bg-slate-700">
+      {/* Thumbnail - 16:9 ratio like YouTube */}
+      <div class="aspect-video rounded-xl overflow-hidden bg-muted/40 mb-3">
+        {props.tab.ogImage ? (
           <img
             src={props.tab.ogImage}
             alt=""
-            class="w-full h-full object-cover"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
           />
-        </div>
-      )}
-      <div class="p-3">
-        <div class="flex items-center gap-2 mb-1.5">
-          {props.tab.favicon && (
-            <img src={props.tab.favicon} alt="" class="w-4 h-4 rounded-sm" />
-          )}
-          <span class="text-xs text-slate-400 truncate">{domain()}</span>
-        </div>
-        <h3 class="text-sm font-medium text-slate-100 leading-snug line-clamp-2">
-          {props.tab.ogTitle || props.tab.title}
-        </h3>
-        {description() && (
-          <p class="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-            {description()}
-          </p>
+        ) : (
+          <div class="w-full h-full flex items-center justify-center">
+            {props.tab.favicon ? (
+              <img src={props.tab.favicon} alt="" class="w-8 h-8 rounded" />
+            ) : (
+              <span class="text-muted-foreground text-sm">{domain()}</span>
+            )}
+          </div>
         )}
-        <div class="flex items-center justify-between mt-2">
-          <div class="flex items-center gap-2">
+      </div>
+
+      {/* Info below thumbnail - YouTube style */}
+      <div class="flex gap-3">
+        {props.tab.favicon ? (
+          <img
+            src={props.tab.favicon}
+            alt=""
+            class="w-6 h-6 rounded-full mt-0.5 flex-shrink-0"
+          />
+        ) : (
+          <div class="w-6 h-6 rounded-full bg-muted/50 mt-0.5 flex-shrink-0" />
+        )}
+        <div class="flex-1 min-w-0">
+          <h3 class="text-sm font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary/80">
+            {props.tab.ogTitle || props.tab.title}
+          </h3>
+          <p class="text-xs text-muted-foreground mt-1">{domain()}</p>
+          {description() && (
+            <p class="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+              {description()}
+            </p>
+          )}
+          <div class="flex items-center gap-3 mt-1.5">
             {props.tab.viewCount > 0 && (
-              <span class="text-[10px] text-blue-400 flex items-center gap-0.5">
-                <Eye size={10} /> {props.tab.viewCount}
+              <span class="text-xs text-muted-foreground flex items-center gap-1">
+                <Eye size={12} /> {props.tab.viewCount}
               </span>
             )}
-            <span class="text-[10px] text-slate-500">
+            <span class="text-xs text-muted-foreground">
               {props.tab.sourceLabel}
             </span>
+            <button
+              class={`ml-auto ${props.tab.notes ? "text-muted-foreground" : "text-muted-foreground/40"} hover:text-foreground`}
+              onClick={(e) => {
+                e.stopPropagation();
+                props.onEditNotes(props.tab);
+              }}
+              title={props.tab.notes ? "Edit notes" : "Add notes"}
+            >
+              <StickyNote size={13} />
+            </button>
           </div>
-          <button
-            class={`${props.tab.notes ? "text-slate-400" : "text-slate-600"} hover:text-slate-300`}
-            onClick={(e) => {
-              e.stopPropagation();
-              props.onEditNotes(props.tab);
-            }}
-            title={props.tab.notes ? "Edit notes" : "Add notes"}
-          >
-            <StickyNote size={12} />
-          </button>
         </div>
       </div>
     </div>

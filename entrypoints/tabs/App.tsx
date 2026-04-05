@@ -16,7 +16,7 @@ export default function App() {
   };
 
   return (
-    <div class="w-full min-h-screen bg-slate-900">
+    <div class="w-full min-h-screen bg-background">
       <div class="max-w-5xl mx-auto h-screen">
         <Show
           when={!showSettings()}

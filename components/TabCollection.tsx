@@ -135,10 +135,10 @@ export default function TabCollection(props: TabCollectionProps) {
   };
 
   return (
-    <div class="flex flex-col h-full bg-slate-900 text-slate-200">
+    <div class="flex flex-col h-full bg-background text-foreground">
       {/* Top Bar */}
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
-        <h1 class="text-base font-bold text-slate-50">Tab Zen</h1>
+      <div class="flex items-center justify-between px-4 py-3 bg-muted/30">
+        <h1 class="text-base font-semibold text-foreground">Tab Zen</h1>
         <div class="flex items-center gap-2">
           <ViewToggle
             mode={props.viewMode}
@@ -146,19 +146,19 @@ export default function TabCollection(props: TabCollectionProps) {
           />
           <Show when={props.showExpandButton}>
             <button
-              class="w-7 h-7 bg-slate-800 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-200"
+              class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
               onClick={openFullPage}
               title="Open full page"
             >
-              <Maximize2 size={14} />
+              <Maximize2 size={15} />
             </button>
           </Show>
           <button
-            class="w-7 h-7 bg-slate-800 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-200"
+            class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             onClick={() => props.onOpenSettings?.()}
             title="Settings"
           >
-            <SettingsIcon size={14} />
+            <SettingsIcon size={15} />
           </button>
         </div>
       </div>

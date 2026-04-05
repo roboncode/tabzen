@@ -36,45 +36,51 @@ export default function GroupSection(props: GroupSectionProps) {
   };
 
   return (
-    <div class="mb-4">
-      <div class="flex items-center justify-between px-4 py-2">
-        <div class="flex items-center gap-2">
-          <button
-            class="text-slate-400 hover:text-slate-200"
-            onClick={() => setCollapsed(!collapsed())}
-          >
-            {collapsed() ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-          </button>
+    <div class="mb-6">
+      {/* Group header - shading instead of borders */}
+      <div
+        class="flex items-center justify-between px-4 py-2.5 rounded-lg bg-muted/30 hover:bg-muted/40 transition-colors mx-4 mb-3 cursor-pointer"
+        onClick={() => setCollapsed(!collapsed())}
+      >
+        <div class="flex items-center gap-2.5">
+          <span class="text-muted-foreground">
+            {collapsed() ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+          </span>
           <Show
             when={!editing()}
             fallback={
               <input
                 ref={inputRef}
-                class="bg-slate-800 text-sm font-semibold text-slate-100 px-2 py-0.5 rounded border border-slate-600 outline-none focus:border-blue-500"
+                class="bg-muted/60 text-sm font-medium text-foreground px-2 py-0.5 rounded-md outline-none focus:ring-1 focus:ring-ring"
                 value={props.group.name}
                 onBlur={handleRename}
                 onKeyDown={(e) => e.key === "Enter" && handleRename()}
+                onClick={(e) => e.stopPropagation()}
               />
             }
           >
             <h3
-              class="text-sm font-semibold text-slate-100 cursor-pointer hover:text-blue-400"
-              onDblClick={() => setEditing(true)}
+              class="text-sm font-medium text-foreground"
+              onDblClick={(e) => {
+                e.stopPropagation();
+                setEditing(true);
+              }}
             >
               {props.group.name}
             </h3>
           </Show>
-          <span class="text-xs text-slate-500 bg-slate-800 rounded-full px-2 py-0.5">
+          <span class="text-xs text-muted-foreground bg-muted/50 rounded-full px-2 py-0.5">
             {props.tabs.length}
           </span>
         </div>
-        <span class="text-xs text-slate-500">{captureDate()}</span>
+        <span class="text-xs text-muted-foreground">{captureDate()}</span>
       </div>
+
       <Show when={!collapsed()}>
         <Show
           when={props.viewMode === "cards"}
           fallback={
-            <div class="space-y-0.5">
+            <div class="space-y-0.5 px-2">
               <For each={props.tabs}>
                 {(tab) => (
                   <TabRow
@@ -87,7 +93,8 @@ export default function GroupSection(props: GroupSectionProps) {
             </div>
           }
         >
-          <div class="grid gap-3 px-4" style={{ "grid-template-columns": "repeat(auto-fill, minmax(200px, 1fr))" }}>
+          {/* 2-column grid like YouTube */}
+          <div class="grid grid-cols-2 gap-x-4 gap-y-6 px-4">
             <For each={props.tabs}>
               {(tab) => (
                 <TabCard
