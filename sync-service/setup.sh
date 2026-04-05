@@ -148,8 +148,8 @@ echo "$DEPLOY_OUTPUT"
 
 # --- Run schema migration ---
 echo ""
-echo "Running database migration..."
-wrangler d1 execute tab-zen-sync --file=schema.sql --remote
+echo "Running database migrations..."
+wrangler d1 migrations apply tab-zen-sync --remote
 
 echo ""
 echo "=============================="

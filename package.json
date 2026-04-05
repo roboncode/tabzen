@@ -19,7 +19,9 @@
     "sync:deploy": "cd sync-service && npm run deploy",
     "sync:db:create": "cd sync-service && wrangler d1 create tab-zen-sync",
     "sync:kv:create": "cd sync-service && wrangler kv namespace create KV",
-    "sync:db:migrate": "cd sync-service && wrangler d1 execute tab-zen-sync --file=schema.sql --remote",
+    "sync:db:migrate": "cd sync-service && wrangler d1 migrations apply tab-zen-sync --remote",
+    "sync:db:migrate:local": "cd sync-service && wrangler d1 migrations apply tab-zen-sync",
+    "sync:db:migration:create": "cd sync-service && wrangler d1 migrations create tab-zen-sync",
     "sync:setup": "cd sync-service && ./setup.sh"
   },
   "dependencies": {
