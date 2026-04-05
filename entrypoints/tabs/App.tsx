@@ -1,0 +1,34 @@
+import { createSignal, Show } from "solid-js";
+import { getSettings, updateSettings } from "@/lib/settings";
+import TabCollection from "@/components/TabCollection";
+import SettingsPanel from "@/components/SettingsPanel";
+import type { Settings } from "@/lib/types";
+
+export default function App() {
+  const [viewMode, setViewMode] = createSignal<Settings["viewMode"]>("cards");
+  const [showSettings, setShowSettings] = createSignal(false);
+
+  getSettings().then((s) => setViewMode(s.viewMode));
+
+  const handleViewModeChange = (mode: "cards" | "rows") => {
+    setViewMode(mode);
+    updateSettings({ viewMode: mode });
+  };
+
+  return (
+    <div class="w-full min-h-screen bg-slate-900">
+      <div class="max-w-5xl mx-auto h-screen">
+        <Show
+          when={!showSettings()}
+          fallback={<SettingsPanel onClose={() => setShowSettings(false)} />}
+        >
+          <TabCollection
+            viewMode={viewMode()}
+            onViewModeChange={handleViewModeChange}
+            showExpandButton={false}
+          />
+        </Show>
+      </div>
+    </div>
+  );
+}
