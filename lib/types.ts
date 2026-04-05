@@ -75,5 +75,9 @@ export interface SyncPayload {
   tabs: Tab[];
   groups: Group[];
   captures: Capture[];
+  settings?: {
+    aiModel: string;
+    encryptedApiKey: string | null;
+  };
   lastSyncedAt: string;
 }

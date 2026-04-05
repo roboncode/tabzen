@@ -15,6 +15,8 @@ import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate } from "@/lib/duplicates";
 import { groupTabsWithAI, aiSearch } from "@/lib/ai";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
+import { encrypt, decrypt } from "@/lib/crypto";
+import { updateSettings } from "@/lib/settings";
 import type {
   Tab,
   Group,
@@ -106,6 +108,26 @@ export default defineBackground(() => {
       syncPullIfNeeded();
     }
   });
+
+  // --- Auto-detect source label ---
+  (async () => {
+    const settings = await getSettings();
+    if (settings.sourceLabel === "Chrome - Default") {
+      try {
+        const userInfo = await browser.identity.getProfileUserInfo({ accountStatus: "ANY" as any });
+        if (userInfo.email) {
+          const browserName = navigator.userAgent.includes("Edg/") ? "Edge"
+            : navigator.userAgent.includes("OPR/") ? "Opera"
+            : navigator.userAgent.includes("Brave") ? "Brave"
+            : "Chrome";
+          await updateSettings({ sourceLabel: `${browserName} - ${userInfo.email}` });
+          console.log("[TabZen] Auto-detected source label:", `${browserName} - ${userInfo.email}`);
+        }
+      } catch (e) {
+        console.log("[TabZen] Could not detect profile email, using default");
+      }
+    }
+  })();
 
   // --- Badge: Uncaptured tab count ---
   async function updateBadge(): Promise<void> {
@@ -338,31 +360,64 @@ export default defineBackground(() => {
         return { type: "ERROR", message: "No sync token configured" };
       }
 
-      // Push local data first
+      // Push local data + settings
       const data = await getAllData();
       let pushed = data.tabs.length;
       console.log("[TabZen] Pushing", pushed, "tabs,", data.groups.length, "groups,", data.captures.length, "captures");
+
+      // Encrypt API key if present
+      let encryptedApiKey: string | null = null;
+      if (settings.openRouterApiKey && activeToken) {
+        encryptedApiKey = await encrypt(settings.openRouterApiKey, activeToken);
+      }
+
       await pushSync({
         tabs: data.tabs,
         groups: data.groups,
         captures: data.captures,
+        settings: {
+          aiModel: settings.aiModel,
+          encryptedApiKey,
+        },
         lastSyncedAt: new Date().toISOString(),
       });
-      console.log("[TabZen] Manual sync: pushed", pushed, "tabs");
+      console.log("[TabZen] Manual sync: pushed", pushed, "tabs + settings");
 
       // Then pull remote data
       let pulled = 0;
       const remote = await pullSync("1970-01-01T00:00:00Z");
-      if (remote && (remote.tabs.length || remote.groups.length || remote.captures.length)) {
-        const tabs = remote.tabs.map((t) => ({ ...t, starred: t.starred ?? false }));
-        const result = await importData({ tabs, groups: remote.groups, captures: remote.captures });
-        pulled = result.imported;
-        lastSyncedAt = remote.lastSyncedAt;
-        console.log("[TabZen] Manual sync: pulled", pulled, "new tabs");
-        if (pulled > 0) {
-          browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
-          await updateBadge();
+      if (remote) {
+        if (remote.tabs.length || remote.groups.length || remote.captures.length) {
+          const tabs = remote.tabs.map((t) => ({ ...t, starred: t.starred ?? false }));
+          const result = await importData({ tabs, groups: remote.groups, captures: remote.captures });
+          pulled = result.imported;
+          console.log("[TabZen] Manual sync: pulled", pulled, "new tabs");
+          if (pulled > 0) {
+            browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
+            await updateBadge();
+          }
         }
+
+        // Apply synced settings
+        if (remote.settings && activeToken) {
+          const updates: Record<string, string> = {};
+          if (remote.settings.aiModel && remote.settings.aiModel !== settings.aiModel) {
+            updates.aiModel = remote.settings.aiModel;
+          }
+          if (remote.settings.encryptedApiKey && !settings.openRouterApiKey) {
+            try {
+              updates.openRouterApiKey = await decrypt(remote.settings.encryptedApiKey, activeToken);
+            } catch (e) {
+              console.warn("[TabZen] Could not decrypt API key:", e);
+            }
+          }
+          if (Object.keys(updates).length > 0) {
+            await updateSettings(updates);
+            console.log("[TabZen] Applied synced settings:", Object.keys(updates));
+          }
+        }
+
+        lastSyncedAt = remote.lastSyncedAt;
       }
 
       lastSyncedAt = new Date().toISOString();

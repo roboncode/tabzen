@@ -37,6 +37,8 @@ app.post("/sync/init", async (c) => {
 
   await c.env.DB.prepare("CREATE TABLE IF NOT EXISTS captures (id TEXT PRIMARY KEY, captured_at TEXT NOT NULL, source_label TEXT NOT NULL DEFAULT '', tab_count INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT (datetime('now')), sync_token TEXT NOT NULL)").run();
 
+  await c.env.DB.prepare("CREATE TABLE IF NOT EXISTS settings (sync_token TEXT PRIMARY KEY, ai_model TEXT, encrypted_api_key TEXT, updated_at TEXT NOT NULL DEFAULT (datetime('now')))").run();
+
   return c.json({ token });
 });
 
@@ -152,6 +154,15 @@ app.post("/sync/push", async (c) => {
     }
   }
 
+  // Upsert settings
+  if (body.settings) {
+    await c.env.DB.prepare(
+      "INSERT OR REPLACE INTO settings (sync_token, ai_model, encrypted_api_key, updated_at) VALUES (?, ?, ?, ?)",
+    )
+      .bind(token, body.settings.aiModel || null, body.settings.encryptedApiKey || null, now)
+      .run();
+  }
+
   return c.json({ success: true });
 });
 
@@ -216,10 +227,19 @@ app.post("/sync/pull", async (c) => {
     tabCount: row.tab_count,
   });
 
+  // Pull settings
+  const settingsRow = await c.env.DB.prepare(
+    "SELECT * FROM settings WHERE sync_token = ?",
+  ).bind(token).first();
+
   return c.json({
     tabs: tabs.results.map(mapTab),
     groups: groups.results.map(mapGroup),
     captures: captures.results.map(mapCapture),
+    settings: settingsRow ? {
+      aiModel: settingsRow.ai_model,
+      encryptedApiKey: settingsRow.encrypted_api_key,
+    } : null,
     lastSyncedAt: new Date().toISOString(),
   });
 });

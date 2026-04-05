@@ -11,6 +11,7 @@ export default defineConfig({
       "storage",
       "sidePanel",
       "contextMenus",
+      "identity.email",
     ],
     commands: {
       _execute_side_panel: {
