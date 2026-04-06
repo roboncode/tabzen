@@ -2,6 +2,7 @@ import { Show, createMemo } from "solid-js";
 import { Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2 } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 import { extractCreator, getFaviconUrl } from "@/lib/domains";
+import { isYouTubeWatchUrl } from "@/lib/youtube";
 import Highlight from "./Highlight";
 
 interface TabCardProps {
@@ -17,6 +18,8 @@ interface TabCardProps {
   onHardDelete?: (tab: Tab) => void;
   onSelectCreator?: (domain: string, creator: string) => void;
   onTagClick?: (tag: string) => void;
+  onTranscript?: (tab: Tab) => void;
+  transcriptLoading?: boolean;
   isTrash?: boolean;
 }
 
@@ -43,6 +46,8 @@ export default function TabCard(props: TabCardProps) {
   });
 
   const creatorUrl = createMemo(() => props.tab.creatorUrl || null);
+
+  const isYouTube = createMemo(() => isYouTubeWatchUrl(props.tab.url));
 
   const formatTimeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -217,6 +222,22 @@ export default function TabCard(props: TabCardProps) {
           )}
         </div>
       </div>
+
+      {/* Transcript button for YouTube */}
+      <Show when={isYouTube()}>
+        <div class="mt-2 ml-9">
+          <button
+            class="text-xs text-sky-400/70 hover:text-sky-400 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              props.onTranscript?.(props.tab);
+            }}
+            disabled={props.transcriptLoading}
+          >
+            {props.transcriptLoading ? "Loading..." : "Transcript"}
+          </button>
+        </div>
+      </Show>
 
       {/* Note */}
       <div class="mt-2 ml-9">
