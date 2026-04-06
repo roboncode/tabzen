@@ -71,14 +71,16 @@ export default function SettingsPanel(props: SettingsPanelProps) {
 
   return (
     <div class="h-full bg-background text-foreground overflow-y-auto">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-transparent">
-        <h1 class="text-base font-bold text-foreground">Settings</h1>
-        <button
-          class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-          onClick={props.onClose}
-        >
-          <ArrowLeft size={14} /> Back
-        </button>
+      <div class="bg-muted/30 px-4 py-3">
+        <div class="flex items-center gap-3 max-w-2xl mx-auto">
+          <button
+            class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={props.onClose}
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <h1 class="text-base font-semibold text-foreground">Settings</h1>
+        </div>
       </div>
 
       <Show when={settings()}>
