@@ -1,5 +1,7 @@
 import { createSignal, createResource, onMount, onCleanup, For, Show } from "solid-js";
-import { Maximize2, Settings as SettingsIcon } from "lucide-solid";
+import { Maximize2, Settings as SettingsIcon, Menu, X } from "lucide-solid";
+import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
+import AppSidebar from "./AppSidebar";
 import type {
   Tab,
   Group,
@@ -38,6 +40,9 @@ interface TabCollectionProps {
 export default function TabCollection(props: TabCollectionProps) {
   const [filter, setFilter] = createSignal<Settings["activeFilter"]>("all");
   const [deviceFilter, setDeviceFilter] = createSignal<string>("all");
+  const [domainFilter, setDomainFilter] = createSignal<string | null>(null);
+  const [creatorFilter, setCreatorFilter] = createSignal<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = createSignal(false);
   const [searchQuery, setSearchQuery] = createSignal<string>("");
   const [searchResults, setSearchResults] = createSignal<Tab[] | null>(null);
   const [editingTab, setEditingTab] = createSignal<Tab | null>(null);
@@ -93,6 +98,8 @@ export default function TabCollection(props: TabCollectionProps) {
     return filtered;
   };
 
+  const domainIndex = () => buildDomainIndex(allTabs() || []);
+
   const uniqueDevices = () => {
     const tabs = allTabs() || [];
     const deviceMap = new Map<string, string>();
@@ -112,7 +119,7 @@ export default function TabCollection(props: TabCollectionProps) {
     const f = filter();
     const device = deviceFilter();
 
-    // Apply device filter first (by deviceId, falling back to sourceLabel for old data)
+    // Apply device filter
     if (device !== "all") {
       tabs = tabs.filter((t) => (t.deviceId || t.sourceLabel) === device);
     }
@@ -121,6 +128,17 @@ export default function TabCollection(props: TabCollectionProps) {
 
     // All non-trash views exclude soft-deleted tabs
     tabs = tabs.filter((t) => !t.deletedAt);
+
+    // Apply domain filter
+    const domain = domainFilter();
+    if (domain) {
+      tabs = tabs.filter((t) => getDomain(t.url) === domain);
+      // Apply creator filter within domain
+      const creator = creatorFilter();
+      if (creator) {
+        tabs = tabs.filter((t) => extractCreator(t) === creator);
+      }
+    }
 
     if (f === "archived") return tabs.filter((t) => t.archived);
     if (f === "starred") return tabs.filter((t) => t.starred && !t.archived);
@@ -291,34 +309,90 @@ export default function TabCollection(props: TabCollectionProps) {
     }
   };
 
+  const isWide = () => !props.showExpandButton; // full page view
+
   return (
-    <div class="flex flex-col h-full bg-background text-foreground">
-      {/* Top Bar */}
-      <div class="flex items-center justify-between px-4 py-3 bg-muted/30">
-        <h1 class="text-base font-semibold text-foreground">Tab Zen</h1>
-        <div class="flex items-center gap-2">
-          <ViewToggle
-            mode={props.viewMode}
-            onChange={props.onViewModeChange}
+    <div class="flex h-full bg-background text-foreground">
+      {/* Sidebar - persistent in full page, drawer in side panel */}
+      <Show when={isWide()}>
+        <div class="w-56 flex-shrink-0 h-full">
+          <AppSidebar
+            domains={domainIndex()}
+            activeDomain={domainFilter()}
+            activeCreator={creatorFilter()}
+            onSelectDomain={(d) => { setDomainFilter(d); setCreatorFilter(null); }}
+            onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
+            totalCount={(allTabs() || []).filter((t) => !t.deletedAt && !t.archived).length}
           />
-          <Show when={props.showExpandButton}>
+        </div>
+      </Show>
+
+      {/* Sidebar drawer overlay for narrow views */}
+      <Show when={!isWide() && sidebarOpen()}>
+        <div class="fixed inset-0 z-40 flex" onClick={() => setSidebarOpen(false)}>
+          <div class="w-64 h-full bg-background" onClick={(e) => e.stopPropagation()}>
+            <AppSidebar
+              domains={domainIndex()}
+              activeDomain={domainFilter()}
+              activeCreator={creatorFilter()}
+              onSelectDomain={(d) => { setDomainFilter(d); setCreatorFilter(null); setSidebarOpen(false); }}
+              onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); setSidebarOpen(false); }}
+              totalCount={(allTabs() || []).filter((t) => !t.deletedAt && !t.archived).length}
+            />
+          </div>
+          <div class="flex-1 bg-black/60" />
+        </div>
+      </Show>
+
+      {/* Main content */}
+      <div class="flex-1 flex flex-col h-full min-w-0">
+        {/* Top Bar */}
+        <div class="flex items-center justify-between px-4 py-3 bg-muted/30">
+          <div class="flex items-center gap-2">
+            <Show when={!isWide()}>
+              <button
+                class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                onClick={() => setSidebarOpen(!sidebarOpen())}
+                title="Browse domains"
+              >
+                <Menu size={16} />
+              </button>
+            </Show>
+            <h1 class="text-base font-semibold text-foreground">
+              Tab Zen
+              <Show when={domainFilter()}>
+                <span class="text-muted-foreground font-normal">
+                  {" / "}{domainFilter()}
+                  <Show when={creatorFilter()}>
+                    {" / "}{creatorFilter()}
+                  </Show>
+                </span>
+              </Show>
+            </h1>
+          </div>
+          <div class="flex items-center gap-2">
+            <ViewToggle
+              mode={props.viewMode}
+              onChange={props.onViewModeChange}
+            />
+            <Show when={props.showExpandButton}>
+              <button
+                class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                onClick={openFullPage}
+                title="Open full page"
+              >
+                <Maximize2 size={15} />
+              </button>
+            </Show>
             <button
               class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-              onClick={openFullPage}
-              title="Open full page"
+              onClick={() => props.onOpenSettings?.()}
+              title="Settings"
             >
-              <Maximize2 size={15} />
+              <SettingsIcon size={15} />
             </button>
-          </Show>
-          <button
-            class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-            onClick={() => props.onOpenSettings?.()}
-            title="Settings"
-          >
-            <SettingsIcon size={15} />
-          </button>
+          </div>
         </div>
-      </div>
 
       <SearchBar onSearch={handleSearch} onAISearch={handleAISearch} />
       <div class="flex items-center gap-2 px-4 pb-4">
@@ -490,6 +564,7 @@ export default function TabCollection(props: TabCollectionProps) {
           );
         }}
       </Show>
+      </div>
     </div>
   );
 }
