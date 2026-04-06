@@ -163,7 +163,7 @@ export default function App() {
           <button
             class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => {
-              browser.tabs.create({ url: browser.runtime.getURL("/tabs.html") });
+              browser.tabs.create({ url: browser.runtime.getURL("/tabs.html?settings=true") });
               window.close();
             }}
           >

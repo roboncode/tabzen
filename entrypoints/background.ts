@@ -61,7 +61,14 @@ export default defineBackground(() => {
       lastSyncedAt = new Date().toISOString();
       console.log("[TabZen] Sync pushed", data.tabs.length, "tabs");
     } catch (e) {
-      console.warn("[TabZen] Sync push failed:", e);
+      const msg = String(e);
+      console.warn("[TabZen] Sync push failed:", msg);
+      if (msg.includes("401")) {
+        browser.runtime.sendMessage({
+          type: "SYNC_ERROR",
+          message: "Sync token is invalid or expired. Please reconnect in Settings.",
+        }).catch(() => {});
+      }
     }
   }
 
@@ -93,7 +100,14 @@ export default defineBackground(() => {
         await updateBadge();
       }
     } catch (e) {
-      console.warn("[TabZen] Sync pull failed:", e);
+      const msg = String(e);
+      console.warn("[TabZen] Sync pull failed:", msg);
+      if (msg.includes("401")) {
+        browser.runtime.sendMessage({
+          type: "SYNC_ERROR",
+          message: "Sync token is invalid or expired. Please reconnect in Settings.",
+        }).catch(() => {});
+      }
     }
   }
 

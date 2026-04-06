@@ -44,6 +44,7 @@ export default function TabCollection(props: TabCollectionProps) {
   const [creatorFilter, setCreatorFilter] = createSignal<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
   const [openMode, setOpenMode] = createSignal<"new-tab" | "current-tab">("new-tab");
+  const [syncError, setSyncError] = createSignal<string | null>(null);
   let searchBarApi: { setSearch: (q: string) => void } | undefined;
   const [searchQuery, setSearchQuery] = createSignal<string>("");
   const [searchResults, setSearchResults] = createSignal<Tab[] | null>(null);
@@ -69,6 +70,9 @@ export default function TabCollection(props: TabCollectionProps) {
     const listener = (message: any) => {
       if (message.type === "DATA_CHANGED") {
         refresh();
+      }
+      if (message.type === "SYNC_ERROR") {
+        setSyncError(message.message);
       }
     };
     browser.runtime.onMessage.addListener(listener);
@@ -443,11 +447,32 @@ export default function TabCollection(props: TabCollectionProps) {
           </div>
         </div>
 
+      {/* Sync error banner */}
+      <Show when={syncError()}>
+        <div class="mx-4 mt-2 flex items-center justify-between bg-red-500/10 rounded-lg px-3 py-2">
+          <p class="text-xs text-red-300">{syncError()}</p>
+          <div class="flex items-center gap-2">
+            <button
+              class="text-xs text-red-300 hover:text-red-200 transition-colors"
+              onClick={() => props.onOpenSettings?.()}
+            >
+              Settings
+            </button>
+            <button
+              class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setSyncError(null)}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      </Show>
+
       <SearchBar
         onSearch={handleSearch}
         onAISearch={handleAISearch}
         tags={tagIndex()}
-        ref={(api) => { searchBarApi = api; }}
+        onInit={(api) => { searchBarApi = api; }}
       />
       <div class="flex items-center gap-2 px-4 pb-4">
         <div class="flex-1 overflow-x-auto scrollbar-hide">

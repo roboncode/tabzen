@@ -6,7 +6,7 @@ interface SearchBarProps {
   onAISearch: (query: string) => void;
   placeholder?: string;
   tags?: { tag: string; count: number }[];
-  ref?: (api: { setSearch: (q: string) => void }) => void;
+  onInit?: (api: { setSearch: (q: string) => void }) => void;
 }
 
 export default function SearchBar(props: SearchBarProps) {
@@ -17,7 +17,7 @@ export default function SearchBar(props: SearchBarProps) {
   let inputRef: HTMLInputElement | undefined;
 
   // Expose API for parent to set search externally (e.g., tag click)
-  props.ref?.({
+  props.onInit?.({
     setSearch: (q: string) => {
       setQuery(q);
       setShowSuggestions(false);
