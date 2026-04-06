@@ -59,14 +59,14 @@ export default function TabCard(props: TabCardProps) {
         <div class="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <Show when={props.isTrash}>
             <button
-              class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-black/60 transition-colors"
+              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-black/85 transition-colors"
               onClick={(e) => { e.stopPropagation(); props.onRestore?.(props.tab); }}
               title="Restore"
             >
               <Undo2 size={16} />
             </button>
             <button
-              class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-red-500/70 transition-colors"
+              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-red-500/85 transition-colors"
               onClick={(e) => { e.stopPropagation(); props.onHardDelete?.(props.tab); }}
               title="Delete forever"
             >
@@ -78,7 +78,7 @@ export default function TabCard(props: TabCardProps) {
               class={`p-2 rounded-lg transition-colors ${
                 props.tab.starred
                   ? "text-yellow-400 bg-black/40"
-                  : "text-foreground/90 bg-black/40 hover:bg-black/60"
+                  : "text-foreground/90 bg-black/70 hover:bg-black/85"
               }`}
               onClick={(e) => { e.stopPropagation(); props.onToggleStar(props.tab); }}
               title={props.tab.starred ? "Unstar" : "Star"}
@@ -86,7 +86,7 @@ export default function TabCard(props: TabCardProps) {
               <Star size={16} fill={props.tab.starred ? "currentColor" : "none"} />
             </button>
             <button
-              class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-black/60 transition-colors"
+              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-black/85 transition-colors"
               onClick={(e) => { e.stopPropagation(); props.onArchive(props.tab); }}
               title={props.tab.archived ? "Unarchive" : "Archive"}
             >
@@ -94,7 +94,7 @@ export default function TabCard(props: TabCardProps) {
             </button>
             <Show when={props.onBlockDomain}>
               <button
-                class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-black/60 transition-colors"
+                class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-black/85 transition-colors"
                 onClick={(e) => { e.stopPropagation(); props.onBlockDomain?.(props.tab); }}
                 title="Block this domain"
               >
@@ -102,7 +102,7 @@ export default function TabCard(props: TabCardProps) {
               </button>
             </Show>
             <button
-              class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-red-500/70 transition-colors"
+              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-red-500/85 transition-colors"
               onClick={(e) => { e.stopPropagation(); props.onDelete(props.tab); }}
               title="Delete"
             >
