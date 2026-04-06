@@ -6,54 +6,50 @@ Iterative roadmap. Each milestone produces a testable, shippable increment.
 
 ## Milestone 1: YouTube Transcript Extraction
 
-**Goal:** On-demand transcript fetching for YouTube tabs, stored in R2, viewable in the extension.
+**Goal:** Capture YouTube transcripts during tab capture (browser-first), store raw segments in R2, display timestamped transcript in the extension.
 
-- Add R2 binding to sync-service (or a new content-service worker)
-- Wire content-youtube API into the monorepo as a callable service
-- Extension UI: "Get Transcript" button on YouTube tab cards
-- Fetch transcript via content-youtube, store raw JSON (segments with timestamps) to R2
-- Store rendered markdown version to R2 alongside raw
-- Add `contentKey` field to Tab model linking to R2 path
-- Display transcript in extension (collapsible panel or modal)
-- Transcript text becomes searchable within the extension
-- Caching layer: Cache API or KV with TTL for repeated fetches
+- Extend content script to extract transcript from YouTube page during capture
+- Store raw transcript segments JSON to R2
+- Add `contentKey`, `contentType`, `contentFetchedAt` to Tab model
+- Rename sync-service to api, restructure with clean service layer (routes/services)
+- Add R2 binding to API worker
+- API endpoints for storing and retrieving transcript content
+- Extension UI: "Transcript" button on YouTube tab cards (displays stored transcript, fetches via API fallback if needed)
+- Fallback: content-youtube API for tabs no longer open
 - Local dev: Wrangler R2 emulation (files on disk, inspectable)
 
-**Testable outcome:** Capture a YouTube tab → click "Get Transcript" → see timestamped transcript in extension. Browse `.wrangler/state/r2/` to inspect stored files.
+**Testable outcome:** Capture a YouTube tab → transcript extracted automatically → click "Transcript" → see timestamped segments. Close tab, click "Transcript" on another → API fallback fetches it.
 
 ---
 
 ## Milestone 2: Web Page Content as Markdown
 
-**Goal:** On-demand article/page extraction for any saved tab, stored as markdown in R2.
+**Goal:** On-demand article/page extraction for any saved tab, stored in R2.
 
-- New content extraction service (or extend existing) for general web pages
+- Content extraction service for general web pages
 - Extract main content using readability-style parsing (title, author, body)
-- Convert to clean markdown
-- Same R2 storage pattern as transcripts (raw HTML + rendered markdown)
-- Extension UI: "Get Content" button on non-video tab cards
+- Convert to clean markdown, store in R2
+- Extension UI: "Content" button on non-video tab cards
 - Display markdown in extension with reader-style formatting
-- Content becomes searchable within the extension
 
-**Testable outcome:** Save a blog post tab → click "Get Content" → see clean markdown version in extension.
+**Testable outcome:** Save a blog post tab → click "Content" → see clean markdown version in extension.
 
 ---
 
-## Milestone 3: AI Summaries
+## Milestone 3: AI-Generated Documents & Summaries
 
-**Goal:** Generate summaries from stored content (transcripts and markdown), with prompts stored as editable markdown files.
+**Goal:** AI processes raw content (transcripts, articles) into structured documents using editable prompt templates.
 
-- Create prompt templates as markdown files in a dedicated package/directory
-  - Summary prompt (configurable length: brief, standard, detailed)
-  - Key points extraction prompt
+- Prompt templates stored as markdown files in a dedicated package/directory
+  - Structured document from transcript (highlights, key points, organized content)
+  - Summary prompt (configurable length)
   - Sponsor detection prompt (for YouTube)
-- AI service that reads prompt files, injects content, calls model
-- Extension UI: "Summarize" button (available after content is fetched)
-- Store summary alongside content in R2
-- Display summary on tab card (collapsible or as a tab detail view)
-- Prompt iteration workflow: edit markdown file → test → refine
+- AI service reads prompt files, injects content, calls model
+- Store AI-generated markdown to R2 alongside raw content
+- Extension UI: view AI-generated document for any tab with raw content
+- Prompt iteration workflow: edit markdown file → re-process → see improved output
 
-**Testable outcome:** Tab with fetched content → click "Summarize" → see AI-generated summary. Edit prompt file → re-summarize → see improved output.
+**Testable outcome:** Tab with raw transcript → AI generates structured document → stored as markdown in R2 → view in extension. Edit prompt file → re-process → compare output.
 
 ---
 
@@ -81,7 +77,7 @@ Iterative roadmap. Each milestone produces a testable, shippable increment.
   - Product ideas extraction
 - Generation UI: select tab → choose output type → generate → copy/export
 - Store generated content in R2, linked to source tab
-- Future: image generation via Nano Banana (placeholder for now)
+- Future: image generation via Nano Banana
 
 **Testable outcome:** YouTube tab with transcript → generate LinkedIn post → copy to clipboard. Generate article from transcript → view/edit markdown.
 
@@ -103,10 +99,26 @@ Iterative roadmap. Each milestone produces a testable, shippable increment.
 
 ---
 
+## Milestone 7: Performance & Optimization
+
+**Goal:** Optimize storage, caching, and retrieval based on real usage patterns.
+
+- KV caching layer for frequently accessed content (TTL-based)
+- Separate IndexedDB store for transcripts if tab records grow too large
+- Batch sync for content (if individual pushes become a bottleneck)
+- Content deduplication (same video captured from multiple browsers)
+- Lazy loading for large transcript displays
+- Measure and optimize API response times
+
+**Testable outcome:** Defined after observing real bottlenecks from Milestones 1-6.
+
+---
+
 ## Notes
 
-- Each milestone builds on the previous — content must be fetched (M1/M2) before it can be summarized (M3) or embedded (M6)
+- Each milestone builds on the previous — content must be fetched (M1/M2) before it can be processed by AI (M3) or embedded (M6)
 - AI prompts are always stored as editable markdown files, never hardcoded
-- R2 for content storage throughout, with caching layer
+- R2 for content storage throughout
 - Local dev uses Wrangler R2 emulation — same code path as production
+- Optimization (M7) is driven by real usage data, not speculation
 - Milestones can be further broken into tasks/specs when we start each one
