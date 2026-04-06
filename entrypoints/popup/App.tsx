@@ -261,8 +261,8 @@ export default function App() {
           {capturing()
             ? "Saving..."
             : uncapturedCount() === 0
-              ? "All tabs captured"
-              : `Capture All Tabs (${uncapturedCount()} new)`}
+              ? "All tabs saved"
+              : `Save All Tabs (${uncapturedCount()} new)`}
         </button>
         <button
           class="w-full px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
