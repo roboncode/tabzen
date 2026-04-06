@@ -315,7 +315,7 @@ export default function TabCollection(props: TabCollectionProps) {
     <div class="flex h-full bg-background text-foreground">
       {/* Sidebar - persistent in full page, drawer in side panel */}
       <Show when={isWide()}>
-        <div class="w-56 flex-shrink-0 h-full">
+        <div class="w-72 flex-shrink-0 h-full">
           <AppSidebar
             domains={domainIndex()}
             activeDomain={domainFilter()}
