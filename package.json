@@ -2,7 +2,7 @@
   "name": "tab-zen",
   "description": "AI-powered tab organization and management",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",

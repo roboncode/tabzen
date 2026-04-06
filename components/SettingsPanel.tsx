@@ -575,6 +575,13 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 Clear tabs from this profile or all data
               </p>
             </div>
+
+            {/* Version */}
+            <div class="pt-4 pb-2 text-center">
+              <p class="text-xs text-muted-foreground/40">
+                Tab Zen v{browser.runtime.getManifest().version}
+              </p>
+            </div>
           </div>
         )}
       </Show>

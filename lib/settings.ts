@@ -1,16 +1,59 @@
 import { storage } from "@wxt-dev/storage";
-import { DEFAULT_SETTINGS, type Settings } from "./types";
+import { DEFAULT_SETTINGS, SETTINGS_VERSION, type Settings } from "./types";
 
 const SETTINGS_KEY = "local:settings";
 
+type Migration = (settings: Settings) => Settings;
+
+// Each migration upgrades from version N-1 to N.
+// Add new migrations here when changing defaults or adding fields.
+const MIGRATIONS: Record<number, Migration> = {
+  1: (s) => ({
+    ...s,
+    settingsVersion: 1,
+    // Backfill blocked domains if empty
+    blockedDomains: s.blockedDomains?.length ? s.blockedDomains : DEFAULT_SETTINGS.blockedDomains,
+    // Backfill new fields with defaults
+    openMode: s.openMode || DEFAULT_SETTINGS.openMode,
+    aiGrouping: s.aiGrouping ?? DEFAULT_SETTINGS.aiGrouping,
+    deviceId: s.deviceId || DEFAULT_SETTINGS.deviceId,
+  }),
+  // Future example:
+  // 2: (s) => ({
+  //   ...s,
+  //   settingsVersion: 2,
+  //   newField: s.newField ?? "default value",
+  // }),
+};
+
+function migrateSettings(settings: Settings): Settings {
+  let current = { ...settings };
+  const fromVersion = current.settingsVersion || 0;
+
+  for (let v = fromVersion + 1; v <= SETTINGS_VERSION; v++) {
+    const migration = MIGRATIONS[v];
+    if (migration) {
+      current = migration(current);
+      console.log(`[TabZen] Settings migrated to v${v}`);
+    }
+  }
+
+  return current;
+}
+
 export async function getSettings(): Promise<Settings> {
   const stored = await storage.getItem<Settings>(SETTINGS_KEY);
-  const merged = { ...DEFAULT_SETTINGS, ...stored };
-  // If blockedDomains was saved as empty but defaults exist, use defaults
-  if (stored && (!stored.blockedDomains || stored.blockedDomains.length === 0) && DEFAULT_SETTINGS.blockedDomains.length > 0) {
-    merged.blockedDomains = DEFAULT_SETTINGS.blockedDomains;
+  if (!stored) return DEFAULT_SETTINGS;
+
+  let settings = { ...DEFAULT_SETTINGS, ...stored };
+
+  // Run migrations if needed
+  if ((settings.settingsVersion || 0) < SETTINGS_VERSION) {
+    settings = migrateSettings(settings);
+    await storage.setItem(SETTINGS_KEY, settings);
   }
-  return merged;
+
+  return settings;
 }
 
 export async function updateSettings(updates: Partial<Settings>): Promise<Settings> {
