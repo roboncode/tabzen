@@ -82,8 +82,8 @@ app.post("/sync/push", async (c) => {
   if (body.tabs?.length) {
     for (const tab of body.tabs) {
       await c.env.DB.prepare(
-        `INSERT OR REPLACE INTO tabs (id, url, title, favicon, og_title, og_description, og_image, meta_description, notes, view_count, last_viewed_at, captured_at, source_label, device_id, archived, starred, group_id, updated_at, sync_token)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT OR REPLACE INTO tabs (id, url, title, favicon, og_title, og_description, og_image, meta_description, notes, view_count, last_viewed_at, captured_at, source_label, device_id, archived, starred, group_id, content_key, content_type, content_fetched_at, updated_at, sync_token)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
         .bind(
           tab.id,
@@ -103,6 +103,9 @@ app.post("/sync/push", async (c) => {
           tab.archived ? 1 : 0,
           tab.starred ? 1 : 0,
           tab.groupId,
+          tab.contentKey,
+          tab.contentType,
+          tab.contentFetchedAt,
           now,
           token,
         )
@@ -210,6 +213,9 @@ app.post("/sync/pull", async (c) => {
     starred: !!row.starred,
     deletedAt: row.deleted_at as string | null,
     groupId: row.group_id as string,
+    contentKey: row.content_key as string | null,
+    contentType: row.content_type as string | null,
+    contentFetchedAt: row.content_fetched_at as string | null,
   });
 
   const mapGroup = (row: Record<string, unknown>): Group => ({

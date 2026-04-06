@@ -599,6 +599,9 @@ export default defineBackground(() => {
           starred: false,
           deletedAt: null,
           groupId: group.groupId,
+          contentKey: null,
+          contentType: null,
+          contentFetchedAt: null,
         };
         group.tabs.push(tab);
         return tab;
@@ -901,6 +904,9 @@ export default defineBackground(() => {
           starred: false,
           deletedAt: null,
           groupId: "",
+          contentKey: null,
+          contentType: null,
+          contentFetchedAt: null,
         };
       }),
     );
@@ -1050,6 +1056,9 @@ export default defineBackground(() => {
       starred: false,
       deletedAt: null,
       groupId,
+      contentKey: null,
+      contentType: null,
+      contentFetchedAt: null,
     };
 
     const group: Group = {

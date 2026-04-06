@@ -132,6 +132,9 @@ function makeTab(id: string, url: string, title: string): Tab {
     starred: false,
     deletedAt: null,
     groupId: "",
+    contentKey: null,
+    contentType: null,
+    contentFetchedAt: null,
   };
 }
 

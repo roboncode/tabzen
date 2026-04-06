@@ -22,6 +22,9 @@ export interface Tab {
   starred: boolean;
   deletedAt: string | null;
   groupId: string;
+  contentKey: string | null;
+  contentType: string | null;
+  contentFetchedAt: string | null;
 }
 
 export interface Group {
@@ -48,4 +51,10 @@ export interface SyncPayload {
     encryptedApiKey: string | null;
   };
   lastSyncedAt: string;
+}
+
+export interface TranscriptSegment {
+  text: string;
+  startMs: number;
+  durationMs: number;
 }
