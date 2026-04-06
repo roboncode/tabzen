@@ -1,4 +1,4 @@
-import { createSignal, createMemo, For, Show } from "solid-js";
+import { createSignal, createMemo, createEffect, For, Show } from "solid-js";
 import { Search, X } from "lucide-solid";
 
 interface SearchBarProps {
@@ -15,6 +15,16 @@ export default function SearchBar(props: SearchBarProps) {
   const [selectedIndex, setSelectedIndex] = createSignal(-1);
   let debounceTimer: ReturnType<typeof setTimeout>;
   let inputRef: HTMLInputElement | undefined;
+  let dropdownRef: HTMLDivElement | undefined;
+
+  // Scroll selected item into view reactively
+  createEffect(() => {
+    const idx = selectedIndex();
+    if (idx >= 0 && dropdownRef) {
+      const item = dropdownRef.children[idx] as HTMLElement;
+      item?.scrollIntoView({ block: "nearest" });
+    }
+  });
 
   // Expose API for parent to set search externally (e.g., tag click)
   props.onInit?.({
@@ -128,15 +138,10 @@ export default function SearchBar(props: SearchBarProps) {
 
         {/* Tag autocomplete dropdown */}
         <Show when={showSuggestions() && suggestions().length > 0}>
-          <div class="absolute top-full left-0 right-0 mt-1 bg-card rounded-lg overflow-y-auto z-10 shadow-lg max-h-64 scrollbar-hide">
+          <div ref={dropdownRef} class="absolute top-full left-0 right-0 mt-1 bg-card rounded-lg overflow-y-auto z-10 shadow-lg max-h-64 scrollbar-hide">
             <For each={suggestions()}>
               {(item, index) => (
                 <button
-                  ref={(el) => {
-                    if (index() === selectedIndex()) {
-                      el.scrollIntoView({ block: "nearest" });
-                    }
-                  }}
                   class={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors ${
                     index() === selectedIndex()
                       ? "bg-muted/50 text-foreground"
