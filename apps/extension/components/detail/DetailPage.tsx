@@ -24,25 +24,35 @@ export default function DetailPage(props: DetailPageProps) {
   const [fetchingTranscript, setFetchingTranscript] = createSignal(false);
   const [currentTab, setCurrentTab] = createSignal(props.tab);
   const [isNarrow, setIsNarrow] = createSignal(false);
+  const [heroScrolledPast, setHeroScrolledPast] = createSignal(false);
 
   let containerRef: HTMLDivElement | undefined;
+  let heroRef: HTMLDivElement | undefined;
+  let scrollRef: HTMLDivElement | undefined;
 
   onMount(() => {
     if (!containerRef) return;
-    const observer = new ResizeObserver((entries) => {
+
+    // Detect narrow width
+    const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         setIsNarrow(entry.contentRect.width < 768);
       }
     });
-    observer.observe(containerRef);
-    onCleanup(() => observer.disconnect());
+    resizeObserver.observe(containerRef);
+
+    onCleanup(() => resizeObserver.disconnect());
   });
+
+  const handleScroll = () => {
+    if (!heroRef || !scrollRef) return;
+    const heroBottom = heroRef.offsetTop + heroRef.offsetHeight;
+    setHeroScrolledPast(scrollRef.scrollTop > heroBottom - 10);
+  };
 
   const isYouTube = createMemo(() => isYouTubeWatchUrl(props.tab.url));
 
-  const handleBack = () => {
-    window.close();
-  };
+  const handleBack = () => { window.close(); };
 
   const handleToggleStar = async () => {
     const tab = currentTab();
@@ -51,9 +61,7 @@ export default function DetailPage(props: DetailPageProps) {
     if (updated) setCurrentTab(updated);
   };
 
-  const handleOpenSource = () => {
-    window.open(props.tab.url, "_blank");
-  };
+  const handleOpenSource = () => { window.open(props.tab.url, "_blank"); };
 
   const handleArchive = async () => {
     const tab = currentTab();
@@ -63,8 +71,7 @@ export default function DetailPage(props: DetailPageProps) {
   };
 
   const handleDelete = async () => {
-    const tab = currentTab();
-    await softDeleteTab(tab.id);
+    await softDeleteTab(currentTab().id);
     window.close();
   };
 
@@ -81,10 +88,7 @@ export default function DetailPage(props: DetailPageProps) {
   const handleFetchTranscript = async () => {
     setFetchingTranscript(true);
     try {
-      const response = await sendMessage({
-        type: "GET_TRANSCRIPT",
-        tabId: props.tab.id,
-      });
+      const response = await sendMessage({ type: "GET_TRANSCRIPT", tabId: props.tab.id });
       if (response.type === "TRANSCRIPT" && response.transcript) {
         setTranscriptSegments(response.transcript);
       }
@@ -95,16 +99,65 @@ export default function DetailPage(props: DetailPageProps) {
     }
   };
 
-  const tabs: { id: ContentTab; label: string }[] = [
+  const contentTabs: { id: ContentTab; label: string }[] = [
     { id: "transcript", label: "Transcript" },
     { id: "summary", label: "Summary" },
     { id: "content", label: "Content" },
   ];
 
+  const PillTabs = () => (
+    <div class="flex gap-2">
+      {contentTabs.map((tab) => (
+        <button
+          class={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap outline-none ${
+            activeTab() === tab.id
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+          onClick={() => setActiveTab(tab.id)}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const TabContent = () => (
+    <>
+      <Show when={activeTab() === "transcript"}>
+        <Show
+          when={isYouTube()}
+          fallback={
+            <PlaceholderTab
+              title="Transcript not available"
+              description="Transcripts are available for YouTube videos"
+            />
+          }
+        >
+          <TranscriptView
+            segments={transcriptSegments()}
+            videoUrl={props.tab.url}
+            onFetchTranscript={
+              transcriptSegments().length === 0 ? handleFetchTranscript : undefined
+            }
+            loading={fetchingTranscript()}
+          />
+        </Show>
+      </Show>
+      <Show when={activeTab() === "summary"}>
+        <PlaceholderTab title="Summary" description="AI-generated summaries coming in a future update" />
+      </Show>
+      <Show when={activeTab() === "content"}>
+        <PlaceholderTab title="Content" description="Web page content extraction coming in a future update" />
+      </Show>
+    </>
+  );
+
   return (
     <div ref={containerRef} class="flex h-screen bg-background relative">
-      {/* Main content — always takes full width */}
+      {/* Main content */}
       <div class="flex-1 min-w-0 flex flex-col">
+        {/* Fixed action bar */}
         <DetailHeader
           tab={currentTab()}
           onBack={handleBack}
@@ -115,66 +168,55 @@ export default function DetailPage(props: DetailPageProps) {
           onEditNotes={handleEditNotes}
           chatCollapsed={chatCollapsed()}
           onToggleChat={() => setChatCollapsed(!chatCollapsed())}
+          compact={heroScrolledPast()}
+          isNarrow={isNarrow()}
         />
 
-        {/* Pill tab bar */}
-        <div class="flex gap-2 px-4 @[500px]:px-6 py-3 flex-shrink-0">
-          {tabs.map((tab) => (
-            <button
-              class={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap outline-none ${
-                activeTab() === tab.id
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {/* Sticky compact header + tabs (visible when hero scrolled past) */}
+        <Show when={heroScrolledPast()}>
+          <div class="px-4 py-2 flex-shrink-0">
+            <PillTabs />
+          </div>
+        </Show>
 
-        {/* Tab content */}
-        <div class="flex-1 overflow-hidden px-4 @[500px]:px-6 pb-6">
-          <Show when={activeTab() === "transcript"}>
-            <Show
-              when={isYouTube()}
-              fallback={
-                <PlaceholderTab
-                  title="Transcript not available"
-                  description="Transcripts are available for YouTube videos"
-                />
-              }
-            >
-              <TranscriptView
-                segments={transcriptSegments()}
-                videoUrl={props.tab.url}
-                onFetchTranscript={
-                  transcriptSegments().length === 0
-                    ? handleFetchTranscript
-                    : undefined
-                }
-                loading={fetchingTranscript()}
-              />
-            </Show>
-          </Show>
-
-          <Show when={activeTab() === "summary"}>
-            <PlaceholderTab
-              title="Summary"
-              description="AI-generated summaries coming in a future update"
+        {/* Scrollable area: hero + tabs + content */}
+        <div
+          ref={scrollRef}
+          class="flex-1 overflow-y-auto scrollbar-hide"
+          onScroll={handleScroll}
+        >
+          {/* Hero card */}
+          <div ref={heroRef}>
+            <DetailHeader
+              tab={currentTab()}
+              onBack={handleBack}
+              onToggleStar={handleToggleStar}
+              onOpenSource={handleOpenSource}
+              onArchive={handleArchive}
+              onDelete={handleDelete}
+              onEditNotes={handleEditNotes}
+              chatCollapsed={chatCollapsed()}
+              onToggleChat={() => setChatCollapsed(!chatCollapsed())}
+              heroOnly
+              isNarrow={isNarrow()}
             />
+          </div>
+
+          {/* Tabs (scroll with content, replaced by sticky when scrolled past) */}
+          <Show when={!heroScrolledPast()}>
+            <div class="px-4 py-3">
+              <PillTabs />
+            </div>
           </Show>
 
-          <Show when={activeTab() === "content"}>
-            <PlaceholderTab
-              title="Content"
-              description="Web page content extraction coming in a future update"
-            />
-          </Show>
+          {/* Tab content */}
+          <div class="px-4 pb-6 flex-1">
+            <TabContent />
+          </div>
         </div>
       </div>
 
-      {/* Chat panel — overlay at narrow, side-by-side at wide */}
+      {/* Chat panel */}
       <ChatPanel
         collapsed={chatCollapsed()}
         onToggle={() => setChatCollapsed(!chatCollapsed())}
