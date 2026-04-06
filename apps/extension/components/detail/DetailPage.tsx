@@ -54,6 +54,11 @@ export default function DetailPage(props: DetailPageProps) {
 
   const isYouTube = createMemo(() => isYouTubeWatchUrl(props.tab.url));
 
+  /** Notify all other views (side panel, full page) that data changed */
+  const notifyChanged = () => {
+    browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
+  };
+
   const handleBack = () => { window.close(); };
 
   const handleToggleStar = async () => {
@@ -61,6 +66,7 @@ export default function DetailPage(props: DetailPageProps) {
     await updateTab(tab.id, { starred: !tab.starred });
     const updated = await getTab(tab.id);
     if (updated) setCurrentTab(updated);
+    notifyChanged();
   };
 
   const handleOpenSource = () => { window.open(props.tab.url, "_blank"); };
@@ -70,10 +76,12 @@ export default function DetailPage(props: DetailPageProps) {
     await updateTab(tab.id, { archived: !tab.archived });
     const updated = await getTab(tab.id);
     if (updated) setCurrentTab(updated);
+    notifyChanged();
   };
 
   const handleDelete = async () => {
     await softDeleteTab(currentTab().id);
+    notifyChanged();
     window.close();
   };
 
@@ -86,6 +94,7 @@ export default function DetailPage(props: DetailPageProps) {
     const updated = await getTab(tabId);
     if (updated) setCurrentTab(updated);
     setEditingNotes(false);
+    notifyChanged();
   };
 
   const handleFetchTranscript = async () => {
