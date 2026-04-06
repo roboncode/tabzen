@@ -177,50 +177,6 @@ export default defineContentScript({
             null;
         }
 
-        // --- YouTube transcript extraction during capture ---
-        let transcript: { text: string; startMs: number; durationMs: number }[] | null = null;
-        if (hostname === "youtube.com" && window.location.pathname === "/watch") {
-          try {
-            let playerResponse: any = null;
-            const allScripts = document.querySelectorAll("script");
-            for (const s of allScripts) {
-              const text = s.textContent || "";
-              const match = text.match(/var ytInitialPlayerResponse\s*=\s*({.+?});/);
-              if (match) {
-                playerResponse = JSON.parse(match[1]);
-                break;
-              }
-            }
-
-            if (playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks) {
-              const tracks = playerResponse.captions.playerCaptionsTracklistRenderer.captionTracks;
-              const englishManual = tracks.find((t: any) => t.languageCode === "en" && t.kind !== "asr");
-              const englishAuto = tracks.find((t: any) => t.languageCode === "en" && t.kind === "asr");
-              const track = englishManual || englishAuto || tracks[0];
-
-              if (track?.baseUrl) {
-                const resp = await fetch(track.baseUrl);
-                const xml = await resp.text();
-                const segs: { text: string; startMs: number; durationMs: number }[] = [];
-                const re = /<text start="([\d.]+)" dur="([\d.]+)"[^>]*>([\s\S]*?)<\/text>/g;
-                let m;
-                while ((m = re.exec(xml)) !== null) {
-                  const startMs = Math.round(parseFloat(m[1]) * 1000);
-                  const durationMs = Math.round(parseFloat(m[2]) * 1000);
-                  const t = m[3].trim()
-                    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-                    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'")
-                    .replace(/\n/g, " ").trim();
-                  if (t) segs.push({ text: t, startMs, durationMs });
-                }
-                transcript = segs.length > 0 ? segs : null;
-              }
-            }
-          } catch (e) {
-            console.error("[TabZen] Transcript extraction during capture failed:", e);
-          }
-        }
-
         sendResponse({
           type: "METADATA",
           ogTitle,
@@ -231,65 +187,7 @@ export default defineContentScript({
           creatorAvatar,
           creatorUrl,
           publishedAt,
-          transcript,
         });
-      }
-
-      if (message.type === "GET_TRANSCRIPT") {
-        const hostname = window.location.hostname.replace("www.", "");
-        if (hostname !== "youtube.com") {
-          sendResponse({ type: "TRANSCRIPT", transcript: null });
-          return;
-        }
-
-        try {
-          let playerResponse: any = null;
-          const scripts = document.querySelectorAll("script");
-          for (const script of scripts) {
-            const text = script.textContent || "";
-            const match = text.match(/var ytInitialPlayerResponse\s*=\s*({.+?});/);
-            if (match) {
-              playerResponse = JSON.parse(match[1]);
-              break;
-            }
-          }
-
-          if (!playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks) {
-            sendResponse({ type: "TRANSCRIPT", transcript: null });
-            return;
-          }
-
-          const tracks = playerResponse.captions.playerCaptionsTracklistRenderer.captionTracks;
-          const englishManual = tracks.find((t: any) => t.languageCode === "en" && t.kind !== "asr");
-          const englishAuto = tracks.find((t: any) => t.languageCode === "en" && t.kind === "asr");
-          const track = englishManual || englishAuto || tracks[0];
-
-          if (!track?.baseUrl) {
-            sendResponse({ type: "TRANSCRIPT", transcript: null });
-            return;
-          }
-
-          const response = await fetch(track.baseUrl);
-          const xml = await response.text();
-
-          const segments: { text: string; startMs: number; durationMs: number }[] = [];
-          const regex = /<text start="([\d.]+)" dur="([\d.]+)"[^>]*>([\s\S]*?)<\/text>/g;
-          let m;
-          while ((m = regex.exec(xml)) !== null) {
-            const startMs = Math.round(parseFloat(m[1]) * 1000);
-            const durationMs = Math.round(parseFloat(m[2]) * 1000);
-            const t = m[3].trim()
-              .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-              .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'")
-              .replace(/\n/g, " ").trim();
-            if (t) segments.push({ text: t, startMs, durationMs });
-          }
-
-          sendResponse({ type: "TRANSCRIPT", transcript: segments.length > 0 ? segments : null });
-        } catch (e) {
-          console.error("[TabZen] Transcript extraction failed:", e);
-          sendResponse({ type: "TRANSCRIPT", transcript: null });
-        }
       }
 
       return true;

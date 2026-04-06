@@ -2,7 +2,10 @@ export function isYouTubeWatchUrl(url: string): boolean {
   try {
     const u = new URL(url);
     const host = u.hostname.replace("www.", "");
-    if (host === "youtube.com") return u.pathname === "/watch" && u.searchParams.has("v");
+    if (host === "youtube.com") {
+      return (u.pathname === "/watch" && u.searchParams.has("v")) ||
+             u.pathname.startsWith("/shorts/");
+    }
     if (host === "youtu.be") return u.pathname.length > 1;
     return false;
   } catch {
@@ -14,7 +17,13 @@ export function extractVideoId(url: string): string | null {
   try {
     const u = new URL(url);
     const host = u.hostname.replace("www.", "");
-    if (host === "youtube.com") return u.searchParams.get("v");
+    if (host === "youtube.com") {
+      const v = u.searchParams.get("v");
+      if (v) return v;
+      const shortsMatch = u.pathname.match(/\/shorts\/([a-zA-Z0-9_-]+)/);
+      if (shortsMatch) return shortsMatch[1];
+      return null;
+    }
     if (host === "youtu.be") return u.pathname.slice(1).split("/")[0] || null;
     return null;
   } catch {

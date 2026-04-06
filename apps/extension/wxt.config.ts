@@ -12,6 +12,10 @@ export default defineConfig({
       "sidePanel",
       "contextMenus",
       "identity.email",
+      "scripting",
+    ],
+    host_permissions: [
+      "*://*.youtube.com/*",
     ],
     commands: {
       _execute_side_panel: {

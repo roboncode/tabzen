@@ -16,6 +16,10 @@ describe("isYouTubeWatchUrl", () => {
     expect(isYouTubeWatchUrl("https://www.youtube.com/channel/UC123")).toBe(false);
     expect(isYouTubeWatchUrl("https://www.youtube.com/")).toBe(false);
   });
+
+  it("detects shorts URLs", () => {
+    expect(isYouTubeWatchUrl("https://www.youtube.com/shorts/abc123")).toBe(true);
+  });
 });
 
 describe("extractVideoId", () => {
@@ -33,6 +37,10 @@ describe("extractVideoId", () => {
 
   it("returns null for non-YouTube URLs", () => {
     expect(extractVideoId("https://www.google.com")).toBeNull();
+  });
+
+  it("extracts from shorts URLs", () => {
+    expect(extractVideoId("https://www.youtube.com/shorts/abc123")).toBe("abc123");
   });
 });
 
