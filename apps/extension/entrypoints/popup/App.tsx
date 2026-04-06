@@ -3,6 +3,7 @@ import { PanelRight, Maximize2, ShieldBan, Settings as SettingsIcon } from "luci
 import { sendMessage } from "@/lib/messages";
 import { shouldSkipUrl } from "@/lib/duplicates";
 import { getSettings } from "@/lib/settings";
+import Kbd from "@/components/Kbd";
 
 function formatTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -307,9 +308,7 @@ export default function App() {
             <Show when={cmd.shortcut}>
               <div class="flex items-center justify-between">
                 <span class="text-xs text-muted-foreground">{cmd.description}</span>
-                <kbd class="text-xs text-muted-foreground bg-muted/40 rounded px-1.5 py-0.5 font-mono">
-                  {cmd.shortcut}
-                </kbd>
+                <Kbd shortcut={cmd.shortcut!} />
               </div>
             </Show>
           ))}
