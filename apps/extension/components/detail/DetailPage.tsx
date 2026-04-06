@@ -169,7 +169,6 @@ export default function DetailPage(props: DetailPageProps) {
           chatCollapsed={chatCollapsed()}
           onToggleChat={() => setChatCollapsed(!chatCollapsed())}
           compact={heroScrolledPast()}
-          isNarrow={isNarrow()}
         />
 
         {/* Sticky compact header + tabs (visible when hero scrolled past) */}
@@ -198,8 +197,7 @@ export default function DetailPage(props: DetailPageProps) {
               chatCollapsed={chatCollapsed()}
               onToggleChat={() => setChatCollapsed(!chatCollapsed())}
               heroOnly
-              isNarrow={isNarrow()}
-            />
+                />
           </div>
 
           {/* Tabs (scroll with content, replaced by sticky when scrolled past) */}

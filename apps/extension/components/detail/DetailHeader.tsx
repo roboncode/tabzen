@@ -14,12 +14,10 @@ interface DetailHeaderProps {
   onEditNotes: () => void;
   chatCollapsed: boolean;
   onToggleChat: () => void;
-  /** Show only the hero card section (no action bar) */
-  heroOnly?: boolean;
-  /** Show only the action bar with compact title (no hero) */
+  /** Render only the action bar with compact title */
   compact?: boolean;
-  /** Narrow viewport */
-  isNarrow?: boolean;
+  /** Render only the hero card (no action bar) */
+  heroOnly?: boolean;
 }
 
 export default function DetailHeader(props: DetailHeaderProps) {
@@ -66,8 +64,125 @@ export default function DetailHeader(props: DetailHeaderProps) {
 
   const iconButton = "p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors";
 
-  // Action bar (Back + icon buttons)
-  const ActionBar = () => (
+  // ── Hero Only mode: the scrollable card ──
+  if (props.heroOnly) {
+    return (
+      <div class="@container px-4 py-4">
+        {/*
+          Container query breakpoints:
+          < 480px: stacked (thumbnail on top, info below) — like a card
+          >= 480px: side-by-side (thumbnail left, info right)
+          >= 700px: larger thumbnail
+        */}
+        <div class="flex flex-col @[480px]:flex-row gap-4 @[480px]:gap-5">
+          {/* Thumbnail — full width when stacked, fixed width when side-by-side */}
+          <div class="w-full @[480px]:w-[200px] @[700px]:w-[280px] @[900px]:w-[340px] aspect-video rounded-xl overflow-hidden bg-muted/40 flex-shrink-0">
+            {props.tab.ogImage ? (
+              <img
+                src={props.tab.ogImage}
+                alt=""
+                class="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            ) : (
+              <div class="w-full h-full flex items-center justify-center">
+                {faviconSrc() ? (
+                  <img src={faviconSrc()} alt="" class="w-10 h-10 rounded" />
+                ) : (
+                  <span class="text-muted-foreground text-sm">{domain()}</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Info */}
+          <div class="flex-1 min-w-0">
+            <h1 class="text-base @[480px]:text-lg font-semibold text-foreground leading-snug">
+              {title()}
+            </h1>
+
+            {/* Creator — clickable */}
+            <div class="flex items-center gap-2 mt-2">
+              <Show when={creator()}>
+                <button
+                  class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => {
+                    const url = props.tab.creatorUrl;
+                    if (url) window.open(url, "_blank");
+                  }}
+                >
+                  {avatarSrc() && (
+                    <img src={avatarSrc()} alt="" class="w-5 h-5 rounded-full flex-shrink-0" />
+                  )}
+                  <span>{creator()}</span>
+                </button>
+              </Show>
+              <Show when={!creator()}>
+                <span class="text-sm text-muted-foreground">{domain()}</span>
+              </Show>
+            </div>
+
+            {/* Timestamps */}
+            <div class="flex items-center gap-2 mt-1.5 text-sm text-muted-foreground/60 flex-wrap">
+              <span>Saved {formatTimeAgo(props.tab.capturedAt)}</span>
+              <Show when={props.tab.publishedAt}>
+                <span class="text-muted-foreground/30">·</span>
+                <span>Published {formatTimeAgo(props.tab.publishedAt!)}</span>
+              </Show>
+            </div>
+
+            {/* Description */}
+            {description() && (
+              <p class="text-sm text-muted-foreground mt-2.5 line-clamp-2 leading-relaxed">
+                {description()}
+              </p>
+            )}
+
+            {/* Tags */}
+            <Show when={tags().length > 0}>
+              <div class="flex flex-wrap gap-x-2 gap-y-1 mt-2.5">
+                <For each={tags()}>
+                  {(tag) => (
+                    <span class="text-sm text-sky-400 cursor-pointer hover:text-sky-300 transition-colors">
+                      #{tag}
+                    </span>
+                  )}
+                </For>
+              </div>
+            </Show>
+
+            {/* Notes */}
+            <div class="mt-3">
+              <Show
+                when={props.tab.notes}
+                fallback={
+                  <button
+                    onClick={props.onEditNotes}
+                    class="flex items-center gap-1.5 text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                  >
+                    <StickyNote size={14} />
+                    <span>Add note</span>
+                  </button>
+                }
+              >
+                <button
+                  onClick={props.onEditNotes}
+                  class="bg-muted/30 rounded-lg px-3 py-2 text-left hover:bg-muted/40 transition-colors w-full"
+                >
+                  <p class="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                    {props.tab.notes}
+                  </p>
+                </button>
+              </Show>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Action bar mode (default) ──
+  return (
     <div class="flex items-center gap-1 px-4 py-2.5 bg-muted/30 flex-shrink-0">
       <button
         onClick={props.onBack}
@@ -128,153 +243,4 @@ export default function DetailHeader(props: DetailHeaderProps) {
       </div>
     </div>
   );
-
-  // Hero card section
-  const HeroCard = () => (
-    <div class="px-4 py-4">
-      {/* Narrow: card layout — thumbnail on top, info below */}
-      <Show when={props.isNarrow}>
-        {/* Full-width thumbnail */}
-        <div class="aspect-video rounded-xl overflow-hidden bg-muted/40 mb-4">
-          {props.tab.ogImage ? (
-            <img
-              src={props.tab.ogImage}
-              alt=""
-              class="w-full h-full object-cover"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            />
-          ) : (
-            <div class="w-full h-full flex items-center justify-center">
-              {faviconSrc() ? (
-                <img src={faviconSrc()} alt="" class="w-10 h-10 rounded" />
-              ) : (
-                <span class="text-muted-foreground text-sm">{domain()}</span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Info below */}
-        <HeroInfo />
-      </Show>
-
-      {/* Wide: side-by-side layout */}
-      <Show when={!props.isNarrow}>
-        <div class="flex gap-5">
-          <div class="w-[280px] aspect-video rounded-xl overflow-hidden bg-muted/40 flex-shrink-0">
-            {props.tab.ogImage ? (
-              <img
-                src={props.tab.ogImage}
-                alt=""
-                class="w-full h-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-              />
-            ) : (
-              <div class="w-full h-full flex items-center justify-center">
-                {faviconSrc() ? (
-                  <img src={faviconSrc()} alt="" class="w-10 h-10 rounded" />
-                ) : (
-                  <span class="text-muted-foreground text-sm">{domain()}</span>
-                )}
-              </div>
-            )}
-          </div>
-          <div class="flex-1 min-w-0">
-            <HeroInfo />
-          </div>
-        </div>
-      </Show>
-    </div>
-  );
-
-  // Shared info section (title, creator, timestamps, description, tags, notes)
-  const HeroInfo = () => (
-    <div>
-      <h1 class="text-base font-semibold text-foreground leading-snug">
-        {title()}
-      </h1>
-
-      {/* Creator */}
-      <div class="flex items-center gap-2 mt-2">
-        <Show when={creator()}>
-          <button
-            class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => {
-              const url = props.tab.creatorUrl;
-              if (url) window.open(url, "_blank");
-            }}
-          >
-            {avatarSrc() && (
-              <img src={avatarSrc()} alt="" class="w-5 h-5 rounded-full flex-shrink-0" />
-            )}
-            <span>{creator()}</span>
-          </button>
-        </Show>
-        <Show when={!creator()}>
-          <span class="text-sm text-muted-foreground">{domain()}</span>
-        </Show>
-      </div>
-
-      {/* Timestamps */}
-      <div class="flex items-center gap-2 mt-1.5 text-sm text-muted-foreground/60 flex-wrap">
-        <span>Saved {formatTimeAgo(props.tab.capturedAt)}</span>
-        <Show when={props.tab.publishedAt}>
-          <span class="text-muted-foreground/30">·</span>
-          <span>Published {formatTimeAgo(props.tab.publishedAt!)}</span>
-        </Show>
-      </div>
-
-      {/* Description */}
-      {description() && (
-        <p class="text-sm text-muted-foreground mt-2.5 line-clamp-2 leading-relaxed">
-          {description()}
-        </p>
-      )}
-
-      {/* Tags */}
-      <Show when={tags().length > 0}>
-        <div class="flex flex-wrap gap-x-2 gap-y-1 mt-2.5">
-          <For each={tags()}>
-            {(tag) => (
-              <span class="text-sm text-sky-400 cursor-pointer hover:text-sky-300 transition-colors">
-                #{tag}
-              </span>
-            )}
-          </For>
-        </div>
-      </Show>
-
-      {/* Notes */}
-      <div class="mt-3">
-        <Show
-          when={props.tab.notes}
-          fallback={
-            <button
-              onClick={props.onEditNotes}
-              class="flex items-center gap-1.5 text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-            >
-              <StickyNote size={14} />
-              <span>Add note</span>
-            </button>
-          }
-        >
-          <button
-            onClick={props.onEditNotes}
-            class="bg-muted/30 rounded-lg px-3 py-2 text-left hover:bg-muted/40 transition-colors w-full"
-          >
-            <p class="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-              {props.tab.notes}
-            </p>
-          </button>
-        </Show>
-      </div>
-    </div>
-  );
-
-  // Render based on mode
-  if (props.heroOnly) {
-    return <HeroCard />;
-  }
-
-  return <ActionBar />;
 }
