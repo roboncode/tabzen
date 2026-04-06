@@ -92,18 +92,18 @@ export default function TabCard(props: TabCardProps) {
             )}
           </div>
         )}
-        {/* Action buttons overlay */}
-        <div class="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Action buttons - left aligned, star always anchored */}
+        <div class="absolute top-2 left-2 flex gap-1.5">
           <Show when={props.isTrash}>
             <button
-              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-black/85 transition-colors"
+              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-black/85 transition-colors opacity-0 group-hover:opacity-100"
               onClick={(e) => { e.stopPropagation(); props.onRestore?.(props.tab); }}
               title="Restore"
             >
               <Undo2 size={16} />
             </button>
             <button
-              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-red-500/85 transition-colors"
+              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-red-500/85 transition-colors opacity-0 group-hover:opacity-100"
               onClick={(e) => { e.stopPropagation(); props.onHardDelete?.(props.tab); }}
               title="Delete forever"
             >
@@ -111,19 +111,21 @@ export default function TabCard(props: TabCardProps) {
             </button>
           </Show>
           <Show when={!props.isTrash}>
+            {/* Star - always visible when starred, visible on hover when not */}
             <button
-              class={`p-2 rounded-lg transition-colors ${
+              class={`p-2 rounded-lg transition-all ${
                 props.tab.starred
-                  ? "text-yellow-400 bg-black/40"
-                  : "text-foreground/90 bg-black/70 hover:bg-black/85"
+                  ? "text-yellow-400 drop-shadow-md"
+                  : "text-foreground/90 bg-black/70 hover:bg-black/85 opacity-0 group-hover:opacity-100"
               }`}
               onClick={(e) => { e.stopPropagation(); props.onToggleStar(props.tab); }}
               title={props.tab.starred ? "Unstar" : "Star"}
             >
-              <Star size={16} fill={props.tab.starred ? "currentColor" : "none"} />
+              <Star size={18} fill={props.tab.starred ? "currentColor" : "none"} />
             </button>
+            {/* Other actions - only on hover */}
             <button
-              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-black/85 transition-colors"
+              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-black/85 transition-colors opacity-0 group-hover:opacity-100"
               onClick={(e) => { e.stopPropagation(); props.onArchive(props.tab); }}
               title={props.tab.archived ? "Unarchive" : "Archive"}
             >
@@ -131,7 +133,7 @@ export default function TabCard(props: TabCardProps) {
             </button>
             <Show when={props.onBlockDomain}>
               <button
-                class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-black/85 transition-colors"
+                class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-black/85 transition-colors opacity-0 group-hover:opacity-100"
                 onClick={(e) => { e.stopPropagation(); props.onBlockDomain?.(props.tab); }}
                 title="Block this domain"
               >
@@ -139,7 +141,7 @@ export default function TabCard(props: TabCardProps) {
               </button>
             </Show>
             <button
-              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-red-500/85 transition-colors"
+              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-red-500/85 transition-colors opacity-0 group-hover:opacity-100"
               onClick={(e) => { e.stopPropagation(); props.onDelete(props.tab); }}
               title="Delete"
             >
@@ -147,12 +149,6 @@ export default function TabCard(props: TabCardProps) {
             </button>
           </Show>
         </div>
-        {/* Starred indicator - always visible when starred */}
-        <Show when={props.tab.starred}>
-          <div class="absolute top-2 left-2 text-yellow-400 group-hover:opacity-0 transition-opacity drop-shadow-md">
-            <Star size={22} fill="currentColor" />
-          </div>
-        </Show>
       </div>
 
       {/* Info below thumbnail */}
