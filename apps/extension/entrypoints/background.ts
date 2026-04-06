@@ -488,7 +488,12 @@ export default defineBackground(() => {
       } catch {}
     }
 
-    // 3. Fallback: content-youtube API
+    // 3. Fallback: content-youtube API (only if sync is configured, meaning we have a backend)
+    const settings = await getSettings();
+    const hasApi = settings.syncEnabled && (settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken);
+    if (!hasApi) {
+      return { type: "TRANSCRIPT", transcript: null } as MessageResponse;
+    }
     const { fetchTranscriptFromApi, storeTranscriptToApi } = await import("@/lib/content-api");
     const segments = await fetchTranscriptFromApi(tab.url);
     if (segments) {
