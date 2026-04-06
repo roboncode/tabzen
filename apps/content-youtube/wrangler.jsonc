@@ -1,0 +1,36 @@
+{
+  "name": "scraper-youtube",
+  "main": "src/worker.ts",
+  "compatibility_date": "2025-03-07",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Enable observability (logging)
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+
+  // Environment variables (non-sensitive)
+  "vars": {
+    "PORT": "5150"
+  },
+
+  // Configure secrets via: wrangler secret put <SECRET_NAME>
+  // Optional secrets:
+  // - YOUTUBE_API_KEY (optional, enables enhanced features)
+
+  // Development environment
+  "env": {
+    "development": {
+      "name": "scraper-youtube-dev"
+    },
+    // Production environment
+    "production": {
+      "name": "scraper-youtube",
+      "vars": {
+        "PORT": "3000",
+        "SERVER_URL": "https://scraper-youtube.jombee.workers.dev"
+      }
+    }
+  }
+}
