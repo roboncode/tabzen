@@ -16,6 +16,7 @@ export default defineConfig({
     ],
     host_permissions: [
       "*://*.youtube.com/*",
+      "<all_urls>",
     ],
     commands: {
       _execute_side_panel: {
