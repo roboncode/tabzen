@@ -83,7 +83,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
 
       <Show when={settings()}>
         {(s) => (
-          <div class="p-4 space-y-2">
+          <div class="p-4 space-y-2 max-w-2xl mx-auto">
 
             {/* ═══ General ═══ */}
             <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
