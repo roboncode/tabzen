@@ -26,71 +26,75 @@ AI-powered browser tab organization and management. Capture, group, search, and 
 - **Storage**: IndexedDB ([idb](https://github.com/nicolo-ribaudo/idb)) + chrome.storage.local
 - **AI**: [OpenRouter](https://openrouter.ai)
 - **Sync**: Cloudflare Workers + D1 + KV + [Hono](https://hono.dev)
+- **Monorepo**: [NX](https://nx.dev) + [pnpm](https://pnpm.io) workspaces
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) (v1.0+)
+- [pnpm](https://pnpm.io) (v9+)
+- [Node.js](https://nodejs.org) (v20+)
 - [Chrome](https://www.google.com/chrome/) (or Chromium-based browser)
 
 ### Install Dependencies
 
 ```bash
-bun install
+pnpm install
 ```
 
 ### Development
 
 ```bash
-bun run dev
+pnpm dev          # Run the extension in dev mode
+pnpm dev:sync     # Run the sync service locally
 ```
 
-This starts WXT in dev mode with hot module replacement. The extension is automatically loaded in a new Chrome window.
+The `dev` command starts WXT in dev mode with hot module replacement. The extension is automatically loaded in a new Chrome window.
 
 ### Build for Production
 
 ```bash
-bun run build
+pnpm build
 ```
 
-Output goes to `.output/chrome-mv3/`. Load this folder as an unpacked extension:
+Output goes to `apps/extension/.output/chrome-mv3/`. Load this folder as an unpacked extension:
 
 1. Open `chrome://extensions/`
 2. Enable **Developer mode** (top right)
 3. Click **Load unpacked**
-4. Select `.output/chrome-mv3/`
+4. Select `apps/extension/.output/chrome-mv3/`
 
 ### Run Tests
 
 ```bash
-bun run test          # single run
-bun run test:watch    # watch mode
+pnpm test                            # all workspace tests via NX
+cd apps/extension && pnpm test       # extension tests only
 ```
 
 ## Project Structure
 
 ```
 tab-zen/
-├── entrypoints/
-│   ├── popup/           # Quick-action popup (capture, save, open views)
-│   ├── sidepanel/       # Side panel UI
-│   ├── tabs/            # Full page UI
-│   ├── background.ts    # Service worker (capture, AI, badge, context menu)
-│   └── content.ts       # OG/meta data extraction from pages
-├── components/          # Shared SolidJS components
-├── lib/
-│   ├── types.ts         # Data model types
-│   ├── db.ts            # IndexedDB wrapper
-│   ├── settings.ts      # chrome.storage.local settings
-│   ├── ai.ts            # OpenRouter integration
-│   ├── messages.ts      # Typed message passing
-│   ├── duplicates.ts    # URL normalization and dedup
-│   ├── sync.ts          # Cloudflare sync client
-│   └── export.ts        # JSON + HTML bookmarks export/import
-├── sync-service/        # Cloudflare Workers sync backend
-├── tests/               # Vitest tests
-└── assets/              # Global CSS with design system tokens
+├── apps/
+│   ├── extension/               # Chrome extension (WXT + SolidJS)
+│   │   ├── entrypoints/
+│   │   │   ├── popup/           # Quick-action popup
+│   │   │   ├── sidepanel/       # Side panel UI
+│   │   │   ├── tabs/            # Full page UI
+│   │   │   ├── background.ts    # Service worker
+│   │   │   └── content.ts       # OG/meta extraction
+│   │   ├── components/          # Shared SolidJS components
+│   │   ├── lib/                 # Business logic modules
+│   │   └── tests/               # Vitest tests
+│   └── sync-service/            # Cloudflare Workers sync backend (Hono)
+│       ├── src/
+│       ├── migrations/
+│       └── wrangler.toml
+├── packages/
+│   └── shared/                  # Shared types (@tab-zen/shared)
+├── nx.json                      # NX workspace config
+├── pnpm-workspace.yaml          # pnpm workspace definition
+└── tsconfig.base.json           # Shared TypeScript config
 ```
 
 ## Configuration
@@ -116,10 +120,10 @@ The sync service lets you access your tab collection across multiple browsers an
 
 ```bash
 # Login to Cloudflare first (one time)
-cd sync-service && wrangler login
+cd apps/sync-service && pnpm exec wrangler login
 
 # Then run the automated setup
-bun run sync:setup
+./setup.sh
 ```
 
 This will:
@@ -130,32 +134,17 @@ This will:
 5. Run the database migration
 6. Print the sync URL
 
-### Manual Setup
+### Development
 
 ```bash
-# Create resources
-bun run sync:db:create
-bun run sync:kv:create
-
-# Update sync-service/wrangler.toml with the IDs from above
-
-# Deploy
-bun run sync:deploy
-
-# Run migration
-bun run sync:db:migrate
+pnpm dev:sync     # Run sync service locally (from root)
 ```
 
-### Available Scripts
+### Deploy
 
-| Script | Description |
-|--------|-------------|
-| `bun run sync:setup` | Full automated setup + deploy |
-| `bun run sync:dev` | Run sync service locally |
-| `bun run sync:deploy` | Deploy to Cloudflare |
-| `bun run sync:db:create` | Create D1 database |
-| `bun run sync:kv:create` | Create KV namespace |
-| `bun run sync:db:migrate` | Run schema on remote D1 |
+```bash
+pnpm deploy:sync  # Deploy to Cloudflare (from root)
+```
 
 ### Connecting Browsers
 

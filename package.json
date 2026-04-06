@@ -1,7 +1,6 @@
 {
   "name": "tab-zen",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "nx run extension:dev",
     "dev:sync": "nx run sync-service:dev",
@@ -11,5 +10,8 @@
   },
   "devDependencies": {
     "nx": "^21.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "nx", "workerd", "sharp", "spawn-sync"]
   }
 }
