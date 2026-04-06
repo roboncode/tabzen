@@ -1,8 +1,12 @@
-import { createMemo, Show, For } from "solid-js";
-import { ArrowLeft, Star, ExternalLink, Archive, ArchiveRestore, Trash2, MessageCircle, StickyNote } from "lucide-solid";
+import { createMemo, Show } from "solid-js";
+import { ArrowLeft, Star, ExternalLink, Archive, ArchiveRestore, Trash2, MessageCircle, StickyNote, Copy, Check } from "lucide-solid";
 import type { Tab } from "@/lib/types";
-import { extractCreator, getFaviconUrl } from "@/lib/domains";
+import { extractCreator, getDomain, getFaviconUrl } from "@/lib/domains";
+import { formatTimeAgo } from "@/lib/format";
 import { stripEmojis } from "@/lib/youtube";
+import IconButton from "@/components/IconButton";
+import Avatar from "@/components/Avatar";
+import TagList from "@/components/TagList";
 
 interface DetailHeaderProps {
   tab: Tab;
@@ -14,20 +18,16 @@ interface DetailHeaderProps {
   onEditNotes: () => void;
   chatCollapsed: boolean;
   onToggleChat: () => void;
-  /** Render only the action bar with compact title */
-  compact?: boolean;
+  onCopy?: () => void;
+  copied?: boolean;
   /** Render only the hero card (no action bar) */
   heroOnly?: boolean;
+  /** Content to render in the center (e.g. tabs) */
+  children?: any;
 }
 
 export default function DetailHeader(props: DetailHeaderProps) {
-  const domain = createMemo(() => {
-    try {
-      return new URL(props.tab.url).hostname.replace("www.", "");
-    } catch {
-      return props.tab.url;
-    }
-  });
+  const domain = createMemo(() => getDomain(props.tab.url) || props.tab.url);
 
   const creator = createMemo(() => extractCreator(props.tab));
   const faviconSrc = createMemo(() => getFaviconUrl(props.tab));
@@ -37,23 +37,6 @@ export default function DetailHeader(props: DetailHeaderProps) {
     return faviconSrc();
   });
 
-  const formatTimeAgo = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
-    const weeks = Math.floor(days / 7);
-    if (weeks < 5) return `${weeks}w ago`;
-    const months = Math.floor(days / 30);
-    if (months < 12) return `${months}mo ago`;
-    const years = Math.floor(months / 12);
-    return `${years}y ago`;
-  };
-
   const description = createMemo(() => {
     const raw = props.tab.ogDescription || props.tab.metaDescription || null;
     return raw ? stripEmojis(raw) : null;
@@ -62,12 +45,10 @@ export default function DetailHeader(props: DetailHeaderProps) {
   const tags = createMemo(() => props.tab.tags || []);
   const title = createMemo(() => props.tab.ogTitle || props.tab.title);
 
-  const iconButton = "p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors";
-
   // ── Hero Only mode: the scrollable card ──
   if (props.heroOnly) {
     return (
-      <div class="@container px-4 py-4">
+      <div class="@container px-4 py-4 max-w-3xl mx-auto pr-16">
         {/*
           Container query breakpoints:
           < 480px: stacked (thumbnail on top, info below) — like a card
@@ -76,7 +57,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
         */}
         <div class="flex flex-col @[480px]:flex-row gap-4 @[480px]:gap-5">
           {/* Thumbnail — full width when stacked, fixed width when side-by-side */}
-          <div class="w-full @[480px]:w-[200px] @[700px]:w-[280px] @[900px]:w-[340px] aspect-video rounded-xl overflow-hidden bg-muted/40 flex-shrink-0">
+          <div class="w-full @[480px]:w-[40%] aspect-video rounded-xl overflow-hidden bg-muted/40 flex-shrink-0">
             {props.tab.ogImage ? (
               <img
                 src={props.tab.ogImage}
@@ -112,7 +93,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
                   }}
                 >
                   {avatarSrc() && (
-                    <img src={avatarSrc()} alt="" class="w-5 h-5 rounded-full flex-shrink-0" />
+                    <Avatar src={avatarSrc()} size="md" />
                   )}
                   <span>{creator()}</span>
                 </button>
@@ -139,17 +120,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
             )}
 
             {/* Tags */}
-            <Show when={tags().length > 0}>
-              <div class="flex flex-wrap gap-x-2 gap-y-1 mt-2.5">
-                <For each={tags()}>
-                  {(tag) => (
-                    <span class="text-sm text-sky-400 cursor-pointer hover:text-sky-300 transition-colors">
-                      #{tag}
-                    </span>
-                  )}
-                </For>
-              </div>
-            </Show>
+            <TagList tags={tags()} class="mt-2.5" />
 
             {/* Notes */}
             <div class="mt-3">
@@ -192,53 +163,44 @@ export default function DetailHeader(props: DetailHeaderProps) {
         <span>Back</span>
       </button>
 
-      {/* Compact title — shows when hero is scrolled past */}
-      <Show when={props.compact}>
-        <div class="flex items-center gap-2.5 ml-3 flex-1 min-w-0">
-          {props.tab.ogImage && (
-            <img
-              src={props.tab.ogImage}
-              alt=""
-              class="w-8 h-8 rounded object-cover flex-shrink-0"
-            />
-          )}
-          <span class="text-sm font-medium text-foreground truncate">
-            {title()}
-          </span>
-        </div>
-      </Show>
+      {/* Center content (tabs) */}
+      <div class="flex-1 flex justify-center min-w-0">
+        {props.children}
+      </div>
 
       <div class="flex items-center gap-0.5 ml-auto">
-        <button onClick={props.onOpenSource} class={iconButton} title="Visit page">
+        <IconButton
+          onClick={() => props.onCopy?.()}
+          class={`${props.onCopy ? "opacity-100" : "opacity-0 pointer-events-none"} transition-opacity`}
+          title="Copy transcript"
+        >
+          <Show when={props.copied} fallback={<Copy size={16} />}>
+            <Check size={16} class="text-green-400" />
+          </Show>
+        </IconButton>
+        <div class={`w-px h-4 mx-1.5 transition-opacity ${props.onCopy ? "bg-muted-foreground/30" : "bg-transparent"}`} />
+        <IconButton onClick={props.onOpenSource} title="Visit page">
           <ExternalLink size={16} />
-        </button>
-        <button
+        </IconButton>
+        <IconButton
           onClick={props.onToggleStar}
-          class={`p-2 rounded-lg transition-colors ${
-            props.tab.starred
-              ? "text-yellow-400 hover:bg-yellow-400/10"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-          }`}
+          active={props.tab.starred}
           title={props.tab.starred ? "Unstar" : "Star"}
         >
           <Star size={16} fill={props.tab.starred ? "currentColor" : "none"} />
-        </button>
-        <button onClick={props.onArchive} class={iconButton} title={props.tab.archived ? "Unarchive" : "Archive"}>
+        </IconButton>
+        <IconButton onClick={props.onArchive} title={props.tab.archived ? "Unarchive" : "Archive"}>
           <Show when={props.tab.archived} fallback={<Archive size={16} />}>
             <ArchiveRestore size={16} />
           </Show>
-        </button>
-        <button
-          onClick={props.onDelete}
-          class="p-2 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors"
-          title="Delete"
-        >
+        </IconButton>
+        <IconButton onClick={props.onDelete} variant="destructive" title="Delete">
           <Trash2 size={16} />
-        </button>
+        </IconButton>
         <Show when={props.chatCollapsed}>
-          <button onClick={props.onToggleChat} class={iconButton} title="Open chat">
+          <IconButton onClick={props.onToggleChat} title="Open chat">
             <MessageCircle size={16} />
-          </button>
+          </IconButton>
         </Show>
       </div>
     </div>

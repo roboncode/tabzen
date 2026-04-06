@@ -1,5 +1,6 @@
 import { createSignal, createMemo, onMount, onCleanup, For, Show } from "solid-js";
 import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X, ExternalLink, ArrowRight, Trash2, Star, StickyNote, Calendar, Archive, Inbox } from "lucide-solid";
+import EmptyBlock from "./EmptyBlock";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
 import AppSidebar from "./AppSidebar";
 import type {
@@ -545,11 +546,7 @@ export default function TabCollection(props: TabCollectionProps) {
             <Show
               when={filteredTabs().length > 0}
               fallback={
-                <div class="flex flex-col items-center justify-center py-20 px-4 text-center">
-                  <div class="text-muted-foreground/40 mb-5"><StickyNote size={52} /></div>
-                  <h2 class="text-base font-semibold text-foreground mb-2">No notes yet</h2>
-                  <p class="text-sm text-muted-foreground max-w-xs leading-relaxed">Add notes to any tab to see them here.</p>
-                </div>
+                <EmptyBlock icon={<StickyNote size={52} />} title="No notes yet" description="Add notes to any tab to see them here." />
               }
             >
               <div class="grid grid-cols-1 @[600px]:grid-cols-2 @[900px]:grid-cols-3 gap-4 p-4">
@@ -571,11 +568,7 @@ export default function TabCollection(props: TabCollectionProps) {
             <Show
               when={filteredTabs().length > 0}
               fallback={
-                <div class="flex flex-col items-center justify-center py-20 px-4 text-center">
-                  <div class="text-muted-foreground/40 mb-5"><Calendar size={52} /></div>
-                  <h2 class="text-base font-semibold text-foreground mb-2">No tabs saved yet</h2>
-                  <p class="text-sm text-muted-foreground max-w-xs leading-relaxed">Capture some tabs to see them organized by date.</p>
-                </div>
+                <EmptyBlock icon={<Calendar size={52} />} title="No tabs saved yet" description="Capture some tabs to see them organized by date." />
               }
             >
               <For each={tabsByDate()}>
@@ -631,11 +624,7 @@ export default function TabCollection(props: TabCollectionProps) {
             <Show
               when={filteredTabs().length > 0}
               fallback={
-                <div class="flex flex-col items-center justify-center py-20 px-4 text-center">
-                  <div class="text-muted-foreground/40 mb-5"><Trash2 size={52} /></div>
-                  <h2 class="text-base font-semibold text-foreground mb-2">Trash is empty</h2>
-                  <p class="text-sm text-muted-foreground max-w-xs leading-relaxed">Deleted tabs will appear here.</p>
-                </div>
+                <EmptyBlock icon={<Trash2 size={52} />} title="Trash is empty" description="Deleted tabs will appear here." />
               }
             >
             <GroupSection
@@ -670,27 +659,13 @@ export default function TabCollection(props: TabCollectionProps) {
             <Show
               when={filteredTabs().length > 0}
               fallback={
-                <div class="flex flex-col items-center justify-center py-20 px-4 text-center">
-                  {filter() === "starred" ? (
-                    <>
-                      <div class="text-muted-foreground/40 mb-5"><Star size={52} /></div>
-                      <h2 class="text-base font-semibold text-foreground mb-2">No starred tabs</h2>
-                      <p class="text-sm text-muted-foreground max-w-xs leading-relaxed">Star tabs to quickly find them later.</p>
-                    </>
-                  ) : filter() === "archived" ? (
-                    <>
-                      <div class="text-muted-foreground/40 mb-5"><Archive size={52} /></div>
-                      <h2 class="text-base font-semibold text-foreground mb-2">No archived tabs</h2>
-                      <p class="text-sm text-muted-foreground max-w-xs leading-relaxed">Archive tabs to declutter without deleting.</p>
-                    </>
-                  ) : (
-                    <>
-                      <div class="text-muted-foreground/40 mb-5"><Inbox size={52} /></div>
-                      <h2 class="text-base font-semibold text-foreground mb-2">No tabs to show</h2>
-                      <p class="text-sm text-muted-foreground max-w-xs leading-relaxed">Capture some tabs to get started.</p>
-                    </>
-                  )}
-                </div>
+                filter() === "starred" ? (
+                  <EmptyBlock icon={<Star size={52} />} title="No starred tabs" description="Star tabs to quickly find them later." />
+                ) : filter() === "archived" ? (
+                  <EmptyBlock icon={<Archive size={52} />} title="No archived tabs" description="Archive tabs to declutter without deleting." />
+                ) : (
+                  <EmptyBlock icon={<Inbox size={52} />} title="No tabs to show" description="Capture some tabs to get started." />
+                )
               }
             >
               <For each={filteredGroups()}>

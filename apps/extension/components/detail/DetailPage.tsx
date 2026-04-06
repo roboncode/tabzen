@@ -1,6 +1,7 @@
 import { createSignal, createMemo, Show, onMount, onCleanup } from "solid-js";
 import type { Tab } from "@/lib/types";
 import type { TranscriptSegment } from "@tab-zen/shared";
+import { formatTimestamp } from "./TranscriptView";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { sendMessage } from "@/lib/messages";
 import { updateTab, getTab, softDeleteTab } from "@/lib/db";
@@ -9,6 +10,7 @@ import TranscriptView from "./TranscriptView";
 import ChatPanel from "./ChatPanel";
 import PlaceholderTab from "./PlaceholderTab";
 import NotesEditor from "@/components/NotesEditor";
+import ReadingProgress from "@/components/ReadingProgress";
 
 type ContentTab = "transcript" | "summary" | "content";
 
@@ -25,11 +27,10 @@ export default function DetailPage(props: DetailPageProps) {
   const [fetchingTranscript, setFetchingTranscript] = createSignal(false);
   const [currentTab, setCurrentTab] = createSignal(props.tab);
   const [isNarrow, setIsNarrow] = createSignal(false);
-  const [heroScrolledPast, setHeroScrolledPast] = createSignal(false);
   const [editingNotes, setEditingNotes] = createSignal(false);
+  const [copied, setCopied] = createSignal(false);
 
   let containerRef: HTMLDivElement | undefined;
-  let heroRef: HTMLDivElement | undefined;
   let scrollRef: HTMLDivElement | undefined;
 
   onMount(() => {
@@ -61,13 +62,14 @@ export default function DetailPage(props: DetailPageProps) {
     onCleanup(() => browser.runtime.onMessage.removeListener(handleMessage));
   });
 
-  const handleScroll = () => {
-    if (!heroRef || !scrollRef) return;
-    const heroBottom = heroRef.offsetTop + heroRef.offsetHeight;
-    setHeroScrolledPast(scrollRef.scrollTop > heroBottom - 10);
-  };
-
   const isYouTube = createMemo(() => isYouTubeWatchUrl(props.tab.url));
+
+  const readingTimeMin = createMemo(() => {
+    const segments = transcriptSegments();
+    if (segments.length === 0) return 0;
+    const totalWords = segments.reduce((sum, s) => sum + s.text.split(/\s+/).length, 0);
+    return Math.max(1, Math.round(totalWords / 200));
+  });
 
   /** Notify all other views (side panel, full page) that data changed */
   const notifyChanged = () => {
@@ -126,6 +128,15 @@ export default function DetailPage(props: DetailPageProps) {
     }
   };
 
+  const handleCopyTranscript = () => {
+    const segments = transcriptSegments();
+    if (segments.length === 0) return;
+    const text = segments.map((s) => `[${formatTimestamp(s.startMs)}] ${s.text}`).join("\n");
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const contentTabs: { id: ContentTab; label: string }[] = [
     { id: "transcript", label: "Transcript" },
     { id: "summary", label: "Summary" },
@@ -133,7 +144,7 @@ export default function DetailPage(props: DetailPageProps) {
   ];
 
   const PillTabs = () => (
-    <div class="flex gap-2">
+    <div class="flex items-center gap-2">
       {contentTabs.map((tab) => (
         <button
           class={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap outline-none ${
@@ -184,7 +195,7 @@ export default function DetailPage(props: DetailPageProps) {
     <div ref={containerRef} class="flex h-screen bg-background relative">
       {/* Main content */}
       <div class="flex-1 min-w-0 flex flex-col">
-        {/* Fixed action bar */}
+        {/* Fixed action bar with tabs and copy */}
         <DetailHeader
           tab={currentTab()}
           onBack={handleBack}
@@ -195,42 +206,38 @@ export default function DetailPage(props: DetailPageProps) {
           onEditNotes={handleEditNotes}
           chatCollapsed={chatCollapsed()}
           onToggleChat={() => setChatCollapsed(!chatCollapsed())}
-          compact={heroScrolledPast()}
-        />
+          onCopy={activeTab() === "transcript" && transcriptSegments().length > 0 ? handleCopyTranscript : undefined}
+          copied={copied()}
+        >
+          <PillTabs />
+        </DetailHeader>
 
-        {/* Sticky compact header + tabs (visible when hero scrolled past) */}
-        <Show when={heroScrolledPast()}>
-          <div class="px-4 py-2 flex-shrink-0">
-            <PillTabs />
-          </div>
-        </Show>
-
-        {/* Scrollable area: hero + tabs + content */}
+        {/* Scrollable area: hero + progress + content */}
         <div
           ref={scrollRef}
           class="flex-1 overflow-y-auto scrollbar-hide"
-          onScroll={handleScroll}
         >
           {/* Hero card */}
-          <div ref={heroRef}>
-            <DetailHeader
-              tab={currentTab()}
-              onBack={handleBack}
-              onToggleStar={handleToggleStar}
-              onOpenSource={handleOpenSource}
-              onArchive={handleArchive}
-              onDelete={handleDelete}
-              onEditNotes={handleEditNotes}
-              chatCollapsed={chatCollapsed()}
-              onToggleChat={() => setChatCollapsed(!chatCollapsed())}
-              heroOnly
-                />
-          </div>
+          <DetailHeader
+            tab={currentTab()}
+            onBack={handleBack}
+            onToggleStar={handleToggleStar}
+            onOpenSource={handleOpenSource}
+            onArchive={handleArchive}
+            onDelete={handleDelete}
+            onEditNotes={handleEditNotes}
+            chatCollapsed={chatCollapsed()}
+            onToggleChat={() => setChatCollapsed(!chatCollapsed())}
+            heroOnly
+          />
 
-          {/* Tabs (scroll with content, replaced by sticky when scrolled past) */}
-          <Show when={!heroScrolledPast()}>
-            <div class="px-4 py-3">
-              <PillTabs />
+          {/* Reading progress — inside scroll container so it tracks correctly */}
+          <Show when={activeTab() === "transcript" && transcriptSegments().length > 0}>
+            <div class="sticky top-0 z-10 bg-background">
+              <ReadingProgress
+                scrollRef={scrollRef}
+                readingTimeMin={readingTimeMin()}
+              />
             </div>
           </Show>
 
