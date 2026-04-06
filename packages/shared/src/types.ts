@@ -23,8 +23,10 @@ export interface Tab {
   deletedAt: string | null;
   groupId: string;
   contentKey: string | null;
-  contentType: string | null;
+  contentType: "transcript" | "markdown" | null;
   contentFetchedAt: string | null;
+  transcript?: TranscriptSegment[];
+  content?: string;
 }
 
 export interface Group {
