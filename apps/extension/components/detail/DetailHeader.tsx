@@ -158,7 +158,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
                 fallback={
                   <button
                     onClick={props.onEditNotes}
-                    class="flex items-center gap-1.5 text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                    class="flex items-center gap-1.5 text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
                   >
                     <StickyNote size={14} />
                     <span>Add note</span>
