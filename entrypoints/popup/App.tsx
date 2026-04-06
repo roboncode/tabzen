@@ -1,6 +1,8 @@
 import { createSignal, createResource, Show } from "solid-js";
-import { PanelRight, Maximize2 } from "lucide-solid";
+import { PanelRight, Maximize2, ShieldBan, Settings as SettingsIcon } from "lucide-solid";
 import { sendMessage } from "@/lib/messages";
+import { shouldSkipUrl } from "@/lib/duplicates";
+import { getSettings } from "@/lib/settings";
 
 function formatTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -88,6 +90,13 @@ export default function App() {
     }
   };
 
+  const [isBlocked] = createResource(async () => {
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.url) return true;
+    const settings = await getSettings();
+    return shouldSkipUrl(tab.url, settings.blockedDomains);
+  });
+
   const handleCaptureAll = async () => {
     setCapturing(true);
     const response = await sendMessage({ type: "QUICK_CAPTURE" });
@@ -141,8 +150,31 @@ export default function App() {
         </div>
       </div>
 
-      {/* Current tab card */}
-      <Show when={activeTab()}>
+      {/* Current tab - blocked state */}
+      <Show when={isBlocked()}>
+        <div class="mb-4 bg-muted/30 rounded-xl p-4">
+          <div class="flex items-center gap-3 mb-2">
+            <ShieldBan size={18} class="text-muted-foreground flex-shrink-0" />
+            <p class="text-sm text-foreground">This page won't be captured</p>
+          </div>
+          <p class="text-xs text-muted-foreground mb-3">
+            {domain() || "This page"} is on the blocked list.
+          </p>
+          <button
+            class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => {
+              browser.tabs.create({ url: browser.runtime.getURL("/tabs.html") });
+              window.close();
+            }}
+          >
+            <SettingsIcon size={12} />
+            Manage blocked domains
+          </button>
+        </div>
+      </Show>
+
+      {/* Current tab card - only show if not blocked */}
+      <Show when={!isBlocked() && activeTab()}>
         {(tab) => (
           <div class="mb-4">
             <div class="aspect-video rounded-xl overflow-hidden bg-muted/40 mb-3">
@@ -233,8 +265,9 @@ export default function App() {
               : `Capture All Tabs (${uncapturedCount()} new)`}
         </button>
         <button
-          class="w-full px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors"
+          class="w-full px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleSaveCurrentTab}
+          disabled={isBlocked()}
         >
           Save This Tab
         </button>
