@@ -714,6 +714,30 @@ export default defineBackground(() => {
                 await updateTab(tab.id, updates);
                 enriched++;
               }
+
+              // Extract transcript for YouTube videos
+              if (isYouTubeWatchUrl(tab.url)) {
+                try {
+                  const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
+                  const result = await extractYouTubeTranscript(browserTab.id, tab.url);
+                  if (result?.hasTranscript) {
+                    const currentTab = await getTab(tab.id);
+                    if (currentTab) {
+                      (currentTab as any).transcript = result.segments;
+                      const { addTab } = await import("@/lib/db");
+                      await addTab({
+                        ...currentTab,
+                        contentKey: `transcripts/${tab.id}`,
+                        contentType: "transcript",
+                        contentFetchedAt: new Date().toISOString(),
+                      } as any);
+                      console.log(`[TabZen] Transcript extracted for ${tab.url} (${result.segments.length} segments)`);
+                    }
+                  }
+                } catch (e) {
+                  console.warn("[TabZen] Transcript extraction failed for", tab.url, e);
+                }
+              }
             }
           } catch {}
         }
@@ -946,9 +970,11 @@ export default defineBackground(() => {
         // Extract transcript for YouTube videos (best-effort per tab)
         let transcriptSegments: TranscriptSegment[] | null = null;
         if (isYouTubeWatchUrl(bt.url!)) {
+          console.log("[TabZen] YouTube detected, extracting transcript for tab", bt.id, bt.url);
           try {
             const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
             const result = await extractYouTubeTranscript(bt.id!, bt.url!);
+            console.log("[TabZen] Transcript extraction result:", result?.hasTranscript, "segments:", result?.segments?.length);
             if (result?.hasTranscript) {
               transcriptSegments = result.segments;
             }
@@ -958,6 +984,7 @@ export default defineBackground(() => {
         }
 
         const hasTranscript = transcriptSegments && transcriptSegments.length > 0;
+        console.log("[TabZen] buildCapturePreview - hasTranscript:", hasTranscript, "for", bt.url);
         const tab: Tab & { transcript?: any } = {
           id: tabId,
           url: bt.url!,
@@ -1125,18 +1152,21 @@ export default defineBackground(() => {
     // Extract transcript for YouTube videos
     let transcriptSegments: TranscriptSegment[] | null = null;
     if (isYouTubeWatchUrl(url)) {
+      console.log("[TabZen] captureSingleTab - YouTube detected, extracting transcript for tab", browserTabId, url);
       try {
         const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
         const result = await extractYouTubeTranscript(browserTabId, url);
+        console.log("[TabZen] captureSingleTab - extraction result:", result?.hasTranscript, "segments:", result?.segments?.length);
         if (result?.hasTranscript) {
           transcriptSegments = result.segments;
         }
       } catch (e) {
-        console.warn("[TabZen] Transcript extraction failed:", e);
+        console.warn("[TabZen] captureSingleTab - Transcript extraction failed:", e);
       }
     }
 
     const hasTranscript = transcriptSegments && transcriptSegments.length > 0;
+    console.log("[TabZen] captureSingleTab - hasTranscript:", hasTranscript);
 
     const tab: Tab & { transcript?: any } = {
       id: tabId,
