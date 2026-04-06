@@ -1,10 +1,11 @@
-import { createSignal, createMemo, createResource, onMount, onCleanup, For, Show } from "solid-js";
+import { createSignal, createMemo, onMount, onCleanup, For, Show } from "solid-js";
 import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X, ExternalLink, ArrowRight } from "lucide-solid";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
 import AppSidebar from "./AppSidebar";
 import type {
   Tab,
   Group,
+  Capture,
   Settings,
   CapturePreviewData,
 } from "@/lib/types";
@@ -52,19 +53,40 @@ export default function TabCollection(props: TabCollectionProps) {
   const [deletingTab, setDeletingTab] = createSignal<Tab | null>(null);
   const [capturePreview, setCapturePreview] =
     createSignal<CapturePreviewData | null>(null);
-  const [refreshKey, setRefreshKey] = createSignal(0);
 
-  const [allTabs] = createResource(refreshKey, async () => getAllTabs());
-  const [allGroups] = createResource(refreshKey, async () => getAllGroups());
-  const [allCaptures] = createResource(
-    refreshKey,
-    async () => getAllCaptures(),
-  );
+  const [allTabs, setAllTabs] = createSignal<Tab[]>([]);
+  const [allGroups, setAllGroups] = createSignal<Group[]>([]);
+  const [allCaptures, setAllCaptures] = createSignal<Capture[]>([]);
 
-  const refresh = () => setRefreshKey((k) => k + 1);
+  const loadData = async () => {
+    const [tabs, groups, captures] = await Promise.all([
+      getAllTabs(),
+      getAllGroups(),
+      getAllCaptures(),
+    ]);
+    setAllTabs(tabs);
+    setAllGroups(groups);
+    setAllCaptures(captures);
+  };
+
+  // Update a single tab in place without refetching everything
+  const patchTab = (id: string, updates: Partial<Tab>) => {
+    setAllTabs((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+    );
+  };
+
+  // Remove a tab from the local list
+  const removeTab = (id: string) => {
+    setAllTabs((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  // Full refresh (for captures, syncs, bulk changes)
+  const refresh = () => loadData();
 
   // Listen for data changes from background worker
   onMount(() => {
+    loadData();
     getSettings().then((s) => {
       setOpenMode(s.openMode || "new-tab");
       if (s.syncError) setSyncError(s.syncError);
@@ -72,7 +94,7 @@ export default function TabCollection(props: TabCollectionProps) {
 
     const listener = (message: any) => {
       if (message.type === "DATA_CHANGED") {
-        refresh();
+        loadData();
       }
       if (message.type === "SYNC_ERROR") {
         setSyncError(message.message);
@@ -253,32 +275,34 @@ export default function TabCollection(props: TabCollectionProps) {
 
   const handleOpenTab = async (tab: Tab) => {
     await sendMessage({ type: "OPEN_TAB", tabId: tab.id });
-    refresh();
+    patchTab(tab.id, { viewCount: tab.viewCount + 1, lastViewedAt: new Date().toISOString() });
   };
 
   const handleSaveNotes = async (tabId: string, notes: string) => {
     await updateTab(tabId, { notes: notes || null });
-    refresh();
+    patchTab(tabId, { notes: notes || null });
   };
 
   const handleToggleStar = async (tab: Tab) => {
-    await updateTab(tab.id, { starred: !tab.starred });
-    refresh();
+    const starred = !tab.starred;
+    await updateTab(tab.id, { starred });
+    patchTab(tab.id, { starred });
   };
 
   const handleArchive = async (tab: Tab) => {
-    await updateTab(tab.id, { archived: !tab.archived });
-    refresh();
+    const archived = !tab.archived;
+    await updateTab(tab.id, { archived });
+    patchTab(tab.id, { archived });
   };
 
   const handleDelete = async (tab: Tab) => {
     await softDeleteTab(tab.id);
-    refresh();
+    patchTab(tab.id, { deletedAt: new Date().toISOString() });
   };
 
   const handleRestore = async (tab: Tab) => {
     await restoreTab(tab.id);
-    refresh();
+    patchTab(tab.id, { deletedAt: null });
   };
 
   const handleHardDelete = (tab: Tab) => {
@@ -315,13 +339,15 @@ export default function TabCollection(props: TabCollectionProps) {
     if (tab) {
       await hardDeleteTab(tab.id);
       setDeletingTab(null);
-      refresh();
+      removeTab(tab.id);
     }
   };
 
   const handleRenameGroup = async (group: Group, newName: string) => {
     await updateGroup(group.id, { name: newName });
-    refresh();
+    setAllGroups((prev) =>
+      prev.map((g) => (g.id === group.id ? { ...g, name: newName } : g)),
+    );
   };
 
   const handleConfirmCapture = async () => {
@@ -329,7 +355,7 @@ export default function TabCollection(props: TabCollectionProps) {
     if (preview) {
       await sendMessage({ type: "CONFIRM_CAPTURE", captureData: preview });
       setCapturePreview(null);
-      refresh();
+      loadData(); // Full reload for new captures
     }
   };
 
