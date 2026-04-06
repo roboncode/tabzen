@@ -18,6 +18,7 @@ interface GroupSectionProps {
   onBlockDomain?: (tab: Tab) => void;
   onRestore?: (tab: Tab) => void;
   onHardDelete?: (tab: Tab) => void;
+  onSelectCreator?: (domain: string, creator: string) => void;
   isTrash?: boolean;
 }
 
@@ -102,6 +103,7 @@ export default function GroupSection(props: GroupSectionProps) {
                     onBlockDomain={props.onBlockDomain}
                     onRestore={props.onRestore}
                     onHardDelete={props.onHardDelete}
+                    onSelectCreator={props.onSelectCreator}
                     isTrash={props.isTrash}
                   />
                 )}
@@ -109,8 +111,8 @@ export default function GroupSection(props: GroupSectionProps) {
             </div>
           }
         >
-          {/* Responsive grid using container queries - adapts to actual panel width */}
-          <div class="grid grid-cols-1 @[480px]:grid-cols-2 @[768px]:grid-cols-3 @[1024px]:grid-cols-4 @[1400px]:grid-cols-5 gap-x-4 gap-y-6 px-4">
+          {/* Responsive grid - cards capped at ~360px like YouTube */}
+          <div class="grid gap-x-4 gap-y-6 px-4" style={{ "grid-template-columns": "repeat(auto-fill, minmax(280px, 360px))" }}>
             <For each={props.tabs}>
               {(tab) => (
                 <TabCard

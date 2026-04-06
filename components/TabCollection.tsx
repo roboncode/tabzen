@@ -453,6 +453,7 @@ export default function TabCollection(props: TabCollectionProps) {
                   onArchive={handleArchive}
                   onDelete={handleDelete}
                   onBlockDomain={handleBlockDomain}
+                  onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
                 />
               )}
             </For>

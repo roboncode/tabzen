@@ -1,6 +1,7 @@
 import { Show } from "solid-js";
-import { Eye, Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2 } from "lucide-solid";
+import { Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2 } from "lucide-solid";
 import type { Tab } from "@/lib/types";
+import { extractCreator } from "@/lib/domains";
 import Highlight from "./Highlight";
 
 interface TabCardProps {
@@ -14,6 +15,7 @@ interface TabCardProps {
   onBlockDomain?: (tab: Tab) => void;
   onRestore?: (tab: Tab) => void;
   onHardDelete?: (tab: Tab) => void;
+  onSelectCreator?: (domain: string, creator: string) => void;
   isTrash?: boolean;
 }
 
@@ -28,6 +30,23 @@ export default function TabCard(props: TabCardProps) {
 
   const description = () =>
     props.tab.ogDescription || props.tab.metaDescription || null;
+
+  const creator = () => extractCreator(props.tab);
+
+  const timeAgo = () => {
+    const diff = Date.now() - new Date(props.tab.capturedAt).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    const weeks = Math.floor(days / 7);
+    if (weeks < 5) return `${weeks}w ago`;
+    const months = Math.floor(days / 30);
+    return `${months}mo ago`;
+  };
 
   return (
     <div
@@ -135,21 +154,31 @@ export default function TabCard(props: TabCardProps) {
               <Highlight text={props.tab.ogTitle || props.tab.title} query={props.searchQuery!} />
             </Show>
           </h3>
-          <p class="text-xs text-muted-foreground mt-1">{domain()}</p>
+          <Show
+            when={creator()}
+            fallback={<p class="text-xs text-muted-foreground mt-1">{domain()}</p>}
+          >
+            <p class="text-xs text-muted-foreground mt-1">
+              <button
+                class="hover:text-foreground transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  props.onSelectCreator?.(domain(), creator()!);
+                }}
+              >
+                {creator()}
+              </button>
+            </p>
+          </Show>
           {description() && (
             <p class="text-xs text-muted-foreground mt-0.5 line-clamp-1">
               {description()}
             </p>
           )}
-          <div class="flex items-center gap-3 mt-1.5">
-            {props.tab.viewCount > 0 && (
-              <span class="text-xs text-muted-foreground flex items-center gap-1">
-                <Eye size={12} /> {props.tab.viewCount}
-              </span>
-            )}
-            <span class="text-xs text-muted-foreground">
-              {props.tab.sourceLabel}
-            </span>
+          <div class="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground/60">
+            <span>{timeAgo()}</span>
+            <span>·</span>
+            <span>{domain()}</span>
           </div>
         </div>
       </div>
