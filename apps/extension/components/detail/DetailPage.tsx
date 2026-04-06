@@ -3,7 +3,7 @@ import type { Tab } from "@/lib/types";
 import type { TranscriptSegment } from "@tab-zen/shared";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { sendMessage } from "@/lib/messages";
-import { updateTab, getTab } from "@/lib/db";
+import { updateTab, getTab, softDeleteTab } from "@/lib/db";
 import DetailHeader from "./DetailHeader";
 import TranscriptView from "./TranscriptView";
 import ChatPanel from "./ChatPanel";
@@ -41,6 +41,29 @@ export default function DetailPage(props: DetailPageProps) {
     window.open(props.tab.url, "_blank");
   };
 
+  const handleArchive = async () => {
+    const tab = currentTab();
+    await updateTab(tab.id, { archived: !tab.archived });
+    const updated = await getTab(tab.id);
+    if (updated) setCurrentTab(updated);
+  };
+
+  const handleDelete = async () => {
+    const tab = currentTab();
+    await softDeleteTab(tab.id);
+    window.close();
+  };
+
+  const handleEditNotes = async () => {
+    const tab = currentTab();
+    const note = prompt("Edit note:", tab.notes || "");
+    if (note !== null) {
+      await updateTab(tab.id, { notes: note || null });
+      const updated = await getTab(tab.id);
+      if (updated) setCurrentTab(updated);
+    }
+  };
+
   const handleFetchTranscript = async () => {
     setFetchingTranscript(true);
     try {
@@ -73,23 +96,25 @@ export default function DetailPage(props: DetailPageProps) {
           onBack={handleBack}
           onToggleStar={handleToggleStar}
           onOpenSource={handleOpenSource}
+          onArchive={handleArchive}
+          onDelete={handleDelete}
+          onEditNotes={handleEditNotes}
+          chatCollapsed={chatCollapsed()}
+          onToggleChat={() => setChatCollapsed(!chatCollapsed())}
         />
 
-        {/* Tab bar */}
-        <div class="flex gap-0 px-6 border-b border-border flex-shrink-0">
+        {/* Pill tab bar */}
+        <div class="flex gap-2 px-6 py-3 flex-shrink-0">
           {tabs.map((tab) => (
             <button
-              class={`px-4 py-2.5 text-sm transition-colors relative ${
+              class={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap outline-none ${
                 activeTab() === tab.id
-                  ? "text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
               onClick={() => setActiveTab(tab.id)}
             >
               {tab.label}
-              {activeTab() === tab.id && (
-                <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-ring" />
-              )}
             </button>
           ))}
         </div>

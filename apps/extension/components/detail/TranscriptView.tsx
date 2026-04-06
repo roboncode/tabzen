@@ -66,13 +66,13 @@ export default function TranscriptView(props: TranscriptViewProps) {
       >
         {/* Header with count and copy */}
         <div class="flex items-center gap-3 px-2 pb-3 flex-shrink-0">
-          <span class="text-xs text-muted-foreground">
+          <span class="text-sm text-muted-foreground">
             {props.segments.length} segments
           </span>
           <div class="flex-1" />
           <button
             onClick={copyTranscript}
-            class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/50 transition-colors"
+            class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/50 transition-colors"
           >
             <Show when={copied()} fallback={<Copy size={12} />}>
               <Check size={12} class="text-green-400" />
@@ -85,11 +85,11 @@ export default function TranscriptView(props: TranscriptViewProps) {
         <div class="flex-1 overflow-y-auto space-y-0.5">
           <For each={props.segments}>
             {(segment) => (
-              <div class="flex gap-3 px-2 py-1.5 rounded-lg hover:bg-muted/30 transition-colors">
+              <div class="flex items-baseline gap-3 px-2 py-1.5 rounded-lg hover:bg-muted/30 transition-colors">
                 <a
                   href={getTimestampUrl(props.videoUrl, segment.startMs)}
                   target="_blank"
-                  class="text-sky-400 hover:text-sky-300 font-mono text-xs flex-shrink-0 pt-0.5 transition-colors"
+                  class="text-sky-400 hover:text-sky-300 font-mono text-sm flex-shrink-0 transition-colors"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {formatTimestamp(segment.startMs)}
