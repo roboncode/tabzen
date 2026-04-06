@@ -1,4 +1,4 @@
-import { createSignal, createMemo, Show } from "solid-js";
+import { createSignal, createMemo, Show, onMount, onCleanup } from "solid-js";
 import type { Tab } from "@/lib/types";
 import type { TranscriptSegment } from "@tab-zen/shared";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
@@ -17,12 +17,26 @@ interface DetailPageProps {
 
 export default function DetailPage(props: DetailPageProps) {
   const [activeTab, setActiveTab] = createSignal<ContentTab>("transcript");
-  const [chatCollapsed, setChatCollapsed] = createSignal(false);
+  const [chatCollapsed, setChatCollapsed] = createSignal(true);
   const [transcriptSegments, setTranscriptSegments] = createSignal<TranscriptSegment[]>(
     (props.tab as any).transcript || [],
   );
   const [fetchingTranscript, setFetchingTranscript] = createSignal(false);
   const [currentTab, setCurrentTab] = createSignal(props.tab);
+  const [isNarrow, setIsNarrow] = createSignal(false);
+
+  let containerRef: HTMLDivElement | undefined;
+
+  onMount(() => {
+    if (!containerRef) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setIsNarrow(entry.contentRect.width < 768);
+      }
+    });
+    observer.observe(containerRef);
+    onCleanup(() => observer.disconnect());
+  });
 
   const isYouTube = createMemo(() => isYouTubeWatchUrl(props.tab.url));
 
@@ -88,9 +102,9 @@ export default function DetailPage(props: DetailPageProps) {
   ];
 
   return (
-    <div class="flex h-screen bg-background">
-      {/* Left: Main content */}
-      <div class="flex-1 min-w-0 flex flex-col relative">
+    <div ref={containerRef} class="flex h-screen bg-background relative">
+      {/* Main content — always takes full width */}
+      <div class="flex-1 min-w-0 flex flex-col">
         <DetailHeader
           tab={currentTab()}
           onBack={handleBack}
@@ -104,7 +118,7 @@ export default function DetailPage(props: DetailPageProps) {
         />
 
         {/* Pill tab bar */}
-        <div class="flex gap-2 px-6 py-3 flex-shrink-0">
+        <div class="flex gap-2 px-4 @[500px]:px-6 py-3 flex-shrink-0">
           {tabs.map((tab) => (
             <button
               class={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap outline-none ${
@@ -120,7 +134,7 @@ export default function DetailPage(props: DetailPageProps) {
         </div>
 
         {/* Tab content */}
-        <div class="flex-1 overflow-hidden p-6">
+        <div class="flex-1 overflow-hidden px-4 @[500px]:px-6 pb-6">
           <Show when={activeTab() === "transcript"}>
             <Show
               when={isYouTube()}
@@ -160,10 +174,11 @@ export default function DetailPage(props: DetailPageProps) {
         </div>
       </div>
 
-      {/* Right: Chat panel */}
+      {/* Chat panel — overlay at narrow, side-by-side at wide */}
       <ChatPanel
         collapsed={chatCollapsed()}
         onToggle={() => setChatCollapsed(!chatCollapsed())}
+        overlay={isNarrow()}
       />
     </div>
   );
