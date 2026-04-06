@@ -1,8 +1,9 @@
 import { Show, createMemo } from "solid-js";
 import { Eye, Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2 } from "lucide-solid";
 import type { Tab } from "@/lib/types";
-import { getFaviconUrl } from "@/lib/domains";
+import { getDomain, getFaviconUrl } from "@/lib/domains";
 import Highlight from "./Highlight";
+import TagList from "./TagList";
 
 interface TabRowProps {
   tab: Tab;
@@ -21,13 +22,7 @@ interface TabRowProps {
 }
 
 export default function TabRow(props: TabRowProps) {
-  const domain = createMemo(() => {
-    try {
-      return new URL(props.tab.url).hostname.replace("www.", "");
-    } catch {
-      return props.tab.url;
-    }
-  });
+  const domain = createMemo(() => getDomain(props.tab.url) || props.tab.url);
 
   const faviconSrc = createMemo(() => getFaviconUrl(props.tab));
 
@@ -65,17 +60,7 @@ export default function TabRow(props: TabRowProps) {
             {domain()}
             {props.tab.tags?.length > 0 && (
               <span class="ml-2">
-                {props.tab.tags.slice(0, 3).map((tag) => (
-                  <button
-                    class="text-sky-400 hover:text-sky-300 transition-colors cursor-pointer mr-1.5"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      props.onTagClick?.(tag);
-                    }}
-                  >
-                    #{tag}
-                  </button>
-                ))}
+                <TagList tags={props.tab.tags.slice(0, 3)} onTagClick={props.onTagClick} class="inline-flex gap-x-1.5 [&_button]:text-xs" />
               </span>
             )}
           </div>

@@ -1,0 +1,208 @@
+import { createMemo, Show } from "solid-js";
+import { ArrowLeft, Star, ExternalLink, Archive, ArchiveRestore, Trash2, MessageCircle, StickyNote, Copy, Check } from "lucide-solid";
+import type { Tab } from "@/lib/types";
+import { extractCreator, getDomain, getFaviconUrl } from "@/lib/domains";
+import { formatTimeAgo } from "@/lib/format";
+import { stripEmojis } from "@/lib/youtube";
+import IconButton from "@/components/IconButton";
+import Avatar from "@/components/Avatar";
+import TagList from "@/components/TagList";
+
+interface DetailHeaderProps {
+  tab: Tab;
+  onBack: () => void;
+  onToggleStar: () => void;
+  onOpenSource: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+  onEditNotes: () => void;
+  chatCollapsed: boolean;
+  onToggleChat: () => void;
+  onCopy?: () => void;
+  copied?: boolean;
+  /** Render only the hero card (no action bar) */
+  heroOnly?: boolean;
+  /** Content to render in the center (e.g. tabs) */
+  children?: any;
+}
+
+export default function DetailHeader(props: DetailHeaderProps) {
+  const domain = createMemo(() => getDomain(props.tab.url) || props.tab.url);
+
+  const creator = createMemo(() => extractCreator(props.tab));
+  const faviconSrc = createMemo(() => getFaviconUrl(props.tab));
+
+  const avatarSrc = createMemo(() => {
+    if (props.tab.creatorAvatar && creator()) return props.tab.creatorAvatar;
+    return faviconSrc();
+  });
+
+  const description = createMemo(() => {
+    const raw = props.tab.ogDescription || props.tab.metaDescription || null;
+    return raw ? stripEmojis(raw) : null;
+  });
+
+  const tags = createMemo(() => props.tab.tags || []);
+  const title = createMemo(() => props.tab.ogTitle || props.tab.title);
+
+  // ── Hero Only mode: the scrollable card ──
+  if (props.heroOnly) {
+    return (
+      <div class="@container px-4 py-4 max-w-3xl mx-auto pr-16">
+        {/*
+          Container query breakpoints:
+          < 480px: stacked (thumbnail on top, info below) — like a card
+          >= 480px: side-by-side (thumbnail left, info right)
+          >= 700px: larger thumbnail
+        */}
+        <div class="flex flex-col @[480px]:flex-row gap-4 @[480px]:gap-5">
+          {/* Thumbnail — full width when stacked, fixed width when side-by-side */}
+          <div class="w-full @[480px]:w-[40%] aspect-video rounded-xl overflow-hidden bg-muted/40 flex-shrink-0">
+            {props.tab.ogImage ? (
+              <img
+                src={props.tab.ogImage}
+                alt=""
+                class="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            ) : (
+              <div class="w-full h-full flex items-center justify-center">
+                {faviconSrc() ? (
+                  <img src={faviconSrc()} alt="" class="w-10 h-10 rounded" />
+                ) : (
+                  <span class="text-muted-foreground text-sm">{domain()}</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Info */}
+          <div class="flex-1 min-w-0">
+            <h1 class="text-base @[480px]:text-lg font-semibold text-foreground leading-snug">
+              {title()}
+            </h1>
+
+            {/* Creator — clickable */}
+            <div class="flex items-center gap-2 mt-2">
+              <Show when={creator()}>
+                <button
+                  class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => {
+                    const url = props.tab.creatorUrl;
+                    if (url) window.open(url, "_blank");
+                  }}
+                >
+                  {avatarSrc() && (
+                    <Avatar src={avatarSrc()} size="md" />
+                  )}
+                  <span>{creator()}</span>
+                </button>
+              </Show>
+              <Show when={!creator()}>
+                <span class="text-sm text-muted-foreground">{domain()}</span>
+              </Show>
+            </div>
+
+            {/* Timestamps */}
+            <div class="flex items-center gap-2 mt-1.5 text-sm text-muted-foreground/60 flex-wrap">
+              <span>Saved {formatTimeAgo(props.tab.capturedAt)}</span>
+              <Show when={props.tab.publishedAt}>
+                <span class="text-muted-foreground/30">·</span>
+                <span>Published {formatTimeAgo(props.tab.publishedAt!)}</span>
+              </Show>
+            </div>
+
+            {/* Description */}
+            {description() && (
+              <p class="text-sm text-muted-foreground mt-2.5 line-clamp-2 leading-relaxed">
+                {description()}
+              </p>
+            )}
+
+            {/* Tags */}
+            <TagList tags={tags()} class="mt-2.5" />
+
+            {/* Notes */}
+            <div class="mt-3">
+              <Show
+                when={props.tab.notes}
+                fallback={
+                  <button
+                    onClick={props.onEditNotes}
+                    class="flex items-center gap-1.5 text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
+                  >
+                    <StickyNote size={14} />
+                    <span>Add note</span>
+                  </button>
+                }
+              >
+                <button
+                  onClick={props.onEditNotes}
+                  class="bg-muted/30 rounded-lg px-3 py-2 text-left hover:bg-muted/40 transition-colors w-full"
+                >
+                  <p class="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                    {props.tab.notes}
+                  </p>
+                </button>
+              </Show>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Action bar mode (default) ──
+  return (
+    <div class="flex items-center gap-1 px-4 py-2.5 bg-muted/30 flex-shrink-0">
+      <button
+        onClick={props.onBack}
+        class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft size={16} />
+        <span>Back</span>
+      </button>
+
+      {/* Center content (tabs) */}
+      <div class="flex-1 flex justify-center min-w-0">
+        {props.children}
+      </div>
+
+      <div class="flex items-center gap-0.5 ml-auto">
+        <IconButton
+          onClick={() => props.onCopy?.()}
+          class={`${props.onCopy ? "opacity-100" : "opacity-0 pointer-events-none"} transition-opacity`}
+          title="Copy transcript"
+        >
+          <Show when={props.copied} fallback={<Copy size={16} />}>
+            <Check size={16} class="text-green-400" />
+          </Show>
+        </IconButton>
+        <div class={`w-px h-4 mx-1.5 transition-opacity ${props.onCopy ? "bg-muted-foreground/30" : "bg-transparent"}`} />
+        <IconButton onClick={props.onOpenSource} title="Visit page">
+          <ExternalLink size={16} />
+        </IconButton>
+        <IconButton
+          onClick={props.onToggleStar}
+          active={props.tab.starred}
+          title={props.tab.starred ? "Unstar" : "Star"}
+        >
+          <Star size={16} fill={props.tab.starred ? "currentColor" : "none"} />
+        </IconButton>
+        <IconButton onClick={props.onArchive} title={props.tab.archived ? "Unarchive" : "Archive"}>
+          <Show when={props.tab.archived} fallback={<Archive size={16} />}>
+            <ArchiveRestore size={16} />
+          </Show>
+        </IconButton>
+        <IconButton onClick={props.onDelete} variant="destructive" title="Delete">
+          <Trash2 size={16} />
+        </IconButton>
+        <Show when={props.chatCollapsed}>
+          <IconButton onClick={props.onToggleChat} title="Open chat">
+            <MessageCircle size={16} />
+          </IconButton>
+        </Show>
+      </div>
+    </div>
+  );
+}

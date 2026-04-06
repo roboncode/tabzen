@@ -1,5 +1,6 @@
 import { createSignal, createMemo, onMount, onCleanup, For, Show } from "solid-js";
-import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X, ExternalLink, ArrowRight } from "lucide-solid";
+import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X, ExternalLink, ArrowRight, Trash2, Star, StickyNote, Calendar, Archive, Inbox } from "lucide-solid";
+import EmptyBlock from "./EmptyBlock";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
 import AppSidebar from "./AppSidebar";
 import type {
@@ -51,6 +52,7 @@ export default function TabCollection(props: TabCollectionProps) {
   const [searchResults, setSearchResults] = createSignal<Tab[] | null>(null);
   const [editingTab, setEditingTab] = createSignal<Tab | null>(null);
   const [deletingTab, setDeletingTab] = createSignal<Tab | null>(null);
+  const [emptyingTrash, setEmptyingTrash] = createSignal(false);
   const [capturePreview, setCapturePreview] =
     createSignal<CapturePreviewData | null>(null);
 
@@ -273,6 +275,11 @@ export default function TabCollection(props: TabCollectionProps) {
     }
   };
 
+  /** Notify other views that data changed */
+  const notifyChanged = () => {
+    browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
+  };
+
   const handleOpenTab = async (tab: Tab) => {
     await sendMessage({ type: "OPEN_TAB", tabId: tab.id });
     patchTab(tab.id, { viewCount: tab.viewCount + 1, lastViewedAt: new Date().toISOString() });
@@ -281,28 +288,33 @@ export default function TabCollection(props: TabCollectionProps) {
   const handleSaveNotes = async (tabId: string, notes: string) => {
     await updateTab(tabId, { notes: notes || null });
     patchTab(tabId, { notes: notes || null });
+    notifyChanged();
   };
 
   const handleToggleStar = async (tab: Tab) => {
     const starred = !tab.starred;
     await updateTab(tab.id, { starred });
     patchTab(tab.id, { starred });
+    notifyChanged();
   };
 
   const handleArchive = async (tab: Tab) => {
     const archived = !tab.archived;
     await updateTab(tab.id, { archived });
     patchTab(tab.id, { archived });
+    notifyChanged();
   };
 
   const handleDelete = async (tab: Tab) => {
     await softDeleteTab(tab.id);
     patchTab(tab.id, { deletedAt: new Date().toISOString() });
+    notifyChanged();
   };
 
   const handleRestore = async (tab: Tab) => {
     await restoreTab(tab.id);
     patchTab(tab.id, { deletedAt: null });
+    notifyChanged();
   };
 
   const handleHardDelete = (tab: Tab) => {
@@ -328,6 +340,7 @@ export default function TabCollection(props: TabCollectionProps) {
         if (!blocked.includes(domain)) {
           blocked.push(domain);
           await updateSettings({ blockedDomains: blocked });
+          notifyChanged();
         }
       }
       setBlockingTab(null);
@@ -340,6 +353,7 @@ export default function TabCollection(props: TabCollectionProps) {
       await hardDeleteTab(tab.id);
       setDeletingTab(null);
       removeTab(tab.id);
+      notifyChanged();
     }
   };
 
@@ -348,6 +362,7 @@ export default function TabCollection(props: TabCollectionProps) {
     setAllGroups((prev) =>
       prev.map((g) => (g.id === group.id ? { ...g, name: newName } : g)),
     );
+    notifyChanged();
   };
 
   const handleConfirmCapture = async () => {
@@ -374,27 +389,23 @@ export default function TabCollection(props: TabCollectionProps) {
     }
   };
 
-  const isWide = () => !props.showExpandButton; // full page view
-
   return (
-    <div class="flex h-full bg-background text-foreground">
-      {/* Sidebar - persistent in full page, drawer in side panel */}
-      <Show when={isWide()}>
-        <div class="w-72 flex-shrink-0 h-full">
-          <AppSidebar
-            domains={domainIndex()}
-            activeDomain={domainFilter()}
-            activeCreator={creatorFilter()}
-            onSelectDomain={(d) => { setDomainFilter(d); setCreatorFilter(null); }}
-            onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
-            totalCount={(allTabs() || []).filter((t) => !t.deletedAt && !t.archived).length}
-          />
-        </div>
-      </Show>
+    <div class="flex h-full bg-background text-foreground @container">
+      {/* Sidebar - persistent when container is wide enough */}
+      <div class="hidden @[768px]:block w-72 flex-shrink-0 h-full">
+        <AppSidebar
+          domains={domainIndex()}
+          activeDomain={domainFilter()}
+          activeCreator={creatorFilter()}
+          onSelectDomain={(d) => { setDomainFilter(d); setCreatorFilter(null); }}
+          onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
+          totalCount={(allTabs() || []).filter((t) => !t.deletedAt && !t.archived).length}
+        />
+      </div>
 
       {/* Sidebar drawer overlay for narrow views */}
-      <Show when={!isWide() && sidebarOpen()}>
-        <div class="fixed inset-0 z-40 flex">
+      <Show when={sidebarOpen()}>
+        <div class="fixed inset-0 z-40 flex @[768px]:hidden">
           <div class="w-64 h-full bg-background overflow-y-auto">
             <AppSidebar
               domains={domainIndex()}
@@ -414,15 +425,14 @@ export default function TabCollection(props: TabCollectionProps) {
         {/* Top Bar */}
         <div class="flex items-center justify-between px-4 py-3 bg-muted/30">
           <div class="flex items-center gap-2">
-            <Show when={!isWide()}>
-              <button
-                class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                onClick={() => setSidebarOpen(!sidebarOpen())}
-                title="Browse domains"
-              >
-                <Menu size={16} />
-              </button>
-            </Show>
+            {/* Hamburger - visible only when sidebar is hidden */}
+            <button
+              class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors @[768px]:hidden"
+              onClick={() => setSidebarOpen(!sidebarOpen())}
+              title="Browse domains"
+            >
+              <Menu size={16} />
+            </button>
             <h1 class="text-base font-semibold text-foreground">
               Tab Zen
               <Show when={domainFilter()}>
@@ -530,53 +540,93 @@ export default function TabCollection(props: TabCollectionProps) {
 
       {/* Collection - @container for responsive card grid */}
       <div class="flex-1 overflow-y-auto @container">
-        <Show when={(allTabs() || []).length > 0} fallback={<EmptyState />}>
+        <Show when={(allTabs() || []).filter((t) => !t.deletedAt).length > 0} fallback={<EmptyState />}>
           {/* Notes view */}
           <Show when={filter() === "notes"}>
-            <div class="grid grid-cols-1 @[600px]:grid-cols-2 @[900px]:grid-cols-3 gap-4 p-4">
-              <For each={filteredTabs()}>
-                {(tab) => (
-                  <NoteCard
-                    tab={tab}
-                    onOpen={handleOpenTab}
-                    onEditNotes={setEditingTab}
-                  />
-                )}
-              </For>
-            </div>
+            <Show
+              when={filteredTabs().length > 0}
+              fallback={
+                <EmptyBlock icon={<StickyNote size={52} />} title="No notes yet" description="Add notes to any tab to see them here." />
+              }
+            >
+              <div class="grid grid-cols-1 @[600px]:grid-cols-2 @[900px]:grid-cols-3 gap-4 p-4">
+                <For each={filteredTabs()}>
+                  {(tab) => (
+                    <NoteCard
+                      tab={tab}
+                      onOpen={handleOpenTab}
+                      onEditNotes={setEditingTab}
+                    />
+                  )}
+                </For>
+              </div>
+            </Show>
           </Show>
 
           {/* By Date view */}
           <Show when={filter() === "byDate"}>
-            <For each={tabsByDate()}>
-              {(dateGroup) => (
-                <GroupSection
-                  group={{
-                    id: dateGroup.label,
-                    name: dateGroup.label,
-                    captureId: "",
-                    position: 0,
-                    archived: false,
-                  }}
-                  tabs={dateGroup.tabs}
-                  viewMode={props.viewMode}
-                  searchQuery={searchQuery()}
-                  onOpenTab={handleOpenTab}
-                  onEditNotes={setEditingTab}
-                  onRenameGroup={() => {}}
-                  onToggleStar={handleToggleStar}
-                  onArchive={handleArchive}
-                  onDelete={handleDelete}
-                  onBlockDomain={handleBlockDomain}
-                  onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
-                  onTagClick={handleTagClick}
-                />
-              )}
-            </For>
+            <Show
+              when={filteredTabs().length > 0}
+              fallback={
+                <EmptyBlock icon={<Calendar size={52} />} title="No tabs saved yet" description="Capture some tabs to see them organized by date." />
+              }
+            >
+              <For each={tabsByDate()}>
+                {(dateGroup) => (
+                  <GroupSection
+                    group={{
+                      id: dateGroup.label,
+                      name: dateGroup.label,
+                      captureId: "",
+                      position: 0,
+                      archived: false,
+                    }}
+                    tabs={dateGroup.tabs}
+                    viewMode={props.viewMode}
+                    searchQuery={searchQuery()}
+                    onOpenTab={handleOpenTab}
+                    onEditNotes={setEditingTab}
+                    onRenameGroup={() => {}}
+                    onToggleStar={handleToggleStar}
+                    onArchive={handleArchive}
+                    onDelete={handleDelete}
+                    onBlockDomain={handleBlockDomain}
+                    onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
+                    onTagClick={handleTagClick}
+                    onExpandTab={(tab) => {
+                      const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${tab.id}`);
+                      window.open(detailUrl, "_blank");
+                    }}
+                  />
+                )}
+              </For>
+            </Show>
           </Show>
 
           {/* Trash view */}
           <Show when={filter() === "trash"}>
+            <div class="mx-4 mt-3 mb-4 px-4 py-3 bg-muted/30 rounded-xl flex items-center justify-between gap-4">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <Trash2 size={15} class="text-muted-foreground/50 flex-shrink-0" />
+                <span class="text-sm text-muted-foreground">
+                  Items are automatically deleted after 30 days
+                </span>
+              </div>
+              <Show when={filteredTabs().length > 0}>
+                <button
+                  class="text-sm font-medium text-red-400/80 hover:text-red-400 transition-colors flex-shrink-0 px-3 py-1 rounded-full hover:bg-red-400/10"
+                  onClick={() => setEmptyingTrash(true)}
+                >
+                  Empty Now
+                </button>
+              </Show>
+            </div>
+            <Show
+              when={filteredTabs().length > 0}
+              fallback={
+                <EmptyBlock icon={<Trash2 size={52} />} title="Trash is empty" description="Deleted tabs will appear here." />
+              }
+            >
             <GroupSection
               group={{
                 id: "trash",
@@ -595,34 +645,56 @@ export default function TabCollection(props: TabCollectionProps) {
               onDelete={handleDelete}
               onRestore={handleRestore}
               onHardDelete={handleHardDelete}
+              onExpandTab={(tab) => {
+                const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${tab.id}`);
+                window.open(detailUrl, "_blank");
+              }}
               isTrash
             />
+            </Show>
           </Show>
 
           {/* Default group view (All, Starred, Archived, Duplicates) */}
           <Show when={filter() !== "notes" && filter() !== "byDate" && filter() !== "trash"}>
-            <For each={filteredGroups()}>
-              {(group) => {
-                const tabs = () => tabsForGroup(group.id);
-                return (
-                  <Show when={tabs().length > 0}>
-                    <GroupSection
-                      group={group}
-                      tabs={tabs()}
-                      viewMode={props.viewMode}
-                      searchQuery={searchQuery()}
-                      onOpenTab={handleOpenTab}
-                      onEditNotes={setEditingTab}
-                      onRenameGroup={handleRenameGroup}
-                      onToggleStar={handleToggleStar}
-                      onArchive={handleArchive}
-                      onDelete={handleDelete}
-                      onBlockDomain={handleBlockDomain}
-                    />
-                  </Show>
-                );
-              }}
-            </For>
+            <Show
+              when={filteredTabs().length > 0}
+              fallback={
+                filter() === "starred" ? (
+                  <EmptyBlock icon={<Star size={52} />} title="No starred tabs" description="Star tabs to quickly find them later." />
+                ) : filter() === "archived" ? (
+                  <EmptyBlock icon={<Archive size={52} />} title="No archived tabs" description="Archive tabs to declutter without deleting." />
+                ) : (
+                  <EmptyBlock icon={<Inbox size={52} />} title="No tabs to show" description="Capture some tabs to get started." />
+                )
+              }
+            >
+              <For each={filteredGroups()}>
+                {(group) => {
+                  const tabs = () => tabsForGroup(group.id);
+                  return (
+                    <Show when={tabs().length > 0}>
+                      <GroupSection
+                        group={group}
+                        tabs={tabs()}
+                        viewMode={props.viewMode}
+                        searchQuery={searchQuery()}
+                        onOpenTab={handleOpenTab}
+                        onEditNotes={setEditingTab}
+                        onRenameGroup={handleRenameGroup}
+                        onToggleStar={handleToggleStar}
+                        onArchive={handleArchive}
+                        onDelete={handleDelete}
+                        onBlockDomain={handleBlockDomain}
+                        onExpandTab={(tab) => {
+                          const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${tab.id}`);
+                          window.open(detailUrl, "_blank");
+                        }}
+                      />
+                    </Show>
+                  );
+                }}
+              </For>
+            </Show>
           </Show>
         </Show>
       </div>
@@ -680,6 +752,26 @@ export default function TabCollection(props: TabCollectionProps) {
             />
           );
         }}
+      </Show>
+
+      {/* Empty Trash Confirmation */}
+      <Show when={emptyingTrash()}>
+        <ConfirmDialog
+          title="Empty trash"
+          message={`Permanently delete all ${filteredTabs().length} items in trash? This cannot be undone.`}
+          confirmLabel="Empty Trash"
+          destructive
+          onConfirm={async () => {
+            const trashTabs = (allTabs() || []).filter((t) => t.deletedAt);
+            for (const tab of trashTabs) {
+              await hardDeleteTab(tab.id);
+            }
+            setEmptyingTrash(false);
+            loadData();
+            notifyChanged();
+          }}
+          onCancel={() => setEmptyingTrash(false)}
+        />
       </Show>
       </div>
     </div>

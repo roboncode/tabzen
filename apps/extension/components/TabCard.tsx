@@ -1,8 +1,11 @@
 import { Show, createMemo } from "solid-js";
-import { Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2 } from "lucide-solid";
+import { Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2, Maximize2 } from "lucide-solid";
 import type { Tab } from "@/lib/types";
-import { extractCreator, getFaviconUrl } from "@/lib/domains";
+import { extractCreator, getDomain, getFaviconUrl } from "@/lib/domains";
+import { formatTimeAgo } from "@/lib/format";
 import Highlight from "./Highlight";
+import Avatar from "./Avatar";
+import TagList from "./TagList";
 
 interface TabCardProps {
   tab: Tab;
@@ -17,17 +20,12 @@ interface TabCardProps {
   onHardDelete?: (tab: Tab) => void;
   onSelectCreator?: (domain: string, creator: string) => void;
   onTagClick?: (tag: string) => void;
+  onExpand?: (tab: Tab) => void;
   isTrash?: boolean;
 }
 
 export default function TabCard(props: TabCardProps) {
-  const domain = createMemo(() => {
-    try {
-      return new URL(props.tab.url).hostname.replace("www.", "");
-    } catch {
-      return props.tab.url;
-    }
-  });
+  const domain = createMemo(() => getDomain(props.tab.url) || props.tab.url);
 
   const description = createMemo(() =>
     props.tab.ogDescription || props.tab.metaDescription || null
@@ -43,23 +41,6 @@ export default function TabCard(props: TabCardProps) {
   });
 
   const creatorUrl = createMemo(() => props.tab.creatorUrl || null);
-
-  const formatTimeAgo = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
-    const weeks = Math.floor(days / 7);
-    if (weeks < 5) return `${weeks}w ago`;
-    const months = Math.floor(days / 30);
-    if (months < 12) return `${months}mo ago`;
-    const years = Math.floor(months / 12);
-    return `${years}y ago`;
-  };
 
   const timeAgo = createMemo(() => {
     if (props.tab.publishedAt) return formatTimeAgo(props.tab.publishedAt);
@@ -149,19 +130,26 @@ export default function TabCard(props: TabCardProps) {
             </button>
           </Show>
         </div>
+        {/* Expand button - right side */}
+        <Show when={props.onExpand && !props.isTrash}>
+          <div class="absolute top-2 right-2">
+            <button
+              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-sky-500/80 transition-colors opacity-0 group-hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                props.onExpand?.(props.tab);
+              }}
+              title="Open detail page"
+            >
+              <Maximize2 size={14} />
+            </button>
+          </div>
+        </Show>
       </div>
 
       {/* Info below thumbnail */}
       <div class="flex gap-3">
-        {avatarSrc() ? (
-          <img
-            src={avatarSrc()}
-            alt=""
-            class="w-6 h-6 rounded-full mt-0.5 flex-shrink-0"
-          />
-        ) : (
-          <div class="w-6 h-6 rounded-full bg-muted/50 mt-0.5 flex-shrink-0" />
-        )}
+        <Avatar src={avatarSrc()} size="lg" class="mt-0.5" />
         <div class="flex-1 min-w-0">
           <h3 class="text-sm font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary/80">
             <Show when={props.searchQuery} fallback={props.tab.ogTitle || props.tab.title}>
@@ -200,21 +188,7 @@ export default function TabCard(props: TabCardProps) {
             <span>{domain()}</span>
           </div>
           {/* Tags */}
-          {props.tab.tags?.length > 0 && (
-            <div class="flex flex-wrap gap-x-2 gap-y-0.5 mt-1.5">
-              {props.tab.tags.map((tag) => (
-                <button
-                  class="text-xs text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    props.onTagClick?.(tag);
-                  }}
-                >
-                  #{tag}
-                </button>
-              ))}
-            </div>
-          )}
+          <TagList tags={props.tab.tags || []} onTagClick={props.onTagClick} class="gap-y-0.5 mt-1.5 text-xs [&_button]:text-xs" />
         </div>
       </div>
 

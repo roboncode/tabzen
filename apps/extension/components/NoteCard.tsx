@@ -1,6 +1,7 @@
 import { createMemo } from "solid-js";
 import type { Tab } from "@/lib/types";
-import { getFaviconUrl } from "@/lib/domains";
+import { getDomain, getFaviconUrl } from "@/lib/domains";
+import Avatar from "./Avatar";
 
 interface NoteCardProps {
   tab: Tab;
@@ -9,13 +10,7 @@ interface NoteCardProps {
 }
 
 export default function NoteCard(props: NoteCardProps) {
-  const domain = createMemo(() => {
-    try {
-      return new URL(props.tab.url).hostname.replace("www.", "");
-    } catch {
-      return props.tab.url;
-    }
-  });
+  const domain = createMemo(() => getDomain(props.tab.url) || props.tab.url);
 
   const faviconSrc = createMemo(() => getFaviconUrl(props.tab));
 
@@ -39,11 +34,7 @@ export default function NoteCard(props: NoteCardProps) {
         class="flex items-center gap-2.5 mt-2.5 px-1 cursor-pointer"
         onClick={() => props.onOpen(props.tab)}
       >
-        {faviconSrc() ? (
-          <img src={faviconSrc()} alt="" class="w-5 h-5 rounded-full flex-shrink-0" />
-        ) : (
-          <div class="w-5 h-5 rounded-full bg-muted/50 flex-shrink-0" />
-        )}
+        <Avatar src={faviconSrc()} size="md" />
         <div class="flex-1 min-w-0">
           <p class="text-xs text-muted-foreground truncate hover:text-foreground transition-colors">
             {props.tab.ogTitle || props.tab.title}

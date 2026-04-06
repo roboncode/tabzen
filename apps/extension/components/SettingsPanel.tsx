@@ -1,7 +1,7 @@
-import { createSignal, createResource, Show } from "solid-js";
-import { ArrowLeft, User, Sparkles, RefreshCw, Database, AlertTriangle, ShieldBan } from "lucide-solid";
+import { createSignal, Show } from "solid-js";
+import { ArrowLeft, User, Sparkles, Database, AlertTriangle } from "lucide-solid";
 import ConfirmDialog from "./ConfirmDialog";
-import { getSettings, updateSettings } from "@/lib/settings";
+import { useSettings } from "@/lib/hooks/useSettings";
 import {
   exportAsJson,
   exportAsHtmlBookmarks,
@@ -9,32 +9,30 @@ import {
   downloadFile,
 } from "@/lib/export";
 import { clearAllData, clearProfileData } from "@/lib/db";
-import { initSync, verifySync, checkConnection } from "@/lib/sync";
-import { sendMessage } from "@/lib/messages";
-import { DEFAULT_SETTINGS, type Settings } from "@/lib/types";
+import SyncConfigPanel from "./settings/SyncConfigPanel";
+import BlockedDomainsManager from "./settings/BlockedDomainsManager";
 
 interface SettingsPanelProps {
   onClose: () => void;
 }
 
 export default function SettingsPanel(props: SettingsPanelProps) {
-  const [refreshKey, setRefreshKey] = createSignal(0);
-  const [settings, { refetch }] = createResource(refreshKey, async () => getSettings());
+  const { settings, save: rawSave } = useSettings();
   const [saving, setSaving] = createSignal(false);
   const [importResult, setImportResult] = createSignal<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = createSignal(false);
-  const [syncStatus, setSyncStatus] = createSignal<string | null>(null);
-  const [syncLoading, setSyncLoading] = createSignal(false);
-  const [connected, setConnected] = createSignal<boolean | null>(null);
-  const [checking, setChecking] = createSignal(false);
   const [aiTestResult, setAiTestResult] = createSignal<{ ok: boolean; message: string } | null>(null);
   const [aiTesting, setAiTesting] = createSignal(false);
 
-  const save = async (updates: Partial<Settings>) => {
+  const notifyChanged = () => {
+    browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
+  };
+
+  const save: typeof rawSave = async (updates) => {
     setSaving(true);
-    await updateSettings(updates);
-    setRefreshKey((k) => k + 1);
+    await rawSave(updates);
     setSaving(false);
+    notifyChanged();
   };
 
   const handleExportJson = async () => {
@@ -184,338 +182,10 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             </div>
 
             {/* ═══ Sync ═══ */}
-            <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
-              <RefreshCw size={14} /> Sync
-            </p>
-            <div class="px-1 py-3 space-y-4">
+            <SyncConfigPanel settings={s()} save={save} />
 
-              {/* Environment toggle */}
-              <div class="flex bg-muted/40 rounded-lg p-1 mb-4">
-                <button
-                  class={`flex-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                    s().syncEnv === "local"
-                      ? "bg-muted text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => save({ syncEnv: "local" })}
-                >
-                  Local
-                </button>
-                <button
-                  class={`flex-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                    s().syncEnv === "remote"
-                      ? "bg-muted text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => save({ syncEnv: "remote" })}
-                >
-                  Remote
-                </button>
-              </div>
-
-              {/* URL field - shown for both envs */}
-              <div class="mb-4">
-                <label class="block text-xs text-muted-foreground mb-1.5">
-                  {s().syncEnv === "local" ? "Local URL" : "Remote URL"}
-                </label>
-                <input
-                  class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors placeholder:text-muted-foreground"
-                  value={s().syncEnv === "local" ? (s().syncLocalUrl || "http://localhost:8787") : s().syncUrl}
-                  onChange={(e) => {
-                    if (s().syncEnv === "local") {
-                      save({ syncLocalUrl: e.currentTarget.value });
-                    } else {
-                      save({ syncUrl: e.currentTarget.value });
-                    }
-                  }}
-                  placeholder={s().syncEnv === "local" ? "http://localhost:8787" : "https://tab-zen-sync.your-subdomain.workers.dev"}
-                />
-                <Show when={s().syncEnv === "local"}>
-                  <p class="text-xs text-muted-foreground mt-1.5">
-                    Run <code class="text-foreground">bun run sync:dev</code> to start the local server
-                  </p>
-                </Show>
-              </div>
-
-              {/* Connection + token flow */}
-              {(() => {
-                const isLocal = () => s().syncEnv === "local";
-                const activeToken = () => isLocal() ? s().syncLocalToken : s().syncToken;
-                const tokenKey = () => isLocal() ? "syncLocalToken" : "syncToken";
-                const [pasteMode, setPasteMode] = createSignal(false);
-                const [pasteValue, setPasteValue] = createSignal("");
-
-                const handlePasteConnect = async () => {
-                  const token = pasteValue().trim();
-                  if (!token) return;
-                  setSyncLoading(true);
-                  setSyncStatus(null);
-                  await save({ [tokenKey()]: token, syncEnabled: true });
-                  const valid = await verifySync();
-                  if (valid) {
-                    await save({ syncError: null });
-                    setSyncStatus("Connected! Syncing will start automatically.");
-                  } else {
-                    setSyncStatus("Invalid token or server unreachable.");
-                    await save({ [tokenKey()]: null, syncEnabled: false });
-                  }
-                  setSyncLoading(false);
-                };
-
-                const handleConnect = async () => {
-                  setChecking(true);
-                  setConnected(null);
-                  setSyncStatus(null);
-                  const ok = await checkConnection();
-                  setConnected(ok);
-                  if (!ok) {
-                    setSyncStatus(
-                      isLocal()
-                        ? "Cannot reach server. Run bun run sync:dev"
-                        : "Cannot reach server. Check the URL."
-                    );
-                  }
-                  setChecking(false);
-                };
-
-                const handleGenerateToken = async () => {
-                  setSyncLoading(true);
-                  setSyncStatus(null);
-                  try {
-                    const token = await initSync();
-                    await save({ [tokenKey()]: token, syncEnabled: true, syncError: null });
-                    setSyncStatus("Token generated!");
-                  } catch (e) {
-                    setConnected(false);
-                    setSyncStatus(
-                      isLocal()
-                        ? "Failed. Is the server running? (bun run sync:dev)"
-                        : `Failed: ${e}`
-                    );
-                  }
-                  setSyncLoading(false);
-                };
-
-                return (
-                  <div class="space-y-4">
-                    <Show
-                      when={activeToken()}
-                      fallback={
-                        <>
-                          {/* Step 1: Connect */}
-                          <div class="bg-muted/30 rounded-lg p-4">
-                            <div class="flex items-center justify-between">
-                              <div class="flex items-center gap-2">
-                                <div class={`w-2.5 h-2.5 rounded-full ${
-                                  connected() === true ? "bg-green-500" :
-                                  connected() === false ? "bg-red-500" :
-                                  "bg-muted-foreground/30"
-                                }`} />
-                                <span class="text-sm text-foreground">
-                                  {connected() === true ? "Server reachable" :
-                                   connected() === false ? "Unreachable" :
-                                   "Not connected"}
-                                </span>
-                              </div>
-                              <button
-                                class="px-3 py-1.5 text-sm bg-muted/50 text-foreground rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
-                                disabled={checking()}
-                                onClick={handleConnect}
-                              >
-                                {checking() ? "Checking..." : connected() === true ? "Recheck" : "Connect"}
-                              </button>
-                            </div>
-                            <Show when={syncStatus() && !connected()}>
-                              <p class="text-xs text-muted-foreground mt-2">{syncStatus()}</p>
-                            </Show>
-                          </div>
-
-                          {/* Step 2: Generate or paste token (only after connected) */}
-                          <Show when={connected()}>
-                            <Show
-                              when={!pasteMode()}
-                              fallback={
-                                <div class="space-y-3">
-                                  <input
-                                    class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2.5 outline-none focus:bg-muted/60 transition-colors placeholder:text-muted-foreground"
-                                    placeholder="Paste sync token..."
-                                    value={pasteValue()}
-                                    onInput={(e) => setPasteValue(e.currentTarget.value)}
-                                    onKeyDown={(e) => e.key === "Enter" && handlePasteConnect()}
-                                  />
-                                  <div class="flex items-center gap-2">
-                                    <button
-                                      class="flex-1 px-4 py-2.5 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                                      disabled={syncLoading() || !pasteValue().trim()}
-                                      onClick={handlePasteConnect}
-                                    >
-                                      {syncLoading() ? "Connecting..." : "Connect"}
-                                    </button>
-                                    <button
-                                      class="px-4 py-2.5 text-sm bg-muted/50 text-foreground rounded-lg hover:bg-muted transition-colors"
-                                      onClick={() => { setPasteMode(false); setPasteValue(""); }}
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </div>
-                              }
-                            >
-                              <div class="flex items-center gap-2">
-                                <button
-                                  class="flex-1 px-4 py-2.5 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                                  disabled={syncLoading()}
-                                  onClick={handleGenerateToken}
-                                >
-                                  {syncLoading() ? "Generating..." : "Generate New Token"}
-                                </button>
-                                <button
-                                  class="px-4 py-2.5 text-sm bg-muted/50 text-foreground rounded-lg hover:bg-muted transition-colors"
-                                  onClick={() => setPasteMode(true)}
-                                >
-                                  Paste Token
-                                </button>
-                              </div>
-                            </Show>
-                            <Show when={syncStatus() && connected()}>
-                              <p class="text-xs text-green-400">{syncStatus()}</p>
-                            </Show>
-                          </Show>
-                        </>
-                      }
-                    >
-                      {/* Connected with token */}
-                      <div class="space-y-3">
-                        <div class="bg-muted/30 rounded-lg p-4">
-                          <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                              <div class={`w-2.5 h-2.5 rounded-full ${s().syncError ? "bg-red-500" : "bg-green-500"}`} />
-                              <span class="text-sm text-foreground">
-                                {s().syncError ? "Error" : "Syncing"}
-                              </span>
-                            </div>
-                            <button
-                              class="px-3 py-1.5 text-sm bg-muted/50 text-foreground rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
-                              disabled={syncLoading()}
-                              onClick={async () => {
-                                setSyncLoading(true);
-                                setSyncStatus(null);
-                                const response = await sendMessage({ type: "SYNC_NOW" });
-                                if (response.type === "SYNC_COMPLETE") {
-                                  setSyncStatus(`Synced! Pushed ${response.pushed} tabs, pulled ${response.pulled} new tabs.`);
-                                  setConnected(true);
-                                } else if (response.type === "ERROR") {
-                                  setSyncStatus(`Sync failed: ${response.message}`);
-                                }
-                                setSyncLoading(false);
-                              }}
-                            >
-                              {syncLoading() ? "Syncing..." : "Sync Now"}
-                            </button>
-                          </div>
-                          <Show when={s().syncError}>
-                            <p class="text-xs text-red-300 mb-3">{s().syncError}</p>
-                          </Show>
-                          <p class="text-xs text-muted-foreground mb-1.5">Token</p>
-                          <div class="flex items-center gap-2">
-                            <code class="text-xs text-foreground break-all flex-1">
-                              {activeToken()}
-                            </code>
-                            <button
-                              class="px-2.5 py-1 text-xs bg-muted/50 text-muted-foreground rounded-md hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
-                              onClick={() => navigator.clipboard.writeText(activeToken()!)}
-                            >
-                              Copy
-                            </button>
-                          </div>
-                        </div>
-                        <button
-                          class="px-3 py-2 text-sm bg-red-900/30 text-red-300 rounded-lg hover:bg-red-900/50 transition-colors"
-                          onClick={() => save({ [tokenKey()]: null, syncEnabled: false })}
-                        >
-                          Disconnect
-                        </button>
-                      </div>
-                    </Show>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* ═══ Data ═══ */}
             {/* ═══ Blocked Domains ═══ */}
-            <div class="flex items-center justify-between bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
-              <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70">
-                <ShieldBan size={14} /> Blocked Domains
-              </p>
-              <button
-                class="px-2.5 py-1 text-xs bg-muted/50 text-muted-foreground rounded-md hover:text-foreground hover:bg-muted transition-colors"
-                onClick={() => save({ blockedDomains: DEFAULT_SETTINGS.blockedDomains })}
-              >
-                Reset
-              </button>
-            </div>
-            <div class="px-1 py-3 space-y-3">
-              <p class="text-xs text-muted-foreground">
-                Tabs from these domains will be skipped during capture.
-              </p>
-              <Show
-                when={(s().blockedDomains || []).length > 0}
-                fallback={
-                  <p class="text-sm text-muted-foreground/50">No blocked domains</p>
-                }
-              >
-                <div class="space-y-1.5">
-                  <For each={s().blockedDomains || []}>
-                    {(domain) => (
-                      <div class="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
-                        <span class="text-sm text-foreground">{domain}</span>
-                        <button
-                          class="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                          onClick={() => {
-                            const updated = (s().blockedDomains || []).filter((d) => d !== domain);
-                            save({ blockedDomains: updated });
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    )}
-                  </For>
-                </div>
-              </Show>
-              {(() => {
-                const [newDomain, setNewDomain] = createSignal("");
-                const addDomain = () => {
-                  const d = newDomain().trim().replace(/^https?:\/\//, "").replace("www.", "").replace(/\/.*$/, "");
-                  if (d) {
-                    const blocked = [...(s().blockedDomains || [])];
-                    if (!blocked.includes(d)) {
-                      blocked.push(d);
-                      save({ blockedDomains: blocked });
-                    }
-                    setNewDomain("");
-                  }
-                };
-                return (
-                  <div class="flex gap-2">
-                    <input
-                      class="flex-1 bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors placeholder:text-muted-foreground"
-                      placeholder="Add domain (e.g. mail.google.com)"
-                      value={newDomain()}
-                      onInput={(e) => setNewDomain(e.currentTarget.value)}
-                      onKeyDown={(e) => e.key === "Enter" && addDomain()}
-                    />
-                    <button
-                      class="px-3 py-2 text-sm bg-muted/50 text-foreground rounded-lg hover:bg-muted transition-colors flex-shrink-0"
-                      onClick={addDomain}
-                    >
-                      Add
-                    </button>
-                  </div>
-                );
-              })()}
-            </div>
+            <BlockedDomainsManager settings={s()} save={save} />
 
             <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
               <Database size={14} /> Data
@@ -639,6 +309,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   onConfirm={async () => {
                     const s = settings();
                     if (s?.deviceId) await clearProfileData(s.deviceId);
+                    notifyChanged();
                     setShowClearConfirm(false);
                     props.onClose();
                   }}
@@ -654,6 +325,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   destructive
                   onConfirm={async () => {
                     await clearAllData();
+                    notifyChanged();
                     setShowClearConfirm(false);
                     props.onClose();
                   }}

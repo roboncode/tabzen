@@ -20,6 +20,7 @@ interface GroupSectionProps {
   onHardDelete?: (tab: Tab) => void;
   onSelectCreator?: (domain: string, creator: string) => void;
   onTagClick?: (tag: string) => void;
+  onExpandTab?: (tab: Tab) => void;
   isTrash?: boolean;
 }
 
@@ -129,6 +130,7 @@ export default function GroupSection(props: GroupSectionProps) {
                     onBlockDomain={props.onBlockDomain}
                     onRestore={props.onRestore}
                     onHardDelete={props.onHardDelete}
+                    onExpand={props.onExpandTab}
                     isTrash={props.isTrash}
                   />
                 </div>

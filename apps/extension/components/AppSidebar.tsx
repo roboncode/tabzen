@@ -1,6 +1,7 @@
 import { createSignal, For, Show } from "solid-js";
 import { ChevronDown, ChevronRight, Globe } from "lucide-solid";
 import type { DomainInfo } from "@/lib/domains";
+import Avatar from "./Avatar";
 
 interface AppSidebarProps {
   domains: DomainInfo[];
@@ -136,15 +137,7 @@ export default function AppSidebar(props: AppSidebarProps) {
                                 );
                               }}
                             >
-                              {creator.avatar ? (
-                                <img
-                                  src={creator.avatar}
-                                  alt=""
-                                  class="w-4 h-4 rounded-full flex-shrink-0"
-                                />
-                              ) : (
-                                <div class="w-4 h-4 rounded-full bg-muted/50 flex-shrink-0" />
-                              )}
+                              <Avatar src={creator.avatar} size="sm" />
                               <span class="flex-1 text-left truncate">
                                 {creator.name}
                               </span>

@@ -1,0 +1,268 @@
+import { createSignal, createMemo, Show, onMount, onCleanup } from "solid-js";
+import type { Tab } from "@/lib/types";
+import type { TranscriptSegment } from "@tab-zen/shared";
+import { formatTimestamp } from "./TranscriptView";
+import { isYouTubeWatchUrl } from "@/lib/youtube";
+import { sendMessage } from "@/lib/messages";
+import { updateTab, getTab, softDeleteTab } from "@/lib/db";
+import DetailHeader from "./DetailHeader";
+import TranscriptView from "./TranscriptView";
+import ChatPanel from "./ChatPanel";
+import PlaceholderTab from "./PlaceholderTab";
+import NotesEditor from "@/components/NotesEditor";
+import ReadingProgress from "@/components/ReadingProgress";
+
+type ContentTab = "transcript" | "summary" | "content";
+
+interface DetailPageProps {
+  tab: Tab;
+}
+
+export default function DetailPage(props: DetailPageProps) {
+  const [activeTab, setActiveTab] = createSignal<ContentTab>("transcript");
+  const [chatCollapsed, setChatCollapsed] = createSignal(true);
+  const [transcriptSegments, setTranscriptSegments] = createSignal<TranscriptSegment[]>(
+    (props.tab as any).transcript || [],
+  );
+  const [fetchingTranscript, setFetchingTranscript] = createSignal(false);
+  const [currentTab, setCurrentTab] = createSignal(props.tab);
+  const [isNarrow, setIsNarrow] = createSignal(false);
+  const [editingNotes, setEditingNotes] = createSignal(false);
+  const [copied, setCopied] = createSignal(false);
+
+  let containerRef: HTMLDivElement | undefined;
+  let scrollRef: HTMLDivElement | undefined;
+
+  onMount(() => {
+    if (!containerRef) return;
+
+    // Detect narrow width
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setIsNarrow(entry.contentRect.width < 768);
+      }
+    });
+    resizeObserver.observe(containerRef);
+
+    onCleanup(() => resizeObserver.disconnect());
+
+    // Listen for data changes from other views
+    const handleMessage = async (message: any) => {
+      if (message.type === "DATA_CHANGED") {
+        const updated = await getTab(props.tab.id);
+        if (updated) {
+          setCurrentTab(updated);
+          if ((updated as any).transcript) {
+            setTranscriptSegments((updated as any).transcript);
+          }
+        }
+      }
+    };
+    browser.runtime.onMessage.addListener(handleMessage);
+    onCleanup(() => browser.runtime.onMessage.removeListener(handleMessage));
+  });
+
+  const isYouTube = createMemo(() => isYouTubeWatchUrl(props.tab.url));
+
+  const readingTimeMin = createMemo(() => {
+    const segments = transcriptSegments();
+    if (segments.length === 0) return 0;
+    const totalWords = segments.reduce((sum, s) => sum + s.text.split(/\s+/).length, 0);
+    return Math.max(1, Math.round(totalWords / 200));
+  });
+
+  /** Notify all other views (side panel, full page) that data changed */
+  const notifyChanged = () => {
+    browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
+  };
+
+  const handleBack = () => { window.close(); };
+
+  const handleToggleStar = async () => {
+    const tab = currentTab();
+    await updateTab(tab.id, { starred: !tab.starred });
+    const updated = await getTab(tab.id);
+    if (updated) setCurrentTab(updated);
+    notifyChanged();
+  };
+
+  const handleOpenSource = () => { window.open(props.tab.url, "_blank"); };
+
+  const handleArchive = async () => {
+    const tab = currentTab();
+    await updateTab(tab.id, { archived: !tab.archived });
+    const updated = await getTab(tab.id);
+    if (updated) setCurrentTab(updated);
+    notifyChanged();
+  };
+
+  const handleDelete = async () => {
+    await softDeleteTab(currentTab().id);
+    notifyChanged();
+    window.close();
+  };
+
+  const handleEditNotes = () => {
+    setEditingNotes(true);
+  };
+
+  const handleSaveNotes = async (tabId: string, notes: string) => {
+    await updateTab(tabId, { notes: notes || null });
+    const updated = await getTab(tabId);
+    if (updated) setCurrentTab(updated);
+    setEditingNotes(false);
+    notifyChanged();
+  };
+
+  const handleFetchTranscript = async () => {
+    setFetchingTranscript(true);
+    try {
+      const response = await sendMessage({ type: "GET_TRANSCRIPT", tabId: props.tab.id });
+      if (response.type === "TRANSCRIPT" && response.transcript) {
+        setTranscriptSegments(response.transcript);
+      }
+    } catch (e) {
+      console.error("Failed to fetch transcript:", e);
+    } finally {
+      setFetchingTranscript(false);
+    }
+  };
+
+  const handleCopyTranscript = () => {
+    const segments = transcriptSegments();
+    if (segments.length === 0) return;
+    const text = segments.map((s) => `[${formatTimestamp(s.startMs)}] ${s.text}`).join("\n");
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const contentTabs: { id: ContentTab; label: string }[] = [
+    { id: "transcript", label: "Transcript" },
+    { id: "summary", label: "Summary" },
+    { id: "content", label: "Content" },
+  ];
+
+  const PillTabs = () => (
+    <div class="flex items-center gap-2">
+      {contentTabs.map((tab) => (
+        <button
+          class={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap outline-none ${
+            activeTab() === tab.id
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+          onClick={() => setActiveTab(tab.id)}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const TabContent = () => (
+    <>
+      <Show when={activeTab() === "transcript"}>
+        <Show
+          when={isYouTube()}
+          fallback={
+            <PlaceholderTab
+              title="Transcript not available"
+              description="Transcripts are available for YouTube videos"
+            />
+          }
+        >
+          <TranscriptView
+            segments={transcriptSegments()}
+            videoUrl={props.tab.url}
+            onFetchTranscript={
+              transcriptSegments().length === 0 ? handleFetchTranscript : undefined
+            }
+            loading={fetchingTranscript()}
+          />
+        </Show>
+      </Show>
+      <Show when={activeTab() === "summary"}>
+        <PlaceholderTab title="Summary" description="AI-generated summaries coming in a future update" />
+      </Show>
+      <Show when={activeTab() === "content"}>
+        <PlaceholderTab title="Content" description="Web page content extraction coming in a future update" />
+      </Show>
+    </>
+  );
+
+  return (
+    <div ref={containerRef} class="flex h-screen bg-background relative">
+      {/* Main content */}
+      <div class="flex-1 min-w-0 flex flex-col">
+        {/* Fixed action bar with tabs and copy */}
+        <DetailHeader
+          tab={currentTab()}
+          onBack={handleBack}
+          onToggleStar={handleToggleStar}
+          onOpenSource={handleOpenSource}
+          onArchive={handleArchive}
+          onDelete={handleDelete}
+          onEditNotes={handleEditNotes}
+          chatCollapsed={chatCollapsed()}
+          onToggleChat={() => setChatCollapsed(!chatCollapsed())}
+          onCopy={activeTab() === "transcript" && transcriptSegments().length > 0 ? handleCopyTranscript : undefined}
+          copied={copied()}
+        >
+          <PillTabs />
+        </DetailHeader>
+
+        {/* Scrollable area: hero + progress + content */}
+        <div
+          ref={scrollRef}
+          class="flex-1 overflow-y-auto scrollbar-hide"
+        >
+          {/* Hero card */}
+          <DetailHeader
+            tab={currentTab()}
+            onBack={handleBack}
+            onToggleStar={handleToggleStar}
+            onOpenSource={handleOpenSource}
+            onArchive={handleArchive}
+            onDelete={handleDelete}
+            onEditNotes={handleEditNotes}
+            chatCollapsed={chatCollapsed()}
+            onToggleChat={() => setChatCollapsed(!chatCollapsed())}
+            heroOnly
+          />
+
+          {/* Reading progress — inside scroll container so it tracks correctly */}
+          <Show when={activeTab() === "transcript" && transcriptSegments().length > 0}>
+            <div class="sticky top-0 z-10 bg-background">
+              <ReadingProgress
+                scrollRef={scrollRef}
+                readingTimeMin={readingTimeMin()}
+              />
+            </div>
+          </Show>
+
+          {/* Tab content */}
+          <div class="px-4 pb-6 flex-1">
+            <TabContent />
+          </div>
+        </div>
+      </div>
+
+      {/* Chat panel */}
+      <ChatPanel
+        collapsed={chatCollapsed()}
+        onToggle={() => setChatCollapsed(!chatCollapsed())}
+        overlay={isNarrow()}
+      />
+
+      {/* Notes editor */}
+      <Show when={editingNotes()}>
+        <NotesEditor
+          tab={currentTab()}
+          onSave={handleSaveNotes}
+          onClose={() => setEditingNotes(false)}
+        />
+      </Show>
+    </div>
+  );
+}
