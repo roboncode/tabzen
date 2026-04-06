@@ -39,7 +39,6 @@ export interface Capture {
 }
 
 export interface Settings {
-  settingsVersion: number;
   deviceId: string;
   sourceLabel: string;
   openRouterApiKey: string;
@@ -57,10 +56,7 @@ export interface Settings {
   activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates" | "trash";
 }
 
-export const SETTINGS_VERSION = 3;
-
 export const DEFAULT_SETTINGS: Settings = {
-  settingsVersion: SETTINGS_VERSION,
   deviceId: "",
   sourceLabel: "Chrome - Default",
   openRouterApiKey: "",
