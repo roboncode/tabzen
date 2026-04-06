@@ -26,3 +26,7 @@ web-ext.config.ts
 *.sw?
 .superpowers/
 .wrangler/
+
+# NX
+.nx/cache
+.nx/workspace-data

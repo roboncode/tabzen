@@ -1,47 +1,15 @@
 {
   "name": "tab-zen",
-  "description": "AI-powered tab organization and management",
   "private": true,
-  "version": "0.1.0",
-  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "wxt",
-    "dev:firefox": "wxt -b firefox",
-    "build": "wxt build",
-    "build:firefox": "wxt build -b firefox",
-    "zip": "wxt zip",
-    "zip:firefox": "wxt zip -b firefox",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "compile": "tsc --noEmit",
-    "postinstall": "wxt prepare",
-    "sync:dev": "cd sync-service && npm run dev",
-    "sync:deploy": "cd sync-service && npm run deploy",
-    "sync:db:create": "cd sync-service && wrangler d1 create tab-zen-sync",
-    "sync:kv:create": "cd sync-service && wrangler kv namespace create KV",
-    "sync:db:migrate": "cd sync-service && wrangler d1 migrations apply tab-zen-sync --remote",
-    "sync:db:migrate:local": "cd sync-service && wrangler d1 migrations apply tab-zen-sync",
-    "sync:db:migration:create": "cd sync-service && wrangler d1 migrations create tab-zen-sync",
-    "sync:setup": "cd sync-service && ./setup.sh"
-  },
-  "dependencies": {
-    "@wxt-dev/storage": "^1.2.8",
-    "idb": "^8.0.3",
-    "lucide-solid": "^1.7.0",
-    "solid-js": "^1.9.11",
-    "uuid": "^13.0.0"
+    "dev": "nx run extension:dev",
+    "dev:sync": "nx run sync-service:dev",
+    "build": "nx run-many --target=build",
+    "test": "nx run-many --target=test",
+    "deploy:sync": "nx run sync-service:deploy"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.2.2",
-    "@types/uuid": "^10.0.0",
-    "@vitest/browser": "^4.1.2",
-    "@wxt-dev/module-solid": "^1.1.4",
-    "autoprefixer": "^10.4.27",
-    "happy-dom": "^20.8.9",
-    "postcss": "^8.5.8",
-    "tailwindcss": "^4.2.2",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.2",
-    "wxt": "^0.20.20"
+    "nx": "^21.0.0"
   }
 }
