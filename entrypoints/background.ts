@@ -14,7 +14,7 @@ import {
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate, shouldSkipUrl } from "@/lib/duplicates";
-import { groupTabsWithAI, aiSearch } from "@/lib/ai";
+import { groupTabsWithAI, aiSearch, generateTags } from "@/lib/ai";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
 import { encrypt, decrypt } from "@/lib/crypto";
 import { updateSettings } from "@/lib/settings";
@@ -543,6 +543,7 @@ export default defineBackground(() => {
           creatorAvatar: null,
           creatorUrl: null,
           publishedAt: null,
+          tags: [],
           notes: null,
           viewCount: 0,
           lastViewedAt: null,
@@ -612,7 +613,39 @@ export default defineBackground(() => {
           notifyDataChanged();
         }
 
-        // Pass 3: AI re-grouping (if enabled and API key configured)
+        // Pass 3: AI tagging (if API key configured)
+        if (settings.openRouterApiKey) {
+          try {
+            const enrichedTabs = await Promise.all(
+              tabs.map(async (t) => (await getTab(t.id)) || t),
+            );
+            const tagResults = await generateTags(
+              settings.openRouterApiKey,
+              settings.aiModel,
+              enrichedTabs.map((t) => ({
+                id: t.id,
+                title: t.ogTitle || t.title,
+                url: t.url,
+                description: t.ogDescription || t.metaDescription,
+              })),
+            );
+            let tagged = 0;
+            for (const result of tagResults) {
+              if (result.tags?.length) {
+                await updateTab(result.id, { tags: result.tags });
+                tagged++;
+              }
+            }
+            if (tagged > 0) {
+              console.log(`[TabZen] Tagged ${tagged} tabs`);
+              notifyDataChanged();
+            }
+          } catch (e) {
+            console.warn("[TabZen] AI tagging failed:", e);
+          }
+        }
+
+        // Pass 4: AI re-grouping (if enabled and API key configured)
         if (settings.aiGrouping && settings.openRouterApiKey) {
           try {
             const enrichedTabs = await Promise.all(
@@ -853,6 +886,7 @@ export default defineBackground(() => {
           creatorAvatar: meta.creatorAvatar || null,
           creatorUrl: meta.creatorUrl || null,
           publishedAt: meta.publishedAt || null,
+          tags: [],
           notes: null,
           viewCount: 0,
           lastViewedAt: null,

@@ -11,6 +11,7 @@ export interface Tab {
   creatorAvatar: string | null;
   creatorUrl: string | null;
   publishedAt: string | null;
+  tags: string[];
   notes: string | null;
   viewCount: number;
   lastViewedAt: string | null;

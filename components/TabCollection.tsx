@@ -1,4 +1,4 @@
-import { createSignal, createResource, onMount, onCleanup, For, Show } from "solid-js";
+import { createSignal, createMemo, createResource, onMount, onCleanup, For, Show } from "solid-js";
 import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X, ExternalLink, ArrowRight } from "lucide-solid";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
 import AppSidebar from "./AppSidebar";
@@ -74,7 +74,7 @@ export default function TabCollection(props: TabCollectionProps) {
     onCleanup(() => browser.runtime.onMessage.removeListener(listener));
   });
 
-  const filteredGroups = () => {
+  const filteredGroups = createMemo(() => {
     const groups = allGroups() || [];
     const f = filter();
 
@@ -99,11 +99,25 @@ export default function TabCollection(props: TabCollectionProps) {
     }
 
     return filtered;
-  };
+  });
 
-  const domainIndex = () => buildDomainIndex(allTabs() || []);
+  const domainIndex = createMemo(() => buildDomainIndex(allTabs() || []));
 
-  const uniqueDevices = () => {
+  const tagIndex = createMemo(() => {
+    const tabs = allTabs() || [];
+    const counts = new Map<string, number>();
+    for (const tab of tabs) {
+      if (tab.deletedAt || !tab.tags) continue;
+      for (const tag of tab.tags) {
+        counts.set(tag, (counts.get(tag) || 0) + 1);
+      }
+    }
+    return Array.from(counts.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count);
+  });
+
+  const uniqueDevices = createMemo(() => {
     const tabs = allTabs() || [];
     const deviceMap = new Map<string, string>();
     for (const t of tabs) {
@@ -115,9 +129,9 @@ export default function TabCollection(props: TabCollectionProps) {
     return Array.from(deviceMap.entries())
       .map(([id, label]) => ({ id, label }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  };
+  });
 
-  const filteredTabs = () => {
+  const filteredTabs = createMemo(() => {
     let tabs = searchResults() || allTabs() || [];
     const f = filter();
     const device = deviceFilter();
@@ -159,7 +173,7 @@ export default function TabCollection(props: TabCollectionProps) {
       });
     }
     return tabs.filter((t) => !t.archived);
-  };
+  });
 
   const tabsForGroup = (groupId: string) => {
     return filteredTabs().filter((t) => t.groupId === groupId);
@@ -182,7 +196,7 @@ export default function TabCollection(props: TabCollectionProps) {
     });
   };
 
-  const tabsByDate = () => {
+  const tabsByDate = createMemo(() => {
     const tabs = filteredTabs();
     const groups = new Map<string, { label: string; tabs: Tab[] }>();
 
@@ -200,6 +214,11 @@ export default function TabCollection(props: TabCollectionProps) {
     }
 
     return Array.from(groups.values());
+  });
+
+  const handleTagClick = (tag: string) => {
+    const query = `#${tag}`;
+    handleSearch(query);
   };
 
   const handleSearch = async (query: string) => {
@@ -424,7 +443,7 @@ export default function TabCollection(props: TabCollectionProps) {
           </div>
         </div>
 
-      <SearchBar onSearch={handleSearch} onAISearch={handleAISearch} />
+      <SearchBar onSearch={handleSearch} onAISearch={handleAISearch} value={searchQuery()} tags={tagIndex()} />
       <div class="flex items-center gap-2 px-4 pb-4">
         <div class="flex-1 overflow-x-auto scrollbar-hide">
           <FilterPills active={filter()} onChange={setFilter} />
@@ -484,6 +503,7 @@ export default function TabCollection(props: TabCollectionProps) {
                   onDelete={handleDelete}
                   onBlockDomain={handleBlockDomain}
                   onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
+                  onTagClick={handleTagClick}
                 />
               )}
             </For>

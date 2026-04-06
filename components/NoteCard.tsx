@@ -1,3 +1,4 @@
+import { createMemo } from "solid-js";
 import type { Tab } from "@/lib/types";
 import { getFaviconUrl } from "@/lib/domains";
 
@@ -8,15 +9,15 @@ interface NoteCardProps {
 }
 
 export default function NoteCard(props: NoteCardProps) {
-  const domain = () => {
+  const domain = createMemo(() => {
     try {
       return new URL(props.tab.url).hostname.replace("www.", "");
     } catch {
       return props.tab.url;
     }
-  };
+  });
 
-  const faviconSrc = () => getFaviconUrl(props.tab);
+  const faviconSrc = createMemo(() => getFaviconUrl(props.tab));
 
   return (
     <div class="group">

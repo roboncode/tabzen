@@ -1,4 +1,4 @@
-import { Show } from "solid-js";
+import { Show, createMemo } from "solid-js";
 import { Eye, Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2 } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 import { getFaviconUrl } from "@/lib/domains";
@@ -15,19 +15,20 @@ interface TabRowProps {
   onBlockDomain?: (tab: Tab) => void;
   onRestore?: (tab: Tab) => void;
   onHardDelete?: (tab: Tab) => void;
+  onTagClick?: (tag: string) => void;
   isTrash?: boolean;
 }
 
 export default function TabRow(props: TabRowProps) {
-  const domain = () => {
+  const domain = createMemo(() => {
     try {
       return new URL(props.tab.url).hostname.replace("www.", "");
     } catch {
       return props.tab.url;
     }
-  };
+  });
 
-  const faviconSrc = () => getFaviconUrl(props.tab);
+  const faviconSrc = createMemo(() => getFaviconUrl(props.tab));
 
   return (
     <div class="group">
@@ -59,7 +60,24 @@ export default function TabRow(props: TabRowProps) {
               <Highlight text={props.tab.title} query={props.searchQuery!} />
             </Show>
           </div>
-          <div class="text-xs text-muted-foreground truncate">{domain()}</div>
+          <div class="text-xs text-muted-foreground truncate">
+            {domain()}
+            {props.tab.tags?.length > 0 && (
+              <span class="ml-2">
+                {props.tab.tags.slice(0, 3).map((tag) => (
+                  <button
+                    class="text-sky-400 hover:text-sky-300 transition-colors cursor-pointer mr-1.5"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      props.onTagClick?.(tag);
+                    }}
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </span>
+            )}
+          </div>
         </div>
         <div class="flex items-center gap-3 flex-shrink-0">
           {props.tab.viewCount > 0 && (

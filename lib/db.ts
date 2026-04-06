@@ -132,6 +132,16 @@ export async function searchTabs(query: string): Promise<Tab[]> {
   const db = await getDB();
   const all = await db.getAll("tabs");
   const lower = query.toLowerCase();
+
+  // Handle #tag search
+  if (lower.startsWith("#")) {
+    const tag = lower.slice(1).trim();
+    if (!tag) return all;
+    return all.filter((t) =>
+      t.tags?.some((tg) => tg.toLowerCase().includes(tag)),
+    );
+  }
+
   return all.filter(
     (t) =>
       t.title.toLowerCase().includes(lower) ||
@@ -139,8 +149,24 @@ export async function searchTabs(query: string): Promise<Tab[]> {
       t.ogDescription?.toLowerCase().includes(lower) ||
       t.ogTitle?.toLowerCase().includes(lower) ||
       t.metaDescription?.toLowerCase().includes(lower) ||
-      t.notes?.toLowerCase().includes(lower),
+      t.notes?.toLowerCase().includes(lower) ||
+      t.tags?.some((tg) => tg.toLowerCase().includes(lower)),
   );
+}
+
+export async function getAllTags(): Promise<{ tag: string; count: number }[]> {
+  const db = await getDB();
+  const all = await db.getAll("tabs");
+  const tagCounts = new Map<string, number>();
+  for (const tab of all) {
+    if (tab.deletedAt || !tab.tags) continue;
+    for (const tag of tab.tags) {
+      tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+    }
+  }
+  return Array.from(tagCounts.entries())
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count);
 }
 
 export async function addGroup(group: Group): Promise<void> {

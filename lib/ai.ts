@@ -89,3 +89,31 @@ export async function aiSearch(
   const parsed = JSON.parse(response);
   return parsed.matchingTabIds;
 }
+
+export async function generateTags(
+  apiKey: string,
+  model: string,
+  tabs: { id: string; title: string; url: string; description: string | null }[],
+): Promise<{ id: string; tags: string[] }[]> {
+  const tabList = tabs
+    .map((t) => `- [${t.id}] "${t.title}" (${t.url})${t.description ? ` — ${t.description}` : ""}`)
+    .join("\n");
+
+  const messages: OpenRouterMessage[] = [
+    {
+      role: "system",
+      content: `You are a content tagger. Given a list of browser tabs, generate 2-5 relevant hashtags for each tab. Return JSON: {"tags": [{"id": "tab-id", "tags": ["tag1", "tag2"]}]}
+Rules:
+- Tags should be lowercase, no spaces, no # prefix
+- Use specific descriptive tags (e.g., "react", "server-components", "tutorial")
+- Avoid generic tags like "video", "website", "article"
+- Tags should help categorize content by topic, technology, or theme
+- Reuse the same tag across tabs when the content overlaps`,
+    },
+    { role: "user", content: `Tag these tabs:\n${tabList}` },
+  ];
+
+  const response = await callOpenRouter(apiKey, model, messages);
+  const parsed = JSON.parse(response);
+  return parsed.tags;
+}

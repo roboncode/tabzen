@@ -1,4 +1,4 @@
-import { Show } from "solid-js";
+import { Show, createMemo } from "solid-js";
 import { Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2 } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 import { extractCreator, getFaviconUrl } from "@/lib/domains";
@@ -16,31 +16,33 @@ interface TabCardProps {
   onRestore?: (tab: Tab) => void;
   onHardDelete?: (tab: Tab) => void;
   onSelectCreator?: (domain: string, creator: string) => void;
+  onTagClick?: (tag: string) => void;
   isTrash?: boolean;
 }
 
 export default function TabCard(props: TabCardProps) {
-  const domain = () => {
+  const domain = createMemo(() => {
     try {
       return new URL(props.tab.url).hostname.replace("www.", "");
     } catch {
       return props.tab.url;
     }
-  };
+  });
 
-  const description = () =>
-    props.tab.ogDescription || props.tab.metaDescription || null;
+  const description = createMemo(() =>
+    props.tab.ogDescription || props.tab.metaDescription || null
+  );
 
-  const creator = () => extractCreator(props.tab);
+  const creator = createMemo(() => extractCreator(props.tab));
 
-  const faviconSrc = () => getFaviconUrl(props.tab);
+  const faviconSrc = createMemo(() => getFaviconUrl(props.tab));
 
-  const avatarSrc = () => {
+  const avatarSrc = createMemo(() => {
     if (props.tab.creatorAvatar && creator()) return props.tab.creatorAvatar;
     return faviconSrc();
-  };
+  });
 
-  const creatorUrl = () => props.tab.creatorUrl || null;
+  const creatorUrl = createMemo(() => props.tab.creatorUrl || null);
 
   const formatTimeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -59,10 +61,10 @@ export default function TabCard(props: TabCardProps) {
     return `${years}y ago`;
   };
 
-  const timeAgo = () => {
+  const timeAgo = createMemo(() => {
     if (props.tab.publishedAt) return formatTimeAgo(props.tab.publishedAt);
     return formatTimeAgo(props.tab.capturedAt);
-  };
+  });
 
   return (
     <div
@@ -201,6 +203,22 @@ export default function TabCard(props: TabCardProps) {
             <span>·</span>
             <span>{domain()}</span>
           </div>
+          {/* Tags */}
+          {props.tab.tags?.length > 0 && (
+            <div class="flex flex-wrap gap-x-2 gap-y-0.5 mt-1.5">
+              {props.tab.tags.map((tag) => (
+                <button
+                  class="text-xs text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    props.onTagClick?.(tag);
+                  }}
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
