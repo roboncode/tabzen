@@ -970,11 +970,9 @@ export default defineBackground(() => {
         // Extract transcript for YouTube videos (best-effort per tab)
         let transcriptSegments: TranscriptSegment[] | null = null;
         if (isYouTubeWatchUrl(bt.url!)) {
-          console.log("[TabZen] YouTube detected, extracting transcript for tab", bt.id, bt.url);
           try {
             const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
             const result = await extractYouTubeTranscript(bt.id!, bt.url!);
-            console.log("[TabZen] Transcript extraction result:", result?.hasTranscript, "segments:", result?.segments?.length);
             if (result?.hasTranscript) {
               transcriptSegments = result.segments;
             }
@@ -984,7 +982,6 @@ export default defineBackground(() => {
         }
 
         const hasTranscript = transcriptSegments && transcriptSegments.length > 0;
-        console.log("[TabZen] buildCapturePreview - hasTranscript:", hasTranscript, "for", bt.url);
         const tab: Tab & { transcript?: any } = {
           id: tabId,
           url: bt.url!,
@@ -1152,11 +1149,9 @@ export default defineBackground(() => {
     // Extract transcript for YouTube videos
     let transcriptSegments: TranscriptSegment[] | null = null;
     if (isYouTubeWatchUrl(url)) {
-      console.log("[TabZen] captureSingleTab - YouTube detected, extracting transcript for tab", browserTabId, url);
       try {
         const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
         const result = await extractYouTubeTranscript(browserTabId, url);
-        console.log("[TabZen] captureSingleTab - extraction result:", result?.hasTranscript, "segments:", result?.segments?.length);
         if (result?.hasTranscript) {
           transcriptSegments = result.segments;
         }
@@ -1166,7 +1161,6 @@ export default defineBackground(() => {
     }
 
     const hasTranscript = transcriptSegments && transcriptSegments.length > 0;
-    console.log("[TabZen] captureSingleTab - hasTranscript:", hasTranscript);
 
     const tab: Tab & { transcript?: any } = {
       id: tabId,
