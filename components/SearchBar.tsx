@@ -16,7 +16,7 @@ export default function SearchBar(props: SearchBarProps) {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       props.onSearch(value);
-    }, 200);
+    }, 300);
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {

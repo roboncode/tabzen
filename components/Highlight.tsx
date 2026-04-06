@@ -1,5 +1,3 @@
-import { Show } from "solid-js";
-
 interface HighlightProps {
   text: string;
   query: string;
@@ -7,24 +5,28 @@ interface HighlightProps {
 
 export default function Highlight(props: HighlightProps) {
   const parts = () => {
-    if (!props.query.trim()) return [{ text: props.text, match: false }];
-    const regex = new RegExp(`(${props.query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
-    const split = props.text.split(regex);
-    return split.map((part) => ({
-      text: part,
-      match: regex.test(part) || part.toLowerCase() === props.query.toLowerCase(),
-    }));
+    const q = props.query.trim();
+    if (q.length < 2) return null;
+
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(${escaped})`, "gi");
+    return props.text.split(regex);
   };
 
   return (
     <span>
-      {parts().map((part) =>
-        part.match ? (
-          <mark class="bg-sky-500/80 text-foreground rounded px-0.5">{part.text}</mark>
-        ) : (
-          part.text
-        ),
-      )}
+      {(() => {
+        const p = parts();
+        if (!p) return props.text;
+        const lower = props.query.toLowerCase();
+        return p.map((segment) =>
+          segment.toLowerCase() === lower ? (
+            <mark class="bg-sky-500/80 text-foreground rounded px-0.5">{segment}</mark>
+          ) : (
+            segment
+          ),
+        );
+      })()}
     </span>
   );
 }
