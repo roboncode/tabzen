@@ -389,8 +389,10 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                         <div class="bg-muted/30 rounded-lg p-4">
                           <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center gap-2">
-                              <div class="w-2.5 h-2.5 rounded-full bg-green-500" />
-                              <span class="text-sm text-foreground">Syncing</span>
+                              <div class={`w-2.5 h-2.5 rounded-full ${s().syncError ? "bg-red-500" : "bg-green-500"}`} />
+                              <span class="text-sm text-foreground">
+                                {s().syncError ? "Error" : "Syncing"}
+                              </span>
                             </div>
                             <button
                               class="px-3 py-1.5 text-sm bg-muted/50 text-foreground rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
@@ -411,6 +413,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                               {syncLoading() ? "Syncing..." : "Sync Now"}
                             </button>
                           </div>
+                          <Show when={s().syncError}>
+                            <p class="text-xs text-red-300 mb-3">{s().syncError}</p>
+                          </Show>
                           <p class="text-xs text-muted-foreground mb-1.5">Token</p>
                           <div class="flex items-center gap-2">
                             <code class="text-xs text-foreground break-all flex-1">
