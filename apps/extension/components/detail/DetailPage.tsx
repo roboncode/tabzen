@@ -8,6 +8,7 @@ import DetailHeader from "./DetailHeader";
 import TranscriptView from "./TranscriptView";
 import ChatPanel from "./ChatPanel";
 import PlaceholderTab from "./PlaceholderTab";
+import NotesEditor from "@/components/NotesEditor";
 
 type ContentTab = "transcript" | "summary" | "content";
 
@@ -25,6 +26,7 @@ export default function DetailPage(props: DetailPageProps) {
   const [currentTab, setCurrentTab] = createSignal(props.tab);
   const [isNarrow, setIsNarrow] = createSignal(false);
   const [heroScrolledPast, setHeroScrolledPast] = createSignal(false);
+  const [editingNotes, setEditingNotes] = createSignal(false);
 
   let containerRef: HTMLDivElement | undefined;
   let heroRef: HTMLDivElement | undefined;
@@ -75,14 +77,15 @@ export default function DetailPage(props: DetailPageProps) {
     window.close();
   };
 
-  const handleEditNotes = async () => {
-    const tab = currentTab();
-    const note = prompt("Edit note:", tab.notes || "");
-    if (note !== null) {
-      await updateTab(tab.id, { notes: note || null });
-      const updated = await getTab(tab.id);
-      if (updated) setCurrentTab(updated);
-    }
+  const handleEditNotes = () => {
+    setEditingNotes(true);
+  };
+
+  const handleSaveNotes = async (tabId: string, notes: string) => {
+    await updateTab(tabId, { notes: notes || null });
+    const updated = await getTab(tabId);
+    if (updated) setCurrentTab(updated);
+    setEditingNotes(false);
   };
 
   const handleFetchTranscript = async () => {
@@ -220,6 +223,15 @@ export default function DetailPage(props: DetailPageProps) {
         onToggle={() => setChatCollapsed(!chatCollapsed())}
         overlay={isNarrow()}
       />
+
+      {/* Notes editor */}
+      <Show when={editingNotes()}>
+        <NotesEditor
+          tab={currentTab()}
+          onSave={handleSaveNotes}
+          onClose={() => setEditingNotes(false)}
+        />
+      </Show>
     </div>
   );
 }
