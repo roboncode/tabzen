@@ -14,7 +14,7 @@ import {
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate, shouldSkipUrl } from "@/lib/duplicates";
-import { groupTabsWithAI, aiSearch, generateTags } from "@/lib/ai";
+import { aiSearch, generateTags } from "@/lib/ai";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
 import { encrypt, decrypt } from "@/lib/crypto";
 import { updateSettings } from "@/lib/settings";
@@ -645,47 +645,6 @@ export default defineBackground(() => {
           }
         }
 
-        // Pass 4: AI re-grouping (if enabled and API key configured)
-        if (settings.aiGrouping && settings.openRouterApiKey) {
-          try {
-            const enrichedTabs = await Promise.all(
-              tabs.map(async (t) => (await getTab(t.id)) || t),
-            );
-            const aiGroups = await groupTabsWithAI(
-              settings.openRouterApiKey,
-              settings.aiModel,
-              enrichedTabs.map((t) => ({
-                id: t.id,
-                title: t.ogTitle || t.title,
-                url: t.url,
-                description: t.ogDescription || t.metaDescription,
-              })),
-            );
-
-            // Create new groups and reassign tabs
-            const validTabIds = new Set(tabs.map((t) => t.id));
-            for (const g of aiGroups) {
-              const newGroupId = uuidv4();
-              const matched = g.tabIds.filter((id) => validTabIds.has(id));
-              if (matched.length > 0) {
-                await addGroups([{
-                  id: newGroupId,
-                  name: g.groupName,
-                  captureId,
-                  position: 0,
-                  archived: false,
-                }]);
-                for (const tabId of matched) {
-                  await updateTab(tabId, { groupId: newGroupId });
-                }
-              }
-            }
-            console.log("[TabZen] AI re-grouped tabs");
-            notifyDataChanged();
-          } catch (e) {
-            console.warn("[TabZen] AI re-grouping failed:", e);
-          }
-        }
       })();
 
       return { type: "QUICK_CAPTURE_DONE", saved: tabs.length, skipped: candidateTabs.length - newBrowserTabs.length };
@@ -902,22 +861,7 @@ export default defineBackground(() => {
     );
 
     let aiGroups: { groupName: string; tabIds: string[] }[];
-    if (settings.aiGrouping && settings.openRouterApiKey && tabsWithMeta.length > 0) {
-      try {
-        aiGroups = await groupTabsWithAI(
-          settings.openRouterApiKey,
-          settings.aiModel,
-          tabsWithMeta.map((t) => ({
-            id: t.id,
-            title: t.title,
-            url: t.url,
-            description: t.ogDescription || t.metaDescription,
-          })),
-        );
-      } catch {
-        aiGroups = groupByDomain(tabsWithMeta);
-      }
-    } else {
+    {
       aiGroups = groupByDomain(tabsWithMeta);
     }
 

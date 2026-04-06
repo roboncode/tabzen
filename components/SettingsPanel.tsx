@@ -181,26 +181,6 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   Without an API key, tabs are grouped by domain
                 </p>
               </div>
-              <div class="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2.5">
-                <div>
-                  <p class="text-sm text-foreground">AI Tab Grouping</p>
-                  <p class="text-xs text-muted-foreground mt-0.5">
-                    Organize tabs into smart groups on capture
-                  </p>
-                </div>
-                <button
-                  class={`w-10 h-6 rounded-full transition-colors relative ${
-                    s().aiGrouping ? "bg-green-600" : "bg-muted"
-                  }`}
-                  onClick={() => save({ aiGrouping: !s().aiGrouping })}
-                >
-                  <div
-                    class={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${
-                      s().aiGrouping ? "left-5" : "left-1"
-                    }`}
-                  />
-                </button>
-              </div>
             </div>
 
             {/* ═══ Sync ═══ */}
