@@ -100,6 +100,30 @@ export default defineBackground(() => {
   // Auto-purge soft-deleted tabs older than 30 days on startup
   purgeDeletedTabs(30).catch((e) => console.warn("[TabZen] Auto-purge failed:", e));
 
+  // Backfill creator field for existing tabs that don't have one
+  (async () => {
+    try {
+      const { extractCreator } = await import("@/lib/domains");
+      const tabs = await getAllTabs();
+      let updated = 0;
+      for (const tab of tabs) {
+        if (!tab.creator) {
+          const creator = extractCreator(tab);
+          if (creator) {
+            await updateTab(tab.id, { creator });
+            updated++;
+          }
+        }
+      }
+      if (updated > 0) {
+        console.log(`[TabZen] Backfilled creator for ${updated} tabs`);
+        notifyDataChanged();
+      }
+    } catch (e) {
+      console.warn("[TabZen] Creator backfill failed:", e);
+    }
+  })();
+
   // Pull on startup
   syncPullIfNeeded();
 
