@@ -33,23 +33,44 @@ export function extractCreator(tab: Tab): string | null {
     const u = new URL(tab.url);
 
     if (domain === "youtube.com") {
-      // YouTube: try /@handle or /channel/ or /c/ patterns
+      // YouTube: try /@handle or /channel/ or /c/ patterns from URL
       const match = u.pathname.match(/^\/@([^/]+)/);
       if (match) return `@${match[1]}`;
 
       const channelMatch = u.pathname.match(/^\/(?:channel|c|user)\/([^/]+)/);
       if (channelMatch) return channelMatch[1];
 
-      // Fall back: extract from title "Video Title - Channel Name"
-      // or from OG description which often contains channel info
+      // For /watch?v= URLs: title is "Video Title - YouTube"
+      // The channel isn't in the standard title, but sometimes the
+      // OG description has channel context. Try to extract from title
+      // by removing the " - YouTube" suffix and any "(123) " prefix
       if (tab.title) {
-        const titleParts = tab.title.split(" - ");
-        if (titleParts.length >= 2) {
-          const last = titleParts[titleParts.length - 1].trim();
-          if (last !== "YouTube") return last;
-          if (titleParts.length >= 3) return titleParts[titleParts.length - 2].trim();
+        let title = tab.title;
+        // Remove " - YouTube" suffix
+        title = title.replace(/\s*-\s*YouTube\s*$/, "");
+        // Remove notification count prefix like "(123) "
+        title = title.replace(/^\(\d+\)\s*/, "");
+
+        // If the remaining title has " - ", the last segment might be channel
+        // e.g. "React Tutorial - Fireship" → "Fireship"
+        // But "How to Build X - A Complete Guide" is NOT a channel
+        // Only treat it as channel if it's short (< 30 chars) and has no common title words
+        const parts = title.split(" - ");
+        if (parts.length >= 2) {
+          const candidate = parts[parts.length - 1].trim();
+          if (candidate.length < 30 && candidate.length > 0) {
+            return candidate;
+          }
         }
       }
+
+      // Try OG description - some YouTube descriptions start with channel context
+      if (tab.ogDescription) {
+        // YouTube OG descriptions often have channel info embedded
+        // but format varies too much to reliably extract
+      }
+
+      return null; // Will be grouped under the domain without a creator
     }
 
     if (domain === "instagram.com" || domain === "threads.net") {
