@@ -1,5 +1,5 @@
 import { createSignal, createMemo, onMount, onCleanup, For, Show } from "solid-js";
-import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X, ExternalLink, ArrowRight, Trash2 } from "lucide-solid";
+import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X, ExternalLink, ArrowRight, Trash2, Star, StickyNote, Calendar, Archive, Inbox } from "lucide-solid";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
 import AppSidebar from "./AppSidebar";
 import type {
@@ -542,50 +542,72 @@ export default function TabCollection(props: TabCollectionProps) {
         <Show when={(allTabs() || []).length > 0} fallback={<EmptyState />}>
           {/* Notes view */}
           <Show when={filter() === "notes"}>
-            <div class="grid grid-cols-1 @[600px]:grid-cols-2 @[900px]:grid-cols-3 gap-4 p-4">
-              <For each={filteredTabs()}>
-                {(tab) => (
-                  <NoteCard
-                    tab={tab}
-                    onOpen={handleOpenTab}
-                    onEditNotes={setEditingTab}
-                  />
-                )}
-              </For>
-            </div>
+            <Show
+              when={filteredTabs().length > 0}
+              fallback={
+                <div class="flex flex-col items-center justify-center py-20 px-4 text-center">
+                  <StickyNote size={40} class="text-muted-foreground/30 mb-4" />
+                  <p class="text-sm font-medium text-foreground mb-1">No notes yet</p>
+                  <p class="text-sm text-muted-foreground max-w-xs">Add notes to any tab to see them here</p>
+                </div>
+              }
+            >
+              <div class="grid grid-cols-1 @[600px]:grid-cols-2 @[900px]:grid-cols-3 gap-4 p-4">
+                <For each={filteredTabs()}>
+                  {(tab) => (
+                    <NoteCard
+                      tab={tab}
+                      onOpen={handleOpenTab}
+                      onEditNotes={setEditingTab}
+                    />
+                  )}
+                </For>
+              </div>
+            </Show>
           </Show>
 
           {/* By Date view */}
           <Show when={filter() === "byDate"}>
-            <For each={tabsByDate()}>
-              {(dateGroup) => (
-                <GroupSection
-                  group={{
-                    id: dateGroup.label,
-                    name: dateGroup.label,
-                    captureId: "",
-                    position: 0,
-                    archived: false,
-                  }}
-                  tabs={dateGroup.tabs}
-                  viewMode={props.viewMode}
-                  searchQuery={searchQuery()}
-                  onOpenTab={handleOpenTab}
-                  onEditNotes={setEditingTab}
-                  onRenameGroup={() => {}}
-                  onToggleStar={handleToggleStar}
-                  onArchive={handleArchive}
-                  onDelete={handleDelete}
-                  onBlockDomain={handleBlockDomain}
-                  onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
-                  onTagClick={handleTagClick}
-                  onExpandTab={(tab) => {
-                    const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${tab.id}`);
-                    window.open(detailUrl, "_blank");
-                  }}
-                />
-              )}
-            </For>
+            <Show
+              when={filteredTabs().length > 0}
+              fallback={
+                <div class="flex flex-col items-center justify-center py-20 px-4 text-center">
+                  <Calendar size={40} class="text-muted-foreground/30 mb-4" />
+                  <p class="text-sm font-medium text-foreground mb-1">No tabs saved yet</p>
+                  <p class="text-sm text-muted-foreground max-w-xs">Capture some tabs to see them organized by date</p>
+                </div>
+              }
+            >
+              <For each={tabsByDate()}>
+                {(dateGroup) => (
+                  <GroupSection
+                    group={{
+                      id: dateGroup.label,
+                      name: dateGroup.label,
+                      captureId: "",
+                      position: 0,
+                      archived: false,
+                    }}
+                    tabs={dateGroup.tabs}
+                    viewMode={props.viewMode}
+                    searchQuery={searchQuery()}
+                    onOpenTab={handleOpenTab}
+                    onEditNotes={setEditingTab}
+                    onRenameGroup={() => {}}
+                    onToggleStar={handleToggleStar}
+                    onArchive={handleArchive}
+                    onDelete={handleDelete}
+                    onBlockDomain={handleBlockDomain}
+                    onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
+                    onTagClick={handleTagClick}
+                    onExpandTab={(tab) => {
+                      const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${tab.id}`);
+                      window.open(detailUrl, "_blank");
+                    }}
+                  />
+                )}
+              </For>
+            </Show>
           </Show>
 
           {/* Trash view */}
@@ -606,6 +628,16 @@ export default function TabCollection(props: TabCollectionProps) {
                 </button>
               </Show>
             </div>
+            <Show
+              when={filteredTabs().length > 0}
+              fallback={
+                <div class="flex flex-col items-center justify-center py-20 px-4 text-center">
+                  <Trash2 size={40} class="text-muted-foreground/30 mb-4" />
+                  <p class="text-sm font-medium text-foreground mb-1">Trash is empty</p>
+                  <p class="text-sm text-muted-foreground max-w-xs">Deleted tabs will appear here</p>
+                </div>
+              }
+            >
             <GroupSection
               group={{
                 id: "trash",
@@ -630,36 +662,64 @@ export default function TabCollection(props: TabCollectionProps) {
               }}
               isTrash
             />
+            </Show>
           </Show>
 
           {/* Default group view (All, Starred, Archived, Duplicates) */}
           <Show when={filter() !== "notes" && filter() !== "byDate" && filter() !== "trash"}>
-            <For each={filteredGroups()}>
-              {(group) => {
-                const tabs = () => tabsForGroup(group.id);
-                return (
-                  <Show when={tabs().length > 0}>
-                    <GroupSection
-                      group={group}
-                      tabs={tabs()}
-                      viewMode={props.viewMode}
-                      searchQuery={searchQuery()}
-                      onOpenTab={handleOpenTab}
-                      onEditNotes={setEditingTab}
-                      onRenameGroup={handleRenameGroup}
-                      onToggleStar={handleToggleStar}
-                      onArchive={handleArchive}
-                      onDelete={handleDelete}
-                      onBlockDomain={handleBlockDomain}
-                      onExpandTab={(tab) => {
-                        const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${tab.id}`);
-                        window.open(detailUrl, "_blank");
-                      }}
-                    />
-                  </Show>
-                );
-              }}
-            </For>
+            <Show
+              when={filteredTabs().length > 0}
+              fallback={
+                <div class="flex flex-col items-center justify-center py-20 px-4 text-center">
+                  {filter() === "starred" ? (
+                    <>
+                      <Star size={40} class="text-muted-foreground/30 mb-4" />
+                      <p class="text-sm font-medium text-foreground mb-1">No starred tabs</p>
+                      <p class="text-sm text-muted-foreground max-w-xs">Star tabs to quickly find them later</p>
+                    </>
+                  ) : filter() === "archived" ? (
+                    <>
+                      <Archive size={40} class="text-muted-foreground/30 mb-4" />
+                      <p class="text-sm font-medium text-foreground mb-1">No archived tabs</p>
+                      <p class="text-sm text-muted-foreground max-w-xs">Archive tabs to declutter without deleting</p>
+                    </>
+                  ) : (
+                    <>
+                      <Inbox size={40} class="text-muted-foreground/30 mb-4" />
+                      <p class="text-sm font-medium text-foreground mb-1">No tabs to show</p>
+                      <p class="text-sm text-muted-foreground max-w-xs">Capture some tabs to get started</p>
+                    </>
+                  )}
+                </div>
+              }
+            >
+              <For each={filteredGroups()}>
+                {(group) => {
+                  const tabs = () => tabsForGroup(group.id);
+                  return (
+                    <Show when={tabs().length > 0}>
+                      <GroupSection
+                        group={group}
+                        tabs={tabs()}
+                        viewMode={props.viewMode}
+                        searchQuery={searchQuery()}
+                        onOpenTab={handleOpenTab}
+                        onEditNotes={setEditingTab}
+                        onRenameGroup={handleRenameGroup}
+                        onToggleStar={handleToggleStar}
+                        onArchive={handleArchive}
+                        onDelete={handleDelete}
+                        onBlockDomain={handleBlockDomain}
+                        onExpandTab={(tab) => {
+                          const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${tab.id}`);
+                          window.open(detailUrl, "_blank");
+                        }}
+                      />
+                    </Show>
+                  );
+                }}
+              </For>
+            </Show>
           </Show>
         </Show>
       </div>
