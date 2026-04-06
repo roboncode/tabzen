@@ -59,14 +59,44 @@ export const DEFAULT_SETTINGS: Settings = {
   sourceLabel: "Chrome - Default",
   openRouterApiKey: "",
   aiModel: "openai/gpt-4o-mini",
-  aiGrouping: true,
+  aiGrouping: false,
   syncEnabled: false,
   syncToken: null,
   syncLocalToken: null,
   syncUrl: "",
   syncLocalUrl: "http://localhost:8787",
   syncEnv: "local",
-  blockedDomains: [],
+  blockedDomains: [
+    // Search engines
+    "google.com",
+    "bing.com",
+    "duckduckgo.com",
+    "yahoo.com",
+    "baidu.com",
+    "yandex.com",
+    "search.brave.com",
+    // Browser pages
+    "newtab",
+    "extensions",
+    // Email
+    "mail.google.com",
+    "outlook.live.com",
+    "outlook.office.com",
+    // Auth / accounts
+    "accounts.google.com",
+    "login.microsoftonline.com",
+    "auth0.com",
+    // Banking (generic patterns)
+    "chase.com",
+    "bankofamerica.com",
+    "wellsfargo.com",
+    "paypal.com",
+    // Dev tools (usually temporary)
+    "localhost",
+    "127.0.0.1",
+    // Extension / browser internal
+    "chromewebstore.google.com",
+  ],
   viewMode: "cards",
   activeFilter: "all",
 };

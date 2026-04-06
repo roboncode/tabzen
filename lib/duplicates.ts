@@ -41,6 +41,18 @@ export function getDomain(url: string): string {
   }
 }
 
+export function shouldSkipUrl(url: string, blockedDomains: string[]): boolean {
+  try {
+    const u = new URL(url);
+    // Skip non-http(s) protocols
+    if (u.protocol !== "https:" && u.protocol !== "http:") return true;
+    // Skip data: and blob: URLs
+  } catch {
+    return true;
+  }
+  return isDomainBlocked(url, blockedDomains);
+}
+
 export function isDomainBlocked(url: string, blockedDomains: string[]): boolean {
   if (!blockedDomains.length) return false;
   const domain = getDomain(url);

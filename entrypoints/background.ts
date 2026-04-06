@@ -13,7 +13,7 @@ import {
   purgeDeletedTabs,
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { normalizeUrl, buildUrlSet, isDuplicate, isDomainBlocked } from "@/lib/duplicates";
+import { normalizeUrl, buildUrlSet, isDuplicate, shouldSkipUrl } from "@/lib/duplicates";
 import { groupTabsWithAI, aiSearch } from "@/lib/ai";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
 import { encrypt, decrypt } from "@/lib/crypto";
@@ -181,9 +181,7 @@ export default defineBackground(() => {
     for (const tab of openTabs) {
       if (
         tab.url &&
-        !tab.url.startsWith("chrome://") &&
-        !tab.url.startsWith("chrome-extension://") &&
-        !isDomainBlocked(tab.url, settings.blockedDomains)
+        !shouldSkipUrl(tab.url, settings.blockedDomains)
       ) {
         if (!isDuplicate(tab.url, existingUrls)) {
           uncaptured++;
@@ -326,6 +324,7 @@ export default defineBackground(() => {
   }
 
   async function handleGetUncapturedCount(): Promise<MessageResponse> {
+    const settings = await getSettings();
     const existingTabs = await getAllTabs();
     const existingUrls = buildUrlSet(existingTabs.map((t) => t.url));
     const openTabs = await browser.tabs.query({});
@@ -333,8 +332,7 @@ export default defineBackground(() => {
     for (const tab of openTabs) {
       if (
         tab.url &&
-        !tab.url.startsWith("chrome://") &&
-        !tab.url.startsWith("chrome-extension://")
+        !shouldSkipUrl(tab.url, settings.blockedDomains)
       ) {
         if (!isDuplicate(tab.url, existingUrls)) {
           count++;
@@ -485,10 +483,8 @@ export default defineBackground(() => {
       const candidateTabs = openTabs.filter(
         (t) =>
           t.url &&
-          !t.url.startsWith("chrome://") &&
-          !t.url.startsWith("chrome-extension://") &&
-          !isDuplicate(t.url!, existingUrls) &&
-          !isDomainBlocked(t.url!, settings.blockedDomains),
+          !shouldSkipUrl(t.url!, settings.blockedDomains) &&
+          !isDuplicate(t.url!, existingUrls),
       );
 
       const seenUrls = new Set<string>();
@@ -800,10 +796,8 @@ export default defineBackground(() => {
     const candidateTabs = openTabs.filter(
       (t) =>
         t.url &&
-        !t.url.startsWith("chrome://") &&
-        !t.url.startsWith("chrome-extension://") &&
-        !isDuplicate(t.url!, existingUrls) &&
-        !isDomainBlocked(t.url!, settings.blockedDomains),
+        !shouldSkipUrl(t.url!, settings.blockedDomains) &&
+        !isDuplicate(t.url!, existingUrls),
     );
 
     // Deduplicate within the batch itself
