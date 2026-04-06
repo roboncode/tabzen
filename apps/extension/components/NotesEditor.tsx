@@ -1,5 +1,6 @@
-import { createSignal, onMount, Show } from "solid-js";
+import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import type { Tab } from "@/lib/types";
+import Dialog from "./Dialog";
 
 interface NotesEditorProps {
   tab: Tab;
@@ -29,22 +30,28 @@ export default function NotesEditor(props: NotesEditorProps) {
     });
   });
 
+  // Escape key for bottom sheet (Dialog handles its own)
+  onMount(() => {
+    if (!narrow) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") animateClose();
+    };
+    document.addEventListener("keydown", handleKey);
+    onCleanup(() => document.removeEventListener("keydown", handleKey));
+  });
+
   const handleSave = () => {
     props.onSave(props.tab.id, notes());
-    animateClose();
+    if (narrow) {
+      animateClose();
+    } else {
+      props.onClose();
+    }
   };
 
   const animateClose = () => {
     setVisible(false);
     setTimeout(() => props.onClose(), 200);
-  };
-
-  const onBackdropMouseDown = (e: MouseEvent) => {
-    // Only close if the mousedown started on the backdrop itself,
-    // not if the user was selecting text inside and dragged out
-    if (e.target === e.currentTarget) {
-      animateClose();
-    }
   };
 
   const onDragStart = (clientY: number) => {
@@ -71,92 +78,91 @@ export default function NotesEditor(props: NotesEditorProps) {
     currentY = 0;
   };
 
+  const textareaClass = "w-full h-40 bg-muted/40 text-sm text-foreground rounded-lg p-4 outline-none focus:bg-muted/60 transition-colors resize-none placeholder:text-muted-foreground";
+
+  // Wide: use Dialog component
+  if (!narrow) {
+    return (
+      <Dialog open={true} onClose={props.onClose}>
+        <h3 class="text-base font-semibold text-foreground mb-1">Notes</h3>
+        <p class="text-sm text-muted-foreground mb-4 truncate">{props.tab.title}</p>
+        <textarea
+          ref={textareaRef}
+          class={`${textareaClass} h-48`}
+          value={notes()}
+          onInput={(e) => setNotes(e.currentTarget.value)}
+          placeholder="Add notes about this tab..."
+        />
+        <div class="flex justify-end gap-2 mt-4">
+          <button
+            class="px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+            onClick={props.onClose}
+          >
+            Cancel
+          </button>
+          <button
+            class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+            onClick={handleSave}
+          >
+            Save
+          </button>
+        </div>
+      </Dialog>
+    );
+  }
+
+  // Narrow: bottom sheet
   return (
     <div
       class={`fixed inset-0 z-50 transition-colors duration-200 ${visible() ? "bg-black/60" : "bg-black/0"}`}
-      onMouseDown={onBackdropMouseDown}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) animateClose();
+      }}
     >
-      <Show when={narrow}>
-        {/* Bottom sheet */}
-        <div class="absolute inset-x-0 bottom-0" onClick={(e) => e.stopPropagation()}>
+      <div class="absolute inset-x-0 bottom-0" onMouseDown={(e) => e.stopPropagation()}>
+        <div
+          ref={sheetRef}
+          class={`w-full bg-card rounded-t-2xl transition-transform duration-200 ${visible() ? "translate-y-0" : "translate-y-full"}`}
+        >
           <div
-            ref={sheetRef}
-            class={`w-full bg-card rounded-t-2xl transition-transform duration-200 ${visible() ? "translate-y-0" : "translate-y-full"}`}
+            class="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
+            onMouseDown={(e) => onDragStart(e.clientY)}
+            onTouchStart={(e) => onDragStart(e.touches[0].clientY)}
+            onMouseMove={(e) => onDragMove(e.clientY)}
+            onTouchMove={(e) => onDragMove(e.touches[0].clientY)}
+            onMouseUp={onDragEnd}
+            onTouchEnd={onDragEnd}
+            onMouseLeave={onDragEnd}
           >
-            <div
-              class="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
-              onMouseDown={(e) => onDragStart(e.clientY)}
-              onTouchStart={(e) => onDragStart(e.touches[0].clientY)}
-              onMouseMove={(e) => onDragMove(e.clientY)}
-              onTouchMove={(e) => onDragMove(e.touches[0].clientY)}
-              onMouseUp={onDragEnd}
-              onTouchEnd={onDragEnd}
-              onMouseLeave={onDragEnd}
-            >
-              <div class="w-10 h-1 rounded-full bg-muted-foreground/30" />
-            </div>
-
-            <div class="px-5 pb-6">
-              <div class="flex items-center gap-2.5 mb-4">
-                {props.tab.favicon && (
-                  <img src={props.tab.favicon} alt="" class="w-5 h-5 rounded-full" />
-                )}
-                <p class="text-sm font-medium text-foreground truncate flex-1 min-w-0">
-                  {props.tab.title}
-                </p>
-              </div>
-
-              <textarea
-                ref={textareaRef}
-                class="w-full h-40 bg-muted/40 text-sm text-foreground rounded-lg p-4 outline-none focus:bg-muted/60 transition-colors resize-none placeholder:text-muted-foreground"
-                value={notes()}
-                onInput={(e) => setNotes(e.currentTarget.value)}
-                placeholder="Add notes about this tab..."
-              />
-              <div class="flex gap-2 mt-4">
-                <button
-                  class="flex-1 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground rounded-lg bg-muted/40 hover:bg-muted transition-colors"
-                  onClick={animateClose}
-                >
-                  Cancel
-                </button>
-                <button
-                  class="flex-1 px-4 py-2.5 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-                  onClick={handleSave}
-                >
-                  Save
-                </button>
-              </div>
-            </div>
+            <div class="w-10 h-1 rounded-full bg-muted-foreground/30" />
           </div>
-        </div>
-      </Show>
 
-      <Show when={!narrow}>
-        {/* Centered dialog */}
-        <div class="flex items-center justify-center h-full">
-          <div
-            class={`bg-card rounded-xl p-6 w-[480px] max-w-[90vw] transition-all duration-200 ${visible() ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 class="text-base font-semibold text-foreground mb-1">Notes</h3>
-            <p class="text-sm text-muted-foreground mb-4 truncate">{props.tab.title}</p>
+          <div class="px-5 pb-6">
+            <div class="flex items-center gap-2.5 mb-4">
+              {props.tab.favicon && (
+                <img src={props.tab.favicon} alt="" class="w-5 h-5 rounded-full" />
+              )}
+              <p class="text-sm font-medium text-foreground truncate flex-1 min-w-0">
+                {props.tab.title}
+              </p>
+            </div>
+
             <textarea
               ref={textareaRef}
-              class="w-full h-48 bg-muted/40 text-sm text-foreground rounded-lg p-4 outline-none focus:bg-muted/60 transition-colors resize-y placeholder:text-muted-foreground"
+              class={textareaClass}
               value={notes()}
               onInput={(e) => setNotes(e.currentTarget.value)}
               placeholder="Add notes about this tab..."
             />
-            <div class="flex justify-end gap-2 mt-4">
+            <div class="flex gap-2 mt-4">
               <button
-                class="px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+                class="flex-1 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground rounded-lg bg-muted/40 hover:bg-muted transition-colors"
                 onClick={animateClose}
               >
                 Cancel
               </button>
               <button
-                class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+                class="flex-1 px-4 py-2.5 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
                 onClick={handleSave}
               >
                 Save
@@ -164,7 +170,7 @@ export default function NotesEditor(props: NotesEditorProps) {
             </div>
           </div>
         </div>
-      </Show>
+      </div>
     </div>
   );
 }
