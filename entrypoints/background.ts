@@ -378,7 +378,17 @@ export default defineBackground(() => {
     const tab = await getTab(tabId);
     if (!tab) return { type: "ERROR", message: "Tab not found" };
 
-    await browser.tabs.create({ url: tab.url });
+    const settings = await getSettings();
+    if (settings.openMode === "current-tab") {
+      const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
+      if (activeTab?.id) {
+        await browser.tabs.update(activeTab.id, { url: tab.url });
+      } else {
+        await browser.tabs.create({ url: tab.url });
+      }
+    } else {
+      await browser.tabs.create({ url: tab.url });
+    }
     await updateTab(tabId, {
       viewCount: tab.viewCount + 1,
       lastViewedAt: new Date().toISOString(),

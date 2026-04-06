@@ -1,5 +1,5 @@
 import { createSignal, createResource, onMount, onCleanup, For, Show } from "solid-js";
-import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X } from "lucide-solid";
+import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X, ExternalLink, ArrowRight } from "lucide-solid";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
 import AppSidebar from "./AppSidebar";
 import type {
@@ -43,6 +43,7 @@ export default function TabCollection(props: TabCollectionProps) {
   const [domainFilter, setDomainFilter] = createSignal<string | null>(null);
   const [creatorFilter, setCreatorFilter] = createSignal<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
+  const [openMode, setOpenMode] = createSignal<"new-tab" | "current-tab">("new-tab");
   const [searchQuery, setSearchQuery] = createSignal<string>("");
   const [searchResults, setSearchResults] = createSignal<Tab[] | null>(null);
   const [editingTab, setEditingTab] = createSignal<Tab | null>(null);
@@ -62,6 +63,8 @@ export default function TabCollection(props: TabCollectionProps) {
 
   // Listen for data changes from background worker
   onMount(() => {
+    getSettings().then((s) => setOpenMode(s.openMode || "new-tab"));
+
     const listener = (message: any) => {
       if (message.type === "DATA_CHANGED") {
         refresh();
@@ -382,6 +385,17 @@ export default function TabCollection(props: TabCollectionProps) {
               mode={props.viewMode}
               onChange={props.onViewModeChange}
             />
+            <button
+              class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              onClick={() => {
+                const next = openMode() === "new-tab" ? "current-tab" : "new-tab";
+                setOpenMode(next);
+                updateSettings({ openMode: next });
+              }}
+              title={openMode() === "new-tab" ? "Opens in new tab (click to change)" : "Opens in current tab (click to change)"}
+            >
+              {openMode() === "new-tab" ? <ExternalLink size={15} /> : <ArrowRight size={15} />}
+            </button>
             <Show when={props.showExpandButton}>
               <button
                 class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
