@@ -1039,6 +1039,7 @@ export default defineBackground(() => {
       title,
       favicon,
       ...meta,
+      tags: [],
       notes: null,
       viewCount: 0,
       lastViewedAt: null,
