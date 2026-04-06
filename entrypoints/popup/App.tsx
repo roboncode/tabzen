@@ -102,6 +102,11 @@ export default function App() {
     return settings.syncError || null;
   });
 
+  const [shortcuts] = createResource(async () => {
+    const commands = await browser.commands.getAll();
+    return commands.filter((c) => c.description);
+  });
+
   const handleCaptureAll = async () => {
     setCapturing(true);
     const response = await sendMessage({ type: "QUICK_CAPTURE" });
@@ -294,6 +299,28 @@ export default function App() {
           Save This Tab
         </button>
       </div>
+
+      {/* Keyboard shortcuts */}
+      <Show when={shortcuts()?.length}>
+        <div class="mt-3 pt-3 space-y-1.5" style={{ "border-top": "1px solid var(--muted)" }}>
+          {shortcuts()!.map((cmd) => (
+            <Show when={cmd.shortcut}>
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-muted-foreground">{cmd.description}</span>
+                <kbd class="text-xs text-muted-foreground bg-muted/40 rounded px-1.5 py-0.5 font-mono">
+                  {cmd.shortcut}
+                </kbd>
+              </div>
+            </Show>
+          ))}
+          <button
+            class="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors mt-1"
+            onClick={() => browser.tabs.create({ url: "chrome://extensions/shortcuts" })}
+          >
+            Customize shortcuts
+          </button>
+        </div>
+      </Show>
     </div>
   );
 }
