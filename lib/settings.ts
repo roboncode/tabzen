@@ -18,12 +18,18 @@ const MIGRATIONS: Record<number, Migration> = {
     aiGrouping: s.aiGrouping ?? DEFAULT_SETTINGS.aiGrouping,
     deviceId: s.deviceId || DEFAULT_SETTINGS.deviceId,
   }),
-  2: (s) => ({
-    ...s,
-    settingsVersion: 2,
-    // Force default blocked domains for users who got empty list
-    blockedDomains: s.blockedDomains?.length ? s.blockedDomains : DEFAULT_SETTINGS.blockedDomains,
-  }),
+  2: (s) => ({ ...s, settingsVersion: 2 }),
+  3: (s) => {
+    // Force default blocked domains - merge user's custom ones with defaults
+    const userDomains = (s.blockedDomains || []).filter(
+      (d: string) => !DEFAULT_SETTINGS.blockedDomains.includes(d),
+    );
+    return {
+      ...s,
+      settingsVersion: 3,
+      blockedDomains: [...DEFAULT_SETTINGS.blockedDomains, ...userDomains],
+    };
+  },
 };
 
 function migrateSettings(settings: Settings): Settings {

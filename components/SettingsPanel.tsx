@@ -11,7 +11,7 @@ import {
 import { clearAllData, clearProfileData } from "@/lib/db";
 import { initSync, verifySync, checkConnection } from "@/lib/sync";
 import { sendMessage } from "@/lib/messages";
-import type { Settings } from "@/lib/types";
+import { DEFAULT_SETTINGS, type Settings } from "@/lib/types";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -521,6 +521,12 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   </div>
                 );
               })()}
+              <button
+                class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => save({ blockedDomains: DEFAULT_SETTINGS.blockedDomains })}
+              >
+                Reset to defaults
+              </button>
             </div>
 
             <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
