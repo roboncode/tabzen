@@ -20,7 +20,7 @@ export default function Highlight(props: HighlightProps) {
     <span>
       {parts().map((part) =>
         part.match ? (
-          <mark class="bg-yellow-500/30 text-foreground rounded px-0.5">{part.text}</mark>
+          <mark class="bg-sky-500/40 text-foreground rounded px-0.5">{part.text}</mark>
         ) : (
           part.text
         ),
