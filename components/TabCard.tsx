@@ -115,7 +115,7 @@ export default function TabCard(props: TabCardProps) {
             <button
               class={`p-2 rounded-lg transition-all ${
                 props.tab.starred
-                  ? "text-yellow-400 drop-shadow-md"
+                  ? "text-yellow-400 drop-shadow-md group-hover:bg-black/70 group-hover:drop-shadow-none"
                   : "text-foreground/90 bg-black/70 hover:bg-black/85 opacity-0 group-hover:opacity-100"
               }`}
               onClick={(e) => { e.stopPropagation(); props.onToggleStar(props.tab); }}
