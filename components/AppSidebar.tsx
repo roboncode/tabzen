@@ -12,7 +12,9 @@ interface AppSidebarProps {
 }
 
 export default function AppSidebar(props: AppSidebarProps) {
-  const [expandedDomains, setExpandedDomains] = createSignal<Set<string>>(new Set());
+  const [expandedDomains, setExpandedDomains] = createSignal<Set<string>>(
+    new Set(),
+  );
 
   const toggleExpand = (domain: string) => {
     const next = new Set(expandedDomains());
@@ -51,10 +53,17 @@ export default function AppSidebar(props: AppSidebarProps) {
             {(domainInfo) => {
               const isActive = () => props.activeDomain === domainInfo.domain;
               const isExpanded = () => expandedDomains().has(domainInfo.domain);
-              const hasSocialCreators = () => domainInfo.isSocial && domainInfo.creators.length > 0;
+              const hasSocialCreators = () =>
+                domainInfo.isSocial && domainInfo.creators.length > 0;
 
               return (
-                <div>
+                <div
+                  class={
+                    hasSocialCreators() && isExpanded()
+                      ? "mb-2 pb-1 border-b border-muted"
+                      : ""
+                  }
+                >
                   <button
                     class={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
                       isActive() && !props.activeCreator
@@ -69,19 +78,38 @@ export default function AppSidebar(props: AppSidebarProps) {
                       props.onSelectCreator(domainInfo.domain, null);
                     }}
                   >
-                    <Show when={hasSocialCreators()} fallback={<div class="w-3" />}>
+                    <Show
+                      when={hasSocialCreators()}
+                      fallback={<div class="w-3" />}
+                    >
                       <span class="w-3 flex items-center justify-center text-muted-foreground/50 flex-shrink-0">
-                        {isExpanded() ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                        {isExpanded() ? (
+                          <ChevronDown size={12} />
+                        ) : (
+                          <ChevronRight size={12} />
+                        )}
                       </span>
                     </Show>
-                      {(() => {
-                        const src = domainInfo.favicon && !domainInfo.favicon.startsWith("chrome://")
+                    {(() => {
+                      const src =
+                        domainInfo.favicon &&
+                        !domainInfo.favicon.startsWith("chrome://")
                           ? domainInfo.favicon
                           : `https://www.google.com/s2/favicons?domain=${domainInfo.domain}&sz=32`;
-                        return <img src={src} alt="" class="w-4 h-4 rounded flex-shrink-0" />;
-                      })()}
-                      <span class="flex-1 text-left truncate">{domainInfo.domain}</span>
-                      <span class="text-xs text-muted-foreground/60">{domainInfo.count}</span>
+                      return (
+                        <img
+                          src={src}
+                          alt=""
+                          class="w-4 h-4 rounded flex-shrink-0"
+                        />
+                      );
+                    })()}
+                    <span class="flex-1 text-left truncate">
+                      {domainInfo.domain}
+                    </span>
+                    <span class="text-xs text-muted-foreground/60">
+                      {domainInfo.count}
+                    </span>
                   </button>
 
                   {/* Creators (expanded) */}
@@ -102,16 +130,27 @@ export default function AppSidebar(props: AppSidebarProps) {
                               }`}
                               onClick={() => {
                                 props.onSelectDomain(domainInfo.domain);
-                                props.onSelectCreator(domainInfo.domain, creator.name);
+                                props.onSelectCreator(
+                                  domainInfo.domain,
+                                  creator.name,
+                                );
                               }}
                             >
                               {creator.avatar ? (
-                                <img src={creator.avatar} alt="" class="w-4 h-4 rounded-full flex-shrink-0" />
+                                <img
+                                  src={creator.avatar}
+                                  alt=""
+                                  class="w-4 h-4 rounded-full flex-shrink-0"
+                                />
                               ) : (
                                 <div class="w-4 h-4 rounded-full bg-muted/50 flex-shrink-0" />
                               )}
-                              <span class="flex-1 text-left truncate">{creator.name}</span>
-                              <span class="text-xs text-muted-foreground/60">{creator.count}</span>
+                              <span class="flex-1 text-left truncate">
+                                {creator.name}
+                              </span>
+                              <span class="text-xs text-muted-foreground/60">
+                                {creator.count}
+                              </span>
                             </button>
                           );
                         }}
