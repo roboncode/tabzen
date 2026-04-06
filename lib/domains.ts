@@ -27,6 +27,9 @@ export function isSocialPlatform(domain: string): boolean {
 }
 
 export function extractCreator(tab: Tab): string | null {
+  // Use stored creator if available (extracted at capture time from DOM)
+  if (tab.creator) return tab.creator;
+
   const domain = getDomain(tab.url);
 
   try {

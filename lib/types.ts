@@ -7,6 +7,7 @@ export interface Tab {
   ogDescription: string | null;
   ogImage: string | null;
   metaDescription: string | null;
+  creator: string | null;
   notes: string | null;
   viewCount: number;
   lastViewedAt: string | null;

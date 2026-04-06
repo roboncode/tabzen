@@ -493,6 +493,7 @@ export default defineBackground(() => {
     ogDescription: string | null;
     ogImage: string | null;
     metaDescription: string | null;
+    creator: string | null;
   }> {
     try {
       const response = await fetch(url, {
@@ -501,18 +502,26 @@ export default defineBackground(() => {
       });
       const html = await response.text();
       const meta = parseOgFromHtml(html);
-      // YouTube fallback: if no og:image found, construct from video ID
       if (!meta.ogImage) {
         meta.ogImage = getYoutubeThumbnail(url);
       }
-      return meta;
+      // Try to extract creator from HTML for YouTube
+      let creator: string | null = null;
+      try {
+        const domain = new URL(url).hostname.replace("www.", "");
+        if (domain === "youtube.com") {
+          const authorMatch = html.match(/"author":"([^"]+)"/);
+          if (authorMatch) creator = authorMatch[1];
+        }
+      } catch {}
+      return { ...meta, creator };
     } catch {
-      // Last resort: try YouTube thumbnail
       return {
         ogTitle: null,
         ogDescription: null,
         ogImage: getYoutubeThumbnail(url),
         metaDescription: null,
+        creator: null,
       };
     }
   }
@@ -522,6 +531,7 @@ export default defineBackground(() => {
     ogDescription: string | null;
     ogImage: string | null;
     metaDescription: string | null;
+    creator: string | null;
   }> {
     // Try content script first (works for tabs loaded after extension install)
     try {
@@ -575,6 +585,7 @@ export default defineBackground(() => {
           ogDescription: meta.ogDescription,
           ogImage: meta.ogImage,
           metaDescription: meta.metaDescription,
+          creator: meta.creator || null,
           notes: null,
           viewCount: 0,
           lastViewedAt: null,
