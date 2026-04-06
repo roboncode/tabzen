@@ -1,15 +1,20 @@
 import { Show } from "solid-js";
-import { Eye, Star, Archive, ArchiveRestore, Trash2, ShieldBan } from "lucide-solid";
+import { Eye, Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2 } from "lucide-solid";
 import type { Tab } from "@/lib/types";
+import Highlight from "./Highlight";
 
 interface TabCardProps {
   tab: Tab;
+  searchQuery?: string;
   onOpen: (tab: Tab) => void;
   onEditNotes: (tab: Tab) => void;
   onToggleStar: (tab: Tab) => void;
   onArchive: (tab: Tab) => void;
   onDelete: (tab: Tab) => void;
-  onBlockDomain: (tab: Tab) => void;
+  onBlockDomain?: (tab: Tab) => void;
+  onRestore?: (tab: Tab) => void;
+  onHardDelete?: (tab: Tab) => void;
+  isTrash?: boolean;
 }
 
 export default function TabCard(props: TabCardProps) {
@@ -51,38 +56,58 @@ export default function TabCard(props: TabCardProps) {
         )}
         {/* Action buttons overlay */}
         <div class="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            class={`p-2 rounded-lg transition-colors ${
-              props.tab.starred
-                ? "text-yellow-400 bg-black/40"
-                : "text-foreground/90 bg-black/40 hover:bg-black/60"
-            }`}
-            onClick={(e) => { e.stopPropagation(); props.onToggleStar(props.tab); }}
-            title={props.tab.starred ? "Unstar" : "Star"}
-          >
-            <Star size={16} fill={props.tab.starred ? "currentColor" : "none"} />
-          </button>
-          <button
-            class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-black/60 transition-colors"
-            onClick={(e) => { e.stopPropagation(); props.onArchive(props.tab); }}
-            title={props.tab.archived ? "Unarchive" : "Archive"}
-          >
-            {props.tab.archived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
-          </button>
-          <button
-            class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-black/60 transition-colors"
-            onClick={(e) => { e.stopPropagation(); props.onBlockDomain(props.tab); }}
-            title="Block this domain"
-          >
-            <ShieldBan size={16} />
-          </button>
-          <button
-            class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-red-500/70 transition-colors"
-            onClick={(e) => { e.stopPropagation(); props.onDelete(props.tab); }}
-            title="Delete"
-          >
-            <Trash2 size={16} />
-          </button>
+          <Show when={props.isTrash}>
+            <button
+              class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-black/60 transition-colors"
+              onClick={(e) => { e.stopPropagation(); props.onRestore?.(props.tab); }}
+              title="Restore"
+            >
+              <Undo2 size={16} />
+            </button>
+            <button
+              class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-red-500/70 transition-colors"
+              onClick={(e) => { e.stopPropagation(); props.onHardDelete?.(props.tab); }}
+              title="Delete forever"
+            >
+              <Trash2 size={16} />
+            </button>
+          </Show>
+          <Show when={!props.isTrash}>
+            <button
+              class={`p-2 rounded-lg transition-colors ${
+                props.tab.starred
+                  ? "text-yellow-400 bg-black/40"
+                  : "text-foreground/90 bg-black/40 hover:bg-black/60"
+              }`}
+              onClick={(e) => { e.stopPropagation(); props.onToggleStar(props.tab); }}
+              title={props.tab.starred ? "Unstar" : "Star"}
+            >
+              <Star size={16} fill={props.tab.starred ? "currentColor" : "none"} />
+            </button>
+            <button
+              class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-black/60 transition-colors"
+              onClick={(e) => { e.stopPropagation(); props.onArchive(props.tab); }}
+              title={props.tab.archived ? "Unarchive" : "Archive"}
+            >
+              {props.tab.archived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
+            </button>
+            <Show when={props.onBlockDomain}>
+              <button
+                class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-black/60 transition-colors"
+                onClick={(e) => { e.stopPropagation(); props.onBlockDomain?.(props.tab); }}
+                title="Block this domain"
+              >
+                <ShieldBan size={16} />
+              </button>
+            </Show>
+            <button
+              class="p-2 rounded-lg text-foreground/90 bg-black/40 hover:bg-red-500/70 transition-colors"
+              onClick={(e) => { e.stopPropagation(); props.onDelete(props.tab); }}
+              title="Delete"
+            >
+              <Trash2 size={16} />
+            </button>
+          </Show>
         </div>
         {/* Starred indicator - always visible when starred */}
         <Show when={props.tab.starred}>
@@ -105,7 +130,9 @@ export default function TabCard(props: TabCardProps) {
         )}
         <div class="flex-1 min-w-0">
           <h3 class="text-sm font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary/80">
-            {props.tab.ogTitle || props.tab.title}
+            <Show when={props.searchQuery} fallback={props.tab.ogTitle || props.tab.title}>
+              <Highlight text={props.tab.ogTitle || props.tab.title} query={props.searchQuery!} />
+            </Show>
           </h3>
           <p class="text-xs text-muted-foreground mt-1">{domain()}</p>
           {description() && (

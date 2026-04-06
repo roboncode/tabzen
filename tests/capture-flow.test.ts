@@ -125,6 +125,7 @@ function makeTab(id: string, url: string, title: string): Tab {
     deviceId: "test-device",
     archived: false,
     starred: false,
+    deletedAt: null,
     groupId: "",
   };
 }

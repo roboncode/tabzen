@@ -10,6 +10,7 @@ import {
   getTab,
   searchTabs,
   importData,
+  purgeDeletedTabs,
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate, isDomainBlocked } from "@/lib/duplicates";
@@ -95,6 +96,9 @@ export default defineBackground(() => {
       console.warn("[TabZen] Sync pull failed:", e);
     }
   }
+
+  // Auto-purge soft-deleted tabs older than 30 days on startup
+  purgeDeletedTabs(30).catch((e) => console.warn("[TabZen] Auto-purge failed:", e));
 
   // Pull on startup
   syncPullIfNeeded();
@@ -579,6 +583,7 @@ export default defineBackground(() => {
           deviceId: settings.deviceId,
           archived: false,
           starred: false,
+          deletedAt: null,
           groupId: "",
         };
       }),
@@ -738,7 +743,10 @@ export default defineBackground(() => {
       lastViewedAt: null,
       capturedAt: new Date().toISOString(),
       sourceLabel: settings.sourceLabel,
+      deviceId: settings.deviceId,
       archived: false,
+      starred: false,
+      deletedAt: null,
       groupId,
     };
 

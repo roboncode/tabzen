@@ -15,6 +15,7 @@ export interface Tab {
   deviceId: string;
   archived: boolean;
   starred: boolean;
+  deletedAt: string | null;
   groupId: string;
 }
 
@@ -46,7 +47,7 @@ export interface Settings {
   syncEnv: "local" | "remote";
   blockedDomains: string[];
   viewMode: "cards" | "rows";
-  activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates";
+  activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates" | "trash";
 }
 
 export const DEFAULT_SETTINGS: Settings = {

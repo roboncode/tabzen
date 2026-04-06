@@ -8,13 +8,17 @@ interface GroupSectionProps {
   group: Group;
   tabs: Tab[];
   viewMode: "cards" | "rows";
+  searchQuery?: string;
   onOpenTab: (tab: Tab) => void;
   onEditNotes: (tab: Tab) => void;
   onRenameGroup: (group: Group, newName: string) => void;
   onToggleStar: (tab: Tab) => void;
   onArchive: (tab: Tab) => void;
   onDelete: (tab: Tab) => void;
-  onBlockDomain: (tab: Tab) => void;
+  onBlockDomain?: (tab: Tab) => void;
+  onRestore?: (tab: Tab) => void;
+  onHardDelete?: (tab: Tab) => void;
+  isTrash?: boolean;
 }
 
 export default function GroupSection(props: GroupSectionProps) {
@@ -89,12 +93,16 @@ export default function GroupSection(props: GroupSectionProps) {
                 {(tab) => (
                   <TabRow
                     tab={tab}
+                    searchQuery={props.searchQuery}
                     onOpen={props.onOpenTab}
                     onEditNotes={props.onEditNotes}
                     onToggleStar={props.onToggleStar}
                     onArchive={props.onArchive}
                     onDelete={props.onDelete}
                     onBlockDomain={props.onBlockDomain}
+                    onRestore={props.onRestore}
+                    onHardDelete={props.onHardDelete}
+                    isTrash={props.isTrash}
                   />
                 )}
               </For>
@@ -107,11 +115,16 @@ export default function GroupSection(props: GroupSectionProps) {
               {(tab) => (
                 <TabCard
                   tab={tab}
+                  searchQuery={props.searchQuery}
                   onOpen={props.onOpenTab}
                   onEditNotes={props.onEditNotes}
                   onToggleStar={props.onToggleStar}
                   onArchive={props.onArchive}
                   onDelete={props.onDelete}
+                  onBlockDomain={props.onBlockDomain}
+                  onRestore={props.onRestore}
+                  onHardDelete={props.onHardDelete}
+                  isTrash={props.isTrash}
                 />
               )}
             </For>

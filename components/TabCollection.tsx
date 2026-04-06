@@ -12,7 +12,9 @@ import {
   getAllCaptures,
   updateTab,
   updateGroup,
-  deleteTab,
+  softDeleteTab,
+  hardDeleteTab,
+  restoreTab,
 } from "@/lib/db";
 import { sendMessage } from "@/lib/messages";
 import { getSettings, updateSettings } from "@/lib/settings";
@@ -36,6 +38,7 @@ interface TabCollectionProps {
 export default function TabCollection(props: TabCollectionProps) {
   const [filter, setFilter] = createSignal<Settings["activeFilter"]>("all");
   const [deviceFilter, setDeviceFilter] = createSignal<string>("all");
+  const [searchQuery, setSearchQuery] = createSignal<string>("");
   const [searchResults, setSearchResults] = createSignal<Tab[] | null>(null);
   const [editingTab, setEditingTab] = createSignal<Tab | null>(null);
   const [deletingTab, setDeletingTab] = createSignal<Tab | null>(null);
@@ -114,6 +117,11 @@ export default function TabCollection(props: TabCollectionProps) {
       tabs = tabs.filter((t) => (t.deviceId || t.sourceLabel) === device);
     }
 
+    if (f === "trash") return tabs.filter((t) => t.deletedAt !== null && t.deletedAt !== undefined);
+
+    // All non-trash views exclude soft-deleted tabs
+    tabs = tabs.filter((t) => !t.deletedAt);
+
     if (f === "archived") return tabs.filter((t) => t.archived);
     if (f === "starred") return tabs.filter((t) => t.starred && !t.archived);
     if (f === "notes") return tabs.filter((t) => t.notes && !t.archived);
@@ -174,6 +182,7 @@ export default function TabCollection(props: TabCollectionProps) {
   };
 
   const handleSearch = async (query: string) => {
+    setSearchQuery(query);
     if (!query.trim()) {
       setSearchResults(null);
       return;
@@ -211,7 +220,17 @@ export default function TabCollection(props: TabCollectionProps) {
     refresh();
   };
 
-  const handleDelete = (tab: Tab) => {
+  const handleDelete = async (tab: Tab) => {
+    await softDeleteTab(tab.id);
+    refresh();
+  };
+
+  const handleRestore = async (tab: Tab) => {
+    await restoreTab(tab.id);
+    refresh();
+  };
+
+  const handleHardDelete = (tab: Tab) => {
     setDeletingTab(tab);
   };
 
@@ -243,7 +262,7 @@ export default function TabCollection(props: TabCollectionProps) {
   const confirmDelete = async () => {
     const tab = deletingTab();
     if (tab) {
-      await deleteTab(tab.id);
+      await hardDeleteTab(tab.id);
       setDeletingTab(null);
       refresh();
     }
@@ -351,6 +370,7 @@ export default function TabCollection(props: TabCollectionProps) {
                   }}
                   tabs={dateGroup.tabs}
                   viewMode={props.viewMode}
+                  searchQuery={searchQuery()}
                   onOpenTab={handleOpenTab}
                   onEditNotes={setEditingTab}
                   onRenameGroup={() => {}}
@@ -363,8 +383,32 @@ export default function TabCollection(props: TabCollectionProps) {
             </For>
           </Show>
 
+          {/* Trash view */}
+          <Show when={filter() === "trash"}>
+            <GroupSection
+              group={{
+                id: "trash",
+                name: "Trash",
+                captureId: "",
+                position: 0,
+                archived: false,
+              }}
+              tabs={filteredTabs()}
+              viewMode={props.viewMode}
+              onOpenTab={handleOpenTab}
+              onEditNotes={setEditingTab}
+              onRenameGroup={() => {}}
+              onToggleStar={handleToggleStar}
+              onArchive={handleArchive}
+              onDelete={handleDelete}
+              onRestore={handleRestore}
+              onHardDelete={handleHardDelete}
+              isTrash
+            />
+          </Show>
+
           {/* Default group view (All, Starred, Archived, Duplicates) */}
-          <Show when={filter() !== "notes" && filter() !== "byDate"}>
+          <Show when={filter() !== "notes" && filter() !== "byDate" && filter() !== "trash"}>
             <For each={filteredGroups()}>
               {(group) => {
                 const tabs = () => tabsForGroup(group.id);
@@ -374,12 +418,14 @@ export default function TabCollection(props: TabCollectionProps) {
                       group={group}
                       tabs={tabs()}
                       viewMode={props.viewMode}
+                      searchQuery={searchQuery()}
                       onOpenTab={handleOpenTab}
                       onEditNotes={setEditingTab}
                       onRenameGroup={handleRenameGroup}
                       onToggleStar={handleToggleStar}
                       onArchive={handleArchive}
                       onDelete={handleDelete}
+                      onBlockDomain={handleBlockDomain}
                     />
                   </Show>
                 );
@@ -411,13 +457,13 @@ export default function TabCollection(props: TabCollectionProps) {
         )}
       </Show>
 
-      {/* Delete Confirmation */}
+      {/* Delete Forever Confirmation */}
       <Show when={deletingTab()}>
         {(tab) => (
           <ConfirmDialog
-            title="Delete tab"
-            message={`Remove "${tab().title}" from your collection? This cannot be undone.`}
-            confirmLabel="Delete"
+            title="Delete forever"
+            message={`Permanently delete "${tab().title}"? This cannot be undone.`}
+            confirmLabel="Delete Forever"
             destructive
             onConfirm={confirmDelete}
             onCancel={() => setDeletingTab(null)}

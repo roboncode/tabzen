@@ -95,9 +95,37 @@ export async function updateTab(id: string, updates: Partial<Tab>): Promise<void
   }
 }
 
-export async function deleteTab(id: string): Promise<void> {
+export async function hardDeleteTab(id: string): Promise<void> {
   const db = await getDB();
   await db.delete("tabs", id);
+}
+
+export async function softDeleteTab(id: string): Promise<void> {
+  const db = await getDB();
+  const tab = await db.get("tabs", id);
+  if (tab) {
+    await db.put("tabs", { ...tab, deletedAt: new Date().toISOString() });
+  }
+}
+
+export async function restoreTab(id: string): Promise<void> {
+  const db = await getDB();
+  const tab = await db.get("tabs", id);
+  if (tab) {
+    await db.put("tabs", { ...tab, deletedAt: null });
+  }
+}
+
+export async function purgeDeletedTabs(olderThanDays: number): Promise<void> {
+  const db = await getDB();
+  const all = await db.getAll("tabs");
+  const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000).toISOString();
+  const toDelete = all.filter((t) => t.deletedAt && t.deletedAt < cutoff);
+  const tx = db.transaction("tabs", "readwrite");
+  for (const tab of toDelete) {
+    tx.store.delete(tab.id);
+  }
+  await tx.done;
 }
 
 export async function searchTabs(query: string): Promise<Tab[]> {
