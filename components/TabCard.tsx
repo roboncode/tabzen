@@ -96,7 +96,7 @@ export default function TabCard(props: TabCardProps) {
         <div class="absolute top-2 left-2 flex gap-1.5">
           <Show when={props.isTrash}>
             <button
-              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-black/85 transition-colors opacity-0 group-hover:opacity-100"
+              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-white/20 transition-colors opacity-0 group-hover:opacity-100"
               onClick={(e) => { e.stopPropagation(); props.onRestore?.(props.tab); }}
               title="Restore"
             >
@@ -115,8 +115,8 @@ export default function TabCard(props: TabCardProps) {
             <button
               class={`p-2 rounded-lg transition-all ${
                 props.tab.starred
-                  ? "text-yellow-400 drop-shadow-md group-hover:bg-black/70 group-hover:drop-shadow-none"
-                  : "text-foreground/90 bg-black/70 hover:bg-black/85 opacity-0 group-hover:opacity-100"
+                  ? "text-yellow-400 drop-shadow-md group-hover:bg-black/70 group-hover:drop-shadow-none hover:!bg-white/20"
+                  : "text-foreground/90 bg-black/70 hover:bg-white/20 opacity-0 group-hover:opacity-100"
               }`}
               onClick={(e) => { e.stopPropagation(); props.onToggleStar(props.tab); }}
               title={props.tab.starred ? "Unstar" : "Star"}
@@ -125,7 +125,7 @@ export default function TabCard(props: TabCardProps) {
             </button>
             {/* Other actions - only on hover */}
             <button
-              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-black/85 transition-colors opacity-0 group-hover:opacity-100"
+              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-white/20 transition-colors opacity-0 group-hover:opacity-100"
               onClick={(e) => { e.stopPropagation(); props.onArchive(props.tab); }}
               title={props.tab.archived ? "Unarchive" : "Archive"}
             >
@@ -133,7 +133,7 @@ export default function TabCard(props: TabCardProps) {
             </button>
             <Show when={props.onBlockDomain}>
               <button
-                class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-black/85 transition-colors opacity-0 group-hover:opacity-100"
+                class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-white/20 transition-colors opacity-0 group-hover:opacity-100"
                 onClick={(e) => { e.stopPropagation(); props.onBlockDomain?.(props.tab); }}
                 title="Block this domain"
               >
