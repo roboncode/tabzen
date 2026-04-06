@@ -44,6 +44,21 @@ export default function DetailPage(props: DetailPageProps) {
     resizeObserver.observe(containerRef);
 
     onCleanup(() => resizeObserver.disconnect());
+
+    // Listen for data changes from other views
+    const handleMessage = async (message: any) => {
+      if (message.type === "DATA_CHANGED") {
+        const updated = await getTab(props.tab.id);
+        if (updated) {
+          setCurrentTab(updated);
+          if ((updated as any).transcript) {
+            setTranscriptSegments((updated as any).transcript);
+          }
+        }
+      }
+    };
+    browser.runtime.onMessage.addListener(handleMessage);
+    onCleanup(() => browser.runtime.onMessage.removeListener(handleMessage));
   });
 
   const handleScroll = () => {
