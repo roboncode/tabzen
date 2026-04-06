@@ -1,6 +1,7 @@
 import { Show } from "solid-js";
 import { Eye, Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2 } from "lucide-solid";
 import type { Tab } from "@/lib/types";
+import { getFaviconUrl } from "@/lib/domains";
 import Highlight from "./Highlight";
 
 interface TabRowProps {
@@ -26,6 +27,8 @@ export default function TabRow(props: TabRowProps) {
     }
   };
 
+  const faviconSrc = () => getFaviconUrl(props.tab);
+
   return (
     <div class="group">
       <div
@@ -45,8 +48,8 @@ export default function TabRow(props: TabRowProps) {
         >
           <Star size={14} fill={props.tab.starred ? "currentColor" : "none"} />
         </button>
-        {props.tab.favicon ? (
-          <img src={props.tab.favicon} alt="" class="w-5 h-5 rounded flex-shrink-0" />
+        {faviconSrc() ? (
+          <img src={faviconSrc()} alt="" class="w-5 h-5 rounded flex-shrink-0" />
         ) : (
           <div class="w-5 h-5 bg-muted/50 rounded flex-shrink-0" />
         )}

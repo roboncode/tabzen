@@ -80,11 +80,12 @@ export default function AppSidebar(props: AppSidebarProps) {
                         props.onSelectCreator(domainInfo.domain, null);
                       }}
                     >
-                      {domainInfo.favicon ? (
-                        <img src={domainInfo.favicon} alt="" class="w-4 h-4 rounded flex-shrink-0" />
-                      ) : (
-                        <div class="w-4 h-4 bg-muted/50 rounded flex-shrink-0" />
-                      )}
+                      {(() => {
+                        const src = domainInfo.favicon && !domainInfo.favicon.startsWith("chrome://")
+                          ? domainInfo.favicon
+                          : `https://www.google.com/s2/favicons?domain=${domainInfo.domain}&sz=32`;
+                        return <img src={src} alt="" class="w-4 h-4 rounded flex-shrink-0" />;
+                      })()}
                       <span class="flex-1 text-left truncate">{domainInfo.domain}</span>
                       <span class="text-xs text-muted-foreground/60">{domainInfo.count}</span>
                     </button>
@@ -111,6 +112,11 @@ export default function AppSidebar(props: AppSidebarProps) {
                                 props.onSelectCreator(domainInfo.domain, creator.name);
                               }}
                             >
+                              {creator.avatar ? (
+                                <img src={creator.avatar} alt="" class="w-4 h-4 rounded-full flex-shrink-0" />
+                              ) : (
+                                <div class="w-4 h-4 rounded-full bg-muted/50 flex-shrink-0" />
+                              )}
                               <span class="flex-1 text-left truncate">{creator.name}</span>
                               <span class="text-xs text-muted-foreground/60">{creator.count}</span>
                             </button>

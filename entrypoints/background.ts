@@ -527,6 +527,7 @@ export default defineBackground(() => {
           ogImage: null,
           metaDescription: null,
           creator: null,
+          creatorAvatar: null,
           publishedAt: null,
           notes: null,
           viewCount: 0,
@@ -582,6 +583,7 @@ export default defineBackground(() => {
               if (meta.ogImage) updates.ogImage = meta.ogImage;
               if (meta.metaDescription) updates.metaDescription = meta.metaDescription;
               if (meta.creator) updates.creator = meta.creator;
+              if (meta.creatorAvatar) updates.creatorAvatar = meta.creatorAvatar;
               if (meta.publishedAt) updates.publishedAt = meta.publishedAt;
               if (Object.keys(updates).length > 0) {
                 await updateTab(tab.id, updates);
@@ -692,6 +694,7 @@ export default defineBackground(() => {
     ogImage: string | null;
     metaDescription: string | null;
     creator: string | null;
+    creatorAvatar: string | null;
     publishedAt: string | null;
   }> {
     try {
@@ -742,7 +745,14 @@ export default defineBackground(() => {
         if (pubMatch) publishedAt = pubMatch[1];
       }
 
-      return { ...meta, creator, publishedAt };
+      // Creator avatar: YouTube channel thumbnail from JSON data
+      let creatorAvatar: string | null = null;
+      try {
+        const avatarMatch = html.match(/"thumbnail":\{"thumbnails":\[.*?"url":"(https:\/\/yt3[^"]+)"/);
+        if (avatarMatch) creatorAvatar = avatarMatch[1];
+      } catch {}
+
+      return { ...meta, creator, creatorAvatar, publishedAt };
     } catch {
       return {
         ogTitle: null,
@@ -750,6 +760,7 @@ export default defineBackground(() => {
         ogImage: getYoutubeThumbnail(url),
         metaDescription: null,
         creator: null,
+        creatorAvatar: null,
         publishedAt: null,
       };
     }
@@ -761,6 +772,7 @@ export default defineBackground(() => {
     ogImage: string | null;
     metaDescription: string | null;
     creator: string | null;
+    creatorAvatar: string | null;
     publishedAt: string | null;
   }> {
     // Try content script first (works for tabs loaded after extension install)
@@ -816,6 +828,7 @@ export default defineBackground(() => {
           ogImage: meta.ogImage,
           metaDescription: meta.metaDescription,
           creator: meta.creator || null,
+          creatorAvatar: meta.creatorAvatar || null,
           publishedAt: meta.publishedAt || null,
           notes: null,
           viewCount: 0,

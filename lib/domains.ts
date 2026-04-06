@@ -14,6 +14,13 @@ const SOCIAL_PLATFORMS = new Set([
   "bsky.app",
 ]);
 
+export function getFaviconUrl(tab: { favicon: string; url: string }): string {
+  if (tab.favicon && !tab.favicon.startsWith("chrome://")) return tab.favicon;
+  const domain = getDomain(tab.url);
+  if (!domain) return "";
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+}
+
 export function getDomain(url: string): string {
   try {
     return new URL(url).hostname.replace("www.", "");
@@ -118,7 +125,7 @@ export interface DomainInfo {
   count: number;
   favicon: string;
   isSocial: boolean;
-  creators: { name: string; count: number }[];
+  creators: { name: string; count: number; avatar: string | null }[];
 }
 
 export function buildDomainIndex(tabs: Tab[]): DomainInfo[] {
@@ -126,7 +133,7 @@ export function buildDomainIndex(tabs: Tab[]): DomainInfo[] {
     count: number;
     favicon: string;
     isSocial: boolean;
-    creators: Map<string, number>;
+    creators: Map<string, { count: number; avatar: string | null }>;
   }>();
 
   for (const tab of tabs) {
@@ -151,7 +158,13 @@ export function buildDomainIndex(tabs: Tab[]): DomainInfo[] {
     if (entry.isSocial) {
       const creator = extractCreator(tab);
       if (creator) {
-        entry.creators.set(creator, (entry.creators.get(creator) || 0) + 1);
+        const existing = entry.creators.get(creator);
+        if (existing) {
+          existing.count++;
+          if (!existing.avatar && tab.creatorAvatar) existing.avatar = tab.creatorAvatar;
+        } else {
+          entry.creators.set(creator, { count: 1, avatar: tab.creatorAvatar || null });
+        }
       }
     }
   }
@@ -163,7 +176,7 @@ export function buildDomainIndex(tabs: Tab[]): DomainInfo[] {
       favicon: info.favicon,
       isSocial: info.isSocial,
       creators: Array.from(info.creators.entries())
-        .map(([name, count]) => ({ name, count }))
+        .map(([name, { count, avatar }]) => ({ name, count, avatar }))
         .sort((a, b) => b.count - a.count),
     }))
     .sort((a, b) => b.count - a.count);

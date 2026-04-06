@@ -1,7 +1,7 @@
 import { Show } from "solid-js";
 import { Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2 } from "lucide-solid";
 import type { Tab } from "@/lib/types";
-import { extractCreator } from "@/lib/domains";
+import { extractCreator, getFaviconUrl } from "@/lib/domains";
 import Highlight from "./Highlight";
 
 interface TabCardProps {
@@ -32,6 +32,13 @@ export default function TabCard(props: TabCardProps) {
     props.tab.ogDescription || props.tab.metaDescription || null;
 
   const creator = () => extractCreator(props.tab);
+
+  const faviconSrc = () => getFaviconUrl(props.tab);
+
+  const avatarSrc = () => {
+    if (props.tab.creatorAvatar && creator()) return props.tab.creatorAvatar;
+    return faviconSrc();
+  };
 
   const creatorUrl = () => {
     const c = creator();
@@ -87,8 +94,8 @@ export default function TabCard(props: TabCardProps) {
           />
         ) : (
           <div class="w-full h-full flex items-center justify-center">
-            {props.tab.favicon ? (
-              <img src={props.tab.favicon} alt="" class="w-8 h-8 rounded" />
+            {faviconSrc() ? (
+              <img src={faviconSrc()} alt="" class="w-8 h-8 rounded" />
             ) : (
               <span class="text-muted-foreground text-sm">{domain()}</span>
             )}
@@ -159,9 +166,9 @@ export default function TabCard(props: TabCardProps) {
 
       {/* Info below thumbnail */}
       <div class="flex gap-3">
-        {props.tab.favicon ? (
+        {avatarSrc() ? (
           <img
-            src={props.tab.favicon}
+            src={avatarSrc()}
             alt=""
             class="w-6 h-6 rounded-full mt-0.5 flex-shrink-0"
           />

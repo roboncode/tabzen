@@ -155,20 +155,28 @@ export default function App() {
                 />
               ) : (
                 <div class="w-full h-full flex items-center justify-center">
-                  {tab().favIconUrl ? (
-                    <img src={tab().favIconUrl} alt="" class="w-8 h-8 rounded" />
-                  ) : (
-                    <span class="text-muted-foreground text-sm">{domain()}</span>
-                  )}
+                  {(() => {
+                    const fav = tab().favIconUrl;
+                    const src = fav && !fav.startsWith("chrome://")
+                      ? fav
+                      : domain() ? `https://www.google.com/s2/favicons?domain=${domain()}&sz=32` : "";
+                    return src
+                      ? <img src={src} alt="" class="w-8 h-8 rounded" />
+                      : <span class="text-muted-foreground text-sm">{domain()}</span>;
+                  })()}
                 </div>
               )}
             </div>
             <div class="flex gap-3">
-              {tab().favIconUrl ? (
-                <img src={tab().favIconUrl} alt="" class="w-6 h-6 rounded-full mt-0.5 flex-shrink-0" />
-              ) : (
-                <div class="w-6 h-6 rounded-full bg-muted/50 mt-0.5 flex-shrink-0" />
-              )}
+              {(() => {
+                const fav = tab().favIconUrl;
+                const src = fav && !fav.startsWith("chrome://")
+                  ? fav
+                  : domain() ? `https://www.google.com/s2/favicons?domain=${domain()}&sz=32` : "";
+                return src
+                  ? <img src={src} alt="" class="w-6 h-6 rounded-full mt-0.5 flex-shrink-0" />
+                  : <div class="w-6 h-6 rounded-full bg-muted/50 mt-0.5 flex-shrink-0" />;
+              })()}
               <div class="flex-1 min-w-0">
                 <h3 class="text-sm font-medium text-foreground leading-snug line-clamp-2">
                   {tab().ogTitle || tab().title}

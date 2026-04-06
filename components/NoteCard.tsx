@@ -1,4 +1,5 @@
 import type { Tab } from "@/lib/types";
+import { getFaviconUrl } from "@/lib/domains";
 
 interface NoteCardProps {
   tab: Tab;
@@ -14,6 +15,8 @@ export default function NoteCard(props: NoteCardProps) {
       return props.tab.url;
     }
   };
+
+  const faviconSrc = () => getFaviconUrl(props.tab);
 
   return (
     <div class="group">
@@ -35,8 +38,8 @@ export default function NoteCard(props: NoteCardProps) {
         class="flex items-center gap-2.5 mt-2.5 px-1 cursor-pointer"
         onClick={() => props.onOpen(props.tab)}
       >
-        {props.tab.favicon ? (
-          <img src={props.tab.favicon} alt="" class="w-5 h-5 rounded-full flex-shrink-0" />
+        {faviconSrc() ? (
+          <img src={faviconSrc()} alt="" class="w-5 h-5 rounded-full flex-shrink-0" />
         ) : (
           <div class="w-5 h-5 rounded-full bg-muted/50 flex-shrink-0" />
         )}

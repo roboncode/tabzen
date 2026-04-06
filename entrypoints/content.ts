@@ -56,6 +56,9 @@ export default defineContentScript({
           } catch {}
         }
 
+        // --- Creator avatar extraction ---
+        let creatorAvatar: string | null = null;
+
         // --- YouTube-specific fallback (embedded JSON in script tags) ---
         const hostname = window.location.hostname.replace("www.", "");
         if (hostname === "youtube.com") {
@@ -82,6 +85,27 @@ export default defineContentScript({
                 if (dateMatch) { publishedAt = dateMatch[1]; break; }
               }
             } catch {}
+          }
+        }
+
+        // --- Channel avatar extraction ---
+        if (hostname === "youtube.com") {
+          creatorAvatar =
+            (document.querySelector('#owner img.yt-img-shadow, #channel-thumbnail img, ytd-video-owner-renderer img') as HTMLImageElement)?.src || null;
+        }
+        // Generic: look for author avatar in JSON-LD
+        if (!creatorAvatar) {
+          for (const script of jsonLdScripts) {
+            try {
+              const data = JSON.parse(script.textContent || "");
+              const items = Array.isArray(data) ? data : [data];
+              for (const item of items) {
+                const author = item.author;
+                if (author?.image?.url) { creatorAvatar = author.image.url; break; }
+                if (author?.image) { creatorAvatar = typeof author.image === 'string' ? author.image : null; break; }
+              }
+            } catch {}
+            if (creatorAvatar) break;
           }
         }
 
@@ -119,6 +143,7 @@ export default defineContentScript({
           ogImage,
           metaDescription,
           creator,
+          creatorAvatar,
           publishedAt,
         });
       }
