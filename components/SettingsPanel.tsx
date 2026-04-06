@@ -458,9 +458,17 @@ export default function SettingsPanel(props: SettingsPanelProps) {
 
             {/* ═══ Data ═══ */}
             {/* ═══ Blocked Domains ═══ */}
-            <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
-              <ShieldBan size={14} /> Blocked Domains
-            </p>
+            <div class="flex items-center justify-between bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
+              <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70">
+                <ShieldBan size={14} /> Blocked Domains
+              </p>
+              <button
+                class="px-2.5 py-1 text-xs bg-muted/50 text-muted-foreground rounded-md hover:text-foreground hover:bg-muted transition-colors"
+                onClick={() => save({ blockedDomains: DEFAULT_SETTINGS.blockedDomains })}
+              >
+                Reset
+              </button>
+            </div>
             <div class="px-1 py-3 space-y-3">
               <p class="text-xs text-muted-foreground">
                 Tabs from these domains will be skipped during capture.
@@ -521,12 +529,6 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   </div>
                 );
               })()}
-              <button
-                class="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                onClick={() => save({ blockedDomains: DEFAULT_SETTINGS.blockedDomains })}
-              >
-                Reset to defaults
-              </button>
             </div>
 
             <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
