@@ -77,6 +77,9 @@ export default function TabCollection(props: TabCollectionProps) {
       if (message.type === "SYNC_ERROR") {
         setSyncError(message.message);
       }
+      if (message.type === "SYNC_ERROR_CLEARED") {
+        setSyncError(null);
+      }
     };
     browser.runtime.onMessage.addListener(listener);
     onCleanup(() => browser.runtime.onMessage.removeListener(listener));

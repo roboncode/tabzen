@@ -61,6 +61,13 @@ export default defineBackground(() => {
       });
       lastSyncedAt = new Date().toISOString();
       console.log("[TabZen] Sync pushed", data.tabs.length, "tabs");
+      // Clear any previous sync error on success
+      const currentSettings = await getSettings();
+      if (currentSettings.syncError) {
+        await updateSettings({ syncError: null });
+        await updateBadge();
+        browser.runtime.sendMessage({ type: "SYNC_ERROR_CLEARED" }).catch(() => {});
+      }
     } catch (e) {
       const msg = String(e);
       console.warn("[TabZen] Sync push failed:", msg);
@@ -87,6 +94,15 @@ export default defineBackground(() => {
 
       // Lightweight check: is there anything newer on the server?
       const remoteTimestamp = await getRemoteStatus();
+
+      // If we got here without throwing, the token is valid - clear any error
+      const currentSettings = await getSettings();
+      if (currentSettings.syncError) {
+        await updateSettings({ syncError: null });
+        await updateBadge();
+        browser.runtime.sendMessage({ type: "SYNC_ERROR_CLEARED" }).catch(() => {});
+      }
+
       if (!remoteTimestamp || remoteTimestamp <= lastSyncedAt) {
         console.log("[TabZen] Sync check: server has no new data");
         return;
