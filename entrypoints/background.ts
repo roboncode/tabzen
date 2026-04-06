@@ -532,20 +532,42 @@ export default defineBackground(() => {
       }
       let creator: string | null = null;
       let publishedAt: string | null = null;
-      try {
-        const domain = new URL(url).hostname.replace("www.", "");
-        if (domain === "youtube.com") {
-          const authorMatch = html.match(/"(?:author|ownerChannelName)"\s*:\s*"([^"]+)"/);
-          if (authorMatch) creator = authorMatch[1];
-          const dateMatch = html.match(/"(?:publishDate|uploadDate)"\s*:\s*"([^"]+)"/);
-          if (dateMatch) publishedAt = dateMatch[1];
-        }
-      } catch {}
-      // Generic publish date
+
+      // Parse JSON-LD from HTML
+      const jsonLdMatches = html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+      for (const m of jsonLdMatches) {
+        try {
+          const data = JSON.parse(m[1]);
+          const items = Array.isArray(data) ? data : [data];
+          for (const item of items) {
+            if (!creator) {
+              const author = item.author || item.creator;
+              if (typeof author === "string") creator = author;
+              else if (author?.name) creator = author.name;
+            }
+            if (!publishedAt) {
+              publishedAt = item.datePublished || item.uploadDate || item.dateCreated || null;
+            }
+          }
+        } catch {}
+      }
+
+      // YouTube JSON fallback
+      if (!creator) {
+        const authorMatch = html.match(/"(?:ownerChannelName|author)"\s*:\s*"([^"]+)"/);
+        if (authorMatch) creator = authorMatch[1];
+      }
       if (!publishedAt) {
-        const pubMatch = html.match(/property="article:published_time"\s+content="([^"]+)"/);
+        const dateMatch = html.match(/"(?:publishDate|uploadDate)"\s*:\s*"([^"]+)"/);
+        if (dateMatch) publishedAt = dateMatch[1];
+      }
+
+      // Generic meta fallback
+      if (!publishedAt) {
+        const pubMatch = html.match(/(?:property|name)="(?:article:published_time|date)"\s+content="([^"]+)"/);
         if (pubMatch) publishedAt = pubMatch[1];
       }
+
       return { ...meta, creator, publishedAt };
     } catch {
       return {
