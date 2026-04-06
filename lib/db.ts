@@ -200,6 +200,44 @@ export async function deleteCapture(id: string): Promise<void> {
   await db.delete("captures", id);
 }
 
+export async function clearProfileData(deviceId: string): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction(["tabs", "groups", "captures"], "readwrite");
+
+  // Delete tabs belonging to this device
+  const allTabs = await tx.objectStore("tabs").getAll();
+  const groupIds = new Set<string>();
+  const captureIds = new Set<string>();
+  for (const tab of allTabs) {
+    if (tab.deviceId === deviceId) {
+      groupIds.add(tab.groupId);
+      await tx.objectStore("tabs").delete(tab.id);
+    }
+  }
+
+  // Delete groups that only had tabs from this device
+  const remainingTabs = await tx.objectStore("tabs").getAll();
+  const usedGroupIds = new Set(remainingTabs.map((t) => t.groupId));
+  const allGroups = await tx.objectStore("groups").getAll();
+  for (const group of allGroups) {
+    if (groupIds.has(group.id) && !usedGroupIds.has(group.id)) {
+      captureIds.add(group.captureId);
+      await tx.objectStore("groups").delete(group.id);
+    }
+  }
+
+  // Delete captures that have no remaining groups
+  const remainingGroups = await tx.objectStore("groups").getAll();
+  const usedCaptureIds = new Set(remainingGroups.map((g) => g.captureId));
+  for (const captureId of captureIds) {
+    if (!usedCaptureIds.has(captureId)) {
+      await tx.objectStore("captures").delete(captureId);
+    }
+  }
+
+  await tx.done;
+}
+
 export async function clearAllData(): Promise<void> {
   const db = await getDB();
   const tx = db.transaction(["tabs", "groups", "captures"], "readwrite");

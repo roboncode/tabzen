@@ -8,7 +8,7 @@ import {
   importFromJson,
   downloadFile,
 } from "@/lib/export";
-import { clearAllData } from "@/lib/db";
+import { clearAllData, clearProfileData } from "@/lib/db";
 import { initSync, verifySync, checkConnection } from "@/lib/sync";
 import { sendMessage } from "@/lib/messages";
 import type { Settings } from "@/lib/types";
@@ -549,10 +549,10 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 class="px-3 py-2 text-sm bg-red-900/30 text-red-300 rounded-lg hover:bg-red-900/50 transition-colors"
                 onClick={() => setShowClearConfirm(true)}
               >
-                Clear All Data
+                Clear Data
               </button>
               <p class="text-xs text-muted-foreground mt-1.5">
-                Removes all saved tabs, groups, and captures from local storage
+                Clear tabs from this profile or all data
               </p>
             </div>
           </div>
@@ -560,18 +560,86 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       </Show>
 
       <Show when={showClearConfirm()}>
-        <ConfirmDialog
-          title="Clear all data"
-          message="Delete all saved tabs, groups, and captures? This cannot be undone."
-          confirmLabel="Clear Everything"
-          destructive
-          onConfirm={async () => {
-            await clearAllData();
-            setShowClearConfirm(false);
-            props.onClose();
-          }}
-          onCancel={() => setShowClearConfirm(false)}
-        />
+        {(() => {
+          const [confirming, setConfirming] = createSignal<"profile" | "all" | null>(null);
+
+          return (
+            <>
+              <Show when={!confirming()}>
+                <div
+                  class="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center transition-colors"
+                  onClick={() => setShowClearConfirm(false)}
+                >
+                  <div
+                    class="bg-card rounded-xl p-6 w-[400px] max-w-[90vw]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <h3 class="text-base font-semibold text-foreground mb-4">Clear Data</h3>
+                    <div class="space-y-3">
+                      <button
+                        class="w-full text-left bg-muted/30 rounded-lg p-4 hover:bg-muted/40 transition-colors"
+                        onClick={() => setConfirming("profile")}
+                      >
+                        <p class="text-sm font-medium text-foreground">Clear this profile's data</p>
+                        <p class="text-xs text-muted-foreground mt-1">
+                          Only removes tabs captured from "{settings()?.sourceLabel}". Data from other devices is kept.
+                        </p>
+                      </button>
+                      <button
+                        class="w-full text-left bg-red-500/10 rounded-lg p-4 hover:bg-red-500/15 transition-colors"
+                        onClick={() => setConfirming("all")}
+                      >
+                        <p class="text-sm font-medium text-red-300">Clear all data</p>
+                        <p class="text-xs text-muted-foreground mt-1">
+                          Removes all tabs, groups, and captures from every device. Cannot be undone.
+                        </p>
+                      </button>
+                    </div>
+                    <div class="mt-4">
+                      <button
+                        class="px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+                        onClick={() => setShowClearConfirm(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </Show>
+
+              <Show when={confirming() === "profile"}>
+                <ConfirmDialog
+                  title="Clear profile data"
+                  message={`Remove all tabs from "${settings()?.sourceLabel}"? Tabs from other devices will be kept.`}
+                  confirmLabel="Clear Profile"
+                  destructive
+                  onConfirm={async () => {
+                    const s = settings();
+                    if (s?.deviceId) await clearProfileData(s.deviceId);
+                    setShowClearConfirm(false);
+                    props.onClose();
+                  }}
+                  onCancel={() => setConfirming(null)}
+                />
+              </Show>
+
+              <Show when={confirming() === "all"}>
+                <ConfirmDialog
+                  title="Clear all data"
+                  message="Delete all tabs, groups, and captures from every device? This cannot be undone."
+                  confirmLabel="Clear Everything"
+                  destructive
+                  onConfirm={async () => {
+                    await clearAllData();
+                    setShowClearConfirm(false);
+                    props.onClose();
+                  }}
+                  onCancel={() => setConfirming(null)}
+                />
+              </Show>
+            </>
+          );
+        })()}
       </Show>
     </div>
   );
