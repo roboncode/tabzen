@@ -1,0 +1,11 @@
+{
+  "extends": "./.wxt/tsconfig.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "paths": {
+      "@tab-zen/shared": ["../../packages/shared/src/index.ts"],
+      "@/*": ["./*"]
+    }
+  }
+}
