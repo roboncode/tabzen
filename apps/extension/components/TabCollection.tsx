@@ -570,6 +570,10 @@ export default function TabCollection(props: TabCollectionProps) {
                   onBlockDomain={handleBlockDomain}
                   onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
                   onTagClick={handleTagClick}
+                  onExpandTab={(tab) => {
+                    const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${tab.id}`);
+                    window.open(detailUrl, "_blank");
+                  }}
                 />
               )}
             </For>
@@ -595,6 +599,10 @@ export default function TabCollection(props: TabCollectionProps) {
               onDelete={handleDelete}
               onRestore={handleRestore}
               onHardDelete={handleHardDelete}
+              onExpandTab={(tab) => {
+                const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${tab.id}`);
+                window.open(detailUrl, "_blank");
+              }}
               isTrash
             />
           </Show>
@@ -618,6 +626,10 @@ export default function TabCollection(props: TabCollectionProps) {
                       onArchive={handleArchive}
                       onDelete={handleDelete}
                       onBlockDomain={handleBlockDomain}
+                      onExpandTab={(tab) => {
+                        const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${tab.id}`);
+                        window.open(detailUrl, "_blank");
+                      }}
                     />
                   </Show>
                 );

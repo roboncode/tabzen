@@ -1,5 +1,5 @@
 import { Show, createMemo } from "solid-js";
-import { Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2 } from "lucide-solid";
+import { Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2, Maximize2 } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 import { extractCreator, getFaviconUrl } from "@/lib/domains";
 import Highlight from "./Highlight";
@@ -17,6 +17,7 @@ interface TabCardProps {
   onHardDelete?: (tab: Tab) => void;
   onSelectCreator?: (domain: string, creator: string) => void;
   onTagClick?: (tag: string) => void;
+  onExpand?: (tab: Tab) => void;
   isTrash?: boolean;
 }
 
@@ -149,6 +150,21 @@ export default function TabCard(props: TabCardProps) {
             </button>
           </Show>
         </div>
+        {/* Expand button - right side */}
+        <Show when={props.onExpand && !props.isTrash}>
+          <div class="absolute top-2 right-2">
+            <button
+              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-sky-500/80 transition-colors opacity-0 group-hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                props.onExpand?.(props.tab);
+              }}
+              title="Open detail page"
+            >
+              <Maximize2 size={14} />
+            </button>
+          </div>
+        </Show>
       </div>
 
       {/* Info below thumbnail */}
