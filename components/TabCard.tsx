@@ -40,6 +40,7 @@ export default function TabCard(props: TabCardProps) {
           <img
             src={props.tab.ogImage}
             alt=""
+            loading="lazy"
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
