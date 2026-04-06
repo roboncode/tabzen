@@ -309,6 +309,8 @@ export default defineBackground(() => {
         return handleAISearch(message.query);
       case "OPEN_TAB":
         return handleOpenTab(message.tabId);
+      case "GET_TRANSCRIPT":
+        return handleGetTranscript(message.tabId);
       case "SYNC_NOW":
         return handleSyncNow();
       case "QUICK_CAPTURE":
@@ -448,6 +450,58 @@ export default defineBackground(() => {
 
     const updated = await getTab(tabId);
     return { type: "TAB_OPENED", tab: updated! };
+  }
+
+  async function handleGetTranscript(tabId: string): Promise<MessageResponse> {
+    const tab = await getTab(tabId);
+    if (!tab) return { type: "ERROR", message: "Tab not found" } as MessageResponse;
+
+    // 1. Check if transcript is already stored locally on the tab record
+    if ((tab as any).transcript) {
+      return { type: "TRANSCRIPT", transcript: (tab as any).transcript } as MessageResponse;
+    }
+
+    // 2. Try extracting from open browser tab
+    const openTabs = await browser.tabs.query({ url: tab.url });
+    if (openTabs.length > 0 && openTabs[0].id) {
+      try {
+        const response = await browser.tabs.sendMessage(openTabs[0].id, { type: "GET_TRANSCRIPT" });
+        if (response?.transcript) {
+          // Store locally on the tab record
+          (tab as any).transcript = response.transcript;
+          await updateTab(tab.id, {
+            contentKey: `transcripts/${tab.id}`,
+            contentType: "transcript",
+            contentFetchedAt: new Date().toISOString(),
+          } as Partial<Tab>);
+          // Re-save with transcript data
+          const { addTab } = await import("@/lib/db");
+          await addTab({ ...tab, contentKey: `transcripts/${tab.id}`, contentType: "transcript", contentFetchedAt: new Date().toISOString() } as any);
+
+          // Push to R2 (best-effort)
+          const { storeTranscriptToApi } = await import("@/lib/content-api");
+          storeTranscriptToApi(tab.id, response.transcript).catch(() => {});
+
+          notifyDataChanged();
+          return { type: "TRANSCRIPT", transcript: response.transcript } as MessageResponse;
+        }
+      } catch {}
+    }
+
+    // 3. Fallback: content-youtube API
+    const { fetchTranscriptFromApi, storeTranscriptToApi } = await import("@/lib/content-api");
+    const segments = await fetchTranscriptFromApi(tab.url);
+    if (segments) {
+      (tab as any).transcript = segments;
+      const { addTab } = await import("@/lib/db");
+      await addTab({ ...tab, contentKey: `transcripts/${tab.id}`, contentType: "transcript", contentFetchedAt: new Date().toISOString() } as any);
+
+      storeTranscriptToApi(tab.id, segments).catch(() => {});
+      notifyDataChanged();
+      return { type: "TRANSCRIPT", transcript: segments } as MessageResponse;
+    }
+
+    return { type: "TRANSCRIPT", transcript: null } as MessageResponse;
   }
 
   async function handleSyncNow(): Promise<MessageResponse> {
