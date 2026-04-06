@@ -117,19 +117,21 @@ export default function GroupSection(props: GroupSectionProps) {
           <div class="grid grid-cols-1 @[480px]:grid-cols-2 @[768px]:grid-cols-3 @[1024px]:grid-cols-4 @[1400px]:grid-cols-5 gap-x-4 gap-y-6 px-4">
             <For each={props.tabs}>
               {(tab) => (
-                <TabCard
-                  tab={tab}
-                  searchQuery={props.searchQuery}
-                  onOpen={props.onOpenTab}
-                  onEditNotes={props.onEditNotes}
-                  onToggleStar={props.onToggleStar}
-                  onArchive={props.onArchive}
-                  onDelete={props.onDelete}
-                  onBlockDomain={props.onBlockDomain}
-                  onRestore={props.onRestore}
-                  onHardDelete={props.onHardDelete}
-                  isTrash={props.isTrash}
-                />
+                <div>
+                  <TabCard
+                    tab={tab}
+                    searchQuery={props.searchQuery}
+                    onOpen={props.onOpenTab}
+                    onEditNotes={props.onEditNotes}
+                    onToggleStar={props.onToggleStar}
+                    onArchive={props.onArchive}
+                    onDelete={props.onDelete}
+                    onBlockDomain={props.onBlockDomain}
+                    onRestore={props.onRestore}
+                    onHardDelete={props.onHardDelete}
+                    isTrash={props.isTrash}
+                  />
+                </div>
               )}
             </For>
           </div>

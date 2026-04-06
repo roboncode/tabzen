@@ -1,7 +1,7 @@
 export default defineContentScript({
   matches: ["<all_urls>"],
   main() {
-    browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    browser.runtime.onMessage.addListener(async (message, _sender, sendResponse) => {
       if (message.type === "GET_METADATA") {
         // --- Standard OG/meta tags ---
         const ogTitle =
@@ -189,6 +189,7 @@ export default defineContentScript({
           publishedAt,
         });
       }
+
       return true;
     });
   },

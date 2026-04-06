@@ -1,1 +1,1 @@
-export type { Tab, Group, Capture, SyncPayload } from "./types";
+export type { Tab, Group, Capture, SyncPayload, TranscriptSegment } from "./types";

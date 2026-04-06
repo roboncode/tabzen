@@ -14,6 +14,8 @@ import {
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate, shouldSkipUrl } from "@/lib/duplicates";
+import { isYouTubeWatchUrl } from "@/lib/youtube";
+import type { TranscriptSegment } from "@tab-zen/shared";
 import { aiSearch, generateTags } from "@/lib/ai";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
 import { encrypt, decrypt } from "@/lib/crypto";
@@ -309,6 +311,8 @@ export default defineBackground(() => {
         return handleAISearch(message.query);
       case "OPEN_TAB":
         return handleOpenTab(message.tabId);
+      case "GET_TRANSCRIPT":
+        return handleGetTranscript(message.tabId);
       case "SYNC_NOW":
         return handleSyncNow();
       case "QUICK_CAPTURE":
@@ -448,6 +452,63 @@ export default defineBackground(() => {
 
     const updated = await getTab(tabId);
     return { type: "TAB_OPENED", tab: updated! };
+  }
+
+  async function handleGetTranscript(tabId: string): Promise<MessageResponse> {
+    const tab = await getTab(tabId);
+    if (!tab) return { type: "ERROR", message: "Tab not found" } as MessageResponse;
+
+    // 1. Check if transcript is already stored locally on the tab record
+    if ((tab as any).transcript) {
+      return { type: "TRANSCRIPT", transcript: (tab as any).transcript } as MessageResponse;
+    }
+
+    // 2. Try extracting from open browser tab using executeScript
+    const openTabs = await browser.tabs.query({ url: tab.url });
+    if (openTabs.length > 0 && openTabs[0].id) {
+      try {
+        const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
+        const result = await extractYouTubeTranscript(openTabs[0].id, tab.url);
+        if (result?.hasTranscript) {
+          (tab as any).transcript = result.segments;
+          const { addTab } = await import("@/lib/db");
+          await addTab({
+            ...tab,
+            contentKey: `transcripts/${tab.id}`,
+            contentType: "transcript",
+            contentFetchedAt: new Date().toISOString(),
+          } as any);
+
+          const { storeTranscriptToApi } = await import("@/lib/content-api");
+          storeTranscriptToApi(tab.id, result.segments).catch(() => {});
+
+          notifyDataChanged();
+          return { type: "TRANSCRIPT", transcript: result.segments } as MessageResponse;
+        }
+      } catch (e) {
+        console.warn("[TabZen] executeScript transcript extraction failed:", e);
+      }
+    }
+
+    // 3. Fallback: content-youtube API (only if sync is configured, meaning we have a backend)
+    const settings = await getSettings();
+    const hasApi = settings.syncEnabled && (settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken);
+    if (!hasApi) {
+      return { type: "TRANSCRIPT", transcript: null } as MessageResponse;
+    }
+    const { fetchTranscriptFromApi, storeTranscriptToApi } = await import("@/lib/content-api");
+    const segments = await fetchTranscriptFromApi(tab.url);
+    if (segments) {
+      (tab as any).transcript = segments;
+      const { addTab } = await import("@/lib/db");
+      await addTab({ ...tab, contentKey: `transcripts/${tab.id}`, contentType: "transcript", contentFetchedAt: new Date().toISOString() } as any);
+
+      storeTranscriptToApi(tab.id, segments).catch(() => {});
+      notifyDataChanged();
+      return { type: "TRANSCRIPT", transcript: segments } as MessageResponse;
+    }
+
+    return { type: "TRANSCRIPT", transcript: null } as MessageResponse;
   }
 
   async function handleSyncNow(): Promise<MessageResponse> {
@@ -599,6 +660,9 @@ export default defineBackground(() => {
           starred: false,
           deletedAt: null,
           groupId: group.groupId,
+          contentKey: null,
+          contentType: null,
+          contentFetchedAt: null,
         };
         group.tabs.push(tab);
         return tab;
@@ -874,11 +938,28 @@ export default defineBackground(() => {
       return true;
     });
 
-    const tabsWithMeta: Tab[] = await Promise.all(
+    const tabsWithMeta: (Tab & { transcript?: any })[] = await Promise.all(
       newBrowserTabs.map(async (bt) => {
         const meta = await fetchMetadata(bt.id!, bt.url!);
-        return {
-          id: uuidv4(),
+        const tabId = uuidv4();
+
+        // Extract transcript for YouTube videos (best-effort per tab)
+        let transcriptSegments: TranscriptSegment[] | null = null;
+        if (isYouTubeWatchUrl(bt.url!)) {
+          try {
+            const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
+            const result = await extractYouTubeTranscript(bt.id!, bt.url!);
+            if (result?.hasTranscript) {
+              transcriptSegments = result.segments;
+            }
+          } catch (e) {
+            console.warn("[TabZen] Transcript extraction failed:", e);
+          }
+        }
+
+        const hasTranscript = transcriptSegments && transcriptSegments.length > 0;
+        const tab: Tab & { transcript?: any } = {
+          id: tabId,
           url: bt.url!,
           title: bt.title || "Untitled",
           favicon: bt.favIconUrl || "",
@@ -901,7 +982,14 @@ export default defineBackground(() => {
           starred: false,
           deletedAt: null,
           groupId: "",
+          contentKey: hasTranscript ? `transcripts/${tabId}` : null,
+          contentType: hasTranscript ? "transcript" : null,
+          contentFetchedAt: hasTranscript ? new Date().toISOString() : null,
         };
+        if (hasTranscript) {
+          (tab as any).transcript = transcriptSegments;
+        }
+        return tab;
       }),
     );
 
@@ -1032,9 +1120,26 @@ export default defineBackground(() => {
     const meta = await fetchMetadata(browserTabId, url);
     const captureId = uuidv4();
     const groupId = uuidv4();
+    const tabId = uuidv4();
 
-    const tab: Tab = {
-      id: uuidv4(),
+    // Extract transcript for YouTube videos
+    let transcriptSegments: TranscriptSegment[] | null = null;
+    if (isYouTubeWatchUrl(url)) {
+      try {
+        const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
+        const result = await extractYouTubeTranscript(browserTabId, url);
+        if (result?.hasTranscript) {
+          transcriptSegments = result.segments;
+        }
+      } catch (e) {
+        console.warn("[TabZen] Transcript extraction failed:", e);
+      }
+    }
+
+    const hasTranscript = transcriptSegments && transcriptSegments.length > 0;
+
+    const tab: Tab & { transcript?: any } = {
+      id: tabId,
       url,
       title,
       favicon,
@@ -1050,7 +1155,15 @@ export default defineBackground(() => {
       starred: false,
       deletedAt: null,
       groupId,
+      contentKey: hasTranscript ? `transcripts/${tabId}` : null,
+      contentType: hasTranscript ? "transcript" : null,
+      contentFetchedAt: hasTranscript ? new Date().toISOString() : null,
     };
+
+    // Store transcript on tab record for local access
+    if (hasTranscript) {
+      (tab as any).transcript = transcriptSegments;
+    }
 
     const group: Group = {
       id: groupId,
