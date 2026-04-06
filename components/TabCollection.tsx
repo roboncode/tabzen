@@ -346,7 +346,7 @@ export default function TabCollection(props: TabCollectionProps) {
               activeDomain={domainFilter()}
               activeCreator={creatorFilter()}
               onSelectDomain={(d) => { setDomainFilter(d); setCreatorFilter(null); }}
-              onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); setSidebarOpen(false); }}
+              onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); if (c) setSidebarOpen(false); }}
               totalCount={(allTabs() || []).filter((t) => !t.deletedAt && !t.archived).length}
             />
           </div>
