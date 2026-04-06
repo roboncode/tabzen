@@ -88,10 +88,46 @@ export default defineContentScript({
           }
         }
 
-        // --- Channel avatar extraction ---
+        // --- Channel avatar + URL extraction ---
+        let creatorUrl: string | null = null;
+
         if (hostname === "youtube.com") {
           creatorAvatar =
             (document.querySelector('#owner img.yt-img-shadow, #channel-thumbnail img, ytd-video-owner-renderer img') as HTMLImageElement)?.src || null;
+
+          // Extract channel URL (prefer /channel/ID which is stable)
+          const channelLink = document.querySelector('#owner a[href*="/channel/"], #channel-name a[href*="/channel/"], ytd-video-owner-renderer a[href*="/channel/"]') as HTMLAnchorElement;
+          if (channelLink?.href) {
+            creatorUrl = channelLink.href;
+          } else {
+            // Try any link to the channel (/@handle)
+            const handleLink = document.querySelector('#owner a[href*="/@"], #channel-name a[href*="/@"], ytd-video-owner-renderer a[href*="/@"]') as HTMLAnchorElement;
+            if (handleLink?.href) {
+              creatorUrl = handleLink.href;
+            }
+          }
+
+          // Fallback: parse from embedded JSON
+          if (!creatorUrl) {
+            try {
+              const scripts = document.querySelectorAll("script");
+              for (const script of scripts) {
+                const text = script.textContent || "";
+                // Look for channel ID
+                const channelIdMatch = text.match(/"channelId"\s*:\s*"(UC[^"]+)"/);
+                if (channelIdMatch) {
+                  creatorUrl = `https://www.youtube.com/channel/${channelIdMatch[1]}`;
+                  break;
+                }
+                // Or external channel URL
+                const extMatch = text.match(/"ownerProfileUrl"\s*:\s*"(https?:\/\/www\.youtube\.com\/[^"]+)"/);
+                if (extMatch) {
+                  creatorUrl = extMatch[1];
+                  break;
+                }
+              }
+            } catch {}
+          }
         }
         // Generic: look for author avatar in JSON-LD
         if (!creatorAvatar) {
@@ -115,14 +151,19 @@ export default defineContentScript({
             const match = window.location.pathname.match(/^\/([^/]+)/);
             if (match && !["p", "reel", "stories", "explore", "direct"].includes(match[1])) {
               creator = `@${match[1]}`;
+              creatorUrl = `https://www.${hostname}/${match[1]}`;
             }
           } else if (hostname === "tiktok.com") {
             const match = window.location.pathname.match(/^\/@([^/]+)/);
-            if (match) creator = `@${match[1]}`;
+            if (match) {
+              creator = `@${match[1]}`;
+              creatorUrl = `https://www.tiktok.com/@${match[1]}`;
+            }
           } else if (hostname === "twitter.com" || hostname === "x.com") {
             const match = window.location.pathname.match(/^\/([^/]+)/);
             if (match && !["home", "explore", "search", "notifications", "messages", "settings", "i"].includes(match[1])) {
               creator = `@${match[1]}`;
+              creatorUrl = `https://x.com/${match[1]}`;
             }
           }
         }
@@ -144,6 +185,7 @@ export default defineContentScript({
           metaDescription,
           creator,
           creatorAvatar,
+          creatorUrl,
           publishedAt,
         });
       }

@@ -40,18 +40,7 @@ export default function TabCard(props: TabCardProps) {
     return faviconSrc();
   };
 
-  const creatorUrl = () => {
-    const c = creator();
-    if (!c) return null;
-    const d = domain();
-    if (d === "youtube.com") return `https://www.youtube.com/@${c.replace(/^@/, "")}`;
-    if (d === "instagram.com") return `https://www.instagram.com/${c.replace(/^@/, "")}`;
-    if (d === "tiktok.com") return `https://www.tiktok.com/@${c.replace(/^@/, "")}`;
-    if (d === "twitter.com" || d === "x.com") return `https://x.com/${c.replace(/^@/, "")}`;
-    if (d === "twitch.tv") return `https://www.twitch.tv/${c}`;
-    if (d === "reddit.com") return `https://www.reddit.com/${c}`;
-    return null;
-  };
+  const creatorUrl = () => props.tab.creatorUrl || null;
 
   const formatTimeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();

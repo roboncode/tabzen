@@ -119,6 +119,7 @@ function makeTab(id: string, url: string, title: string): Tab {
     metaDescription: null,
     creator: null,
     creatorAvatar: null,
+    creatorUrl: null,
     publishedAt: null,
     notes: null,
     viewCount: 0,

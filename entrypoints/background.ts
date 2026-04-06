@@ -524,6 +524,7 @@ export default defineBackground(() => {
           metaDescription: null,
           creator: null,
           creatorAvatar: null,
+          creatorUrl: null,
           publishedAt: null,
           notes: null,
           viewCount: 0,
@@ -580,6 +581,7 @@ export default defineBackground(() => {
               if (meta.metaDescription) updates.metaDescription = meta.metaDescription;
               if (meta.creator) updates.creator = meta.creator;
               if (meta.creatorAvatar) updates.creatorAvatar = meta.creatorAvatar;
+              if (meta.creatorUrl) updates.creatorUrl = meta.creatorUrl;
               if (meta.publishedAt) updates.publishedAt = meta.publishedAt;
               if (Object.keys(updates).length > 0) {
                 await updateTab(tab.id, updates);
@@ -691,6 +693,7 @@ export default defineBackground(() => {
     metaDescription: string | null;
     creator: string | null;
     creatorAvatar: string | null;
+    creatorUrl: string | null;
     publishedAt: string | null;
   }> {
     try {
@@ -741,14 +744,20 @@ export default defineBackground(() => {
         if (pubMatch) publishedAt = pubMatch[1];
       }
 
-      // Creator avatar: YouTube channel thumbnail from JSON data
+      // Creator avatar + URL from HTML
       let creatorAvatar: string | null = null;
+      let creatorUrl: string | null = null;
       try {
         const avatarMatch = html.match(/"thumbnail":\{"thumbnails":\[.*?"url":"(https:\/\/yt3[^"]+)"/);
         if (avatarMatch) creatorAvatar = avatarMatch[1];
+        // Channel ID for stable URL
+        const channelIdMatch = html.match(/"channelId"\s*:\s*"(UC[^"]+)"/);
+        if (channelIdMatch) {
+          creatorUrl = `https://www.youtube.com/channel/${channelIdMatch[1]}`;
+        }
       } catch {}
 
-      return { ...meta, creator, creatorAvatar, publishedAt };
+      return { ...meta, creator, creatorAvatar, creatorUrl, publishedAt };
     } catch {
       return {
         ogTitle: null,
@@ -757,6 +766,7 @@ export default defineBackground(() => {
         metaDescription: null,
         creator: null,
         creatorAvatar: null,
+        creatorUrl: null,
         publishedAt: null,
       };
     }
@@ -769,6 +779,7 @@ export default defineBackground(() => {
     metaDescription: string | null;
     creator: string | null;
     creatorAvatar: string | null;
+    creatorUrl: string | null;
     publishedAt: string | null;
   }> {
     // Try content script first (works for tabs loaded after extension install)
@@ -823,6 +834,7 @@ export default defineBackground(() => {
           metaDescription: meta.metaDescription,
           creator: meta.creator || null,
           creatorAvatar: meta.creatorAvatar || null,
+          creatorUrl: meta.creatorUrl || null,
           publishedAt: meta.publishedAt || null,
           notes: null,
           viewCount: 0,

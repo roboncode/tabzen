@@ -9,6 +9,7 @@ export interface Tab {
   metaDescription: string | null;
   creator: string | null;
   creatorAvatar: string | null;
+  creatorUrl: string | null;
   publishedAt: string | null;
   notes: string | null;
   viewCount: number;
