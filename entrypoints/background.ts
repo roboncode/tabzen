@@ -597,8 +597,8 @@ export default defineBackground(() => {
           notifyDataChanged();
         }
 
-        // Pass 3: AI re-grouping (if API key configured)
-        if (settings.openRouterApiKey) {
+        // Pass 3: AI re-grouping (if enabled and API key configured)
+        if (settings.aiGrouping && settings.openRouterApiKey) {
           try {
             const enrichedTabs = await Promise.all(
               tabs.map(async (t) => (await getTab(t.id)) || t),
@@ -845,7 +845,7 @@ export default defineBackground(() => {
     );
 
     let aiGroups: { groupName: string; tabIds: string[] }[];
-    if (settings.openRouterApiKey && tabsWithMeta.length > 0) {
+    if (settings.aiGrouping && settings.openRouterApiKey && tabsWithMeta.length > 0) {
       try {
         aiGroups = await groupTabsWithAI(
           settings.openRouterApiKey,

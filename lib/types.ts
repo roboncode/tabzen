@@ -42,6 +42,7 @@ export interface Settings {
   sourceLabel: string;
   openRouterApiKey: string;
   aiModel: string;
+  aiGrouping: boolean;
   syncEnabled: boolean;
   syncToken: string | null;
   syncLocalToken: string | null;
@@ -58,6 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sourceLabel: "Chrome - Default",
   openRouterApiKey: "",
   aiModel: "openai/gpt-4o-mini",
+  aiGrouping: true,
   syncEnabled: false,
   syncToken: null,
   syncLocalToken: null,
