@@ -380,9 +380,16 @@ export default defineBackground(() => {
 
     const settings = await getSettings();
     if (settings.openMode === "current-tab") {
-      const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
-      if (activeTab?.id) {
-        await browser.tabs.update(activeTab.id, { url: tab.url });
+      // Find the active non-extension tab in the current window
+      const allTabs = await browser.tabs.query({ currentWindow: true });
+      const targetTab = allTabs.find(
+        (t) => t.active && t.url && !t.url.startsWith("chrome-extension://") && !t.url.startsWith("chrome://"),
+      ) || allTabs.find(
+        (t) => t.url && !t.url.startsWith("chrome-extension://") && !t.url.startsWith("chrome://"),
+      );
+
+      if (targetTab?.id) {
+        await browser.tabs.update(targetTab.id, { url: tab.url, active: true });
       } else {
         await browser.tabs.create({ url: tab.url });
       }
