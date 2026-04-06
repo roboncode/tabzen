@@ -624,7 +624,16 @@ export default defineBackground(() => {
       }
 
       // Pass 1: Instant save with basic data + domain grouping
-      const byDomain = new Map<string, { groupId: string; tabs: Tab[] }>();
+      // Reuse existing non-archived groups for the same domain
+      const existingGroups = await getAllGroups();
+      const byDomain = new Map<string, { groupId: string; tabs: Tab[]; isExisting: boolean }>();
+
+      // Pre-populate with existing groups
+      for (const g of existingGroups) {
+        if (!g.archived && !byDomain.has(g.name)) {
+          byDomain.set(g.name, { groupId: g.id, tabs: [], isExisting: true });
+        }
+      }
 
       const tabs: Tab[] = newBrowserTabs.map((bt) => {
         const domain = (() => {
@@ -633,7 +642,7 @@ export default defineBackground(() => {
         })();
 
         if (!byDomain.has(domain)) {
-          byDomain.set(domain, { groupId: uuidv4(), tabs: [] });
+          byDomain.set(domain, { groupId: uuidv4(), tabs: [], isExisting: false });
         }
         const group = byDomain.get(domain)!;
 
@@ -669,15 +678,16 @@ export default defineBackground(() => {
         return tab;
       });
 
-      const groups: Group[] = Array.from(byDomain.entries()).map(
-        ([domain, { groupId }], i) => ({
+      // Only create groups that don't already exist
+      const newGroups: Group[] = Array.from(byDomain.entries())
+        .filter(([, { isExisting, tabs }]) => !isExisting && tabs.length > 0)
+        .map(([domain, { groupId }], i) => ({
           id: groupId,
           name: domain,
           captureId,
           position: i,
           archived: false,
-        }),
-      );
+        }));
 
       const capture: Capture = {
         id: captureId,
@@ -687,12 +697,14 @@ export default defineBackground(() => {
       };
 
       await addCapture(capture);
-      await addGroups(groups);
+      if (newGroups.length > 0) {
+        await addGroups(newGroups);
+      }
       await addTabs(tabs);
       await updateBadge();
       notifyDataChanged();
 
-      console.log(`[TabZen] Quick capture: saved ${tabs.length} tabs in ${groups.length} groups`);
+      console.log(`[TabZen] Quick capture: saved ${tabs.length} tabs in ${newGroups.length} new groups (${byDomain.size - newGroups.length} reused)`);
 
       // Pass 2: Background enrichment (metadata + creator + publishedAt)
       (async () => {
@@ -1143,9 +1155,29 @@ export default defineBackground(() => {
     if (isDuplicate(url, existingUrls)) return;
 
     const meta = await fetchMetadata(browserTabId, url);
-    const captureId = uuidv4();
-    const groupId = uuidv4();
     const tabId = uuidv4();
+
+    // Try to find an existing non-archived group for this domain
+    const domain = (() => {
+      try { return new URL(url).hostname.replace("www.", ""); }
+      catch { return "Other"; }
+    })();
+
+    const existingGroups = await getAllGroups();
+    const existingGroup = existingGroups.find((g) => g.name === domain && !g.archived);
+
+    let groupId: string;
+    let captureId: string;
+
+    if (existingGroup) {
+      // Reuse existing group and its capture
+      groupId = existingGroup.id;
+      captureId = existingGroup.captureId;
+    } else {
+      // Create new group and capture
+      groupId = uuidv4();
+      captureId = uuidv4();
+    }
 
     // Extract transcript for YouTube videos
     let transcriptSegments: TranscriptSegment[] | null = null;
@@ -1190,23 +1222,26 @@ export default defineBackground(() => {
       (tab as any).transcript = transcriptSegments;
     }
 
-    const group: Group = {
-      id: groupId,
-      name: new URL(url).hostname.replace("www.", ""),
-      captureId,
-      position: 0,
-      archived: false,
-    };
+    if (!existingGroup) {
+      const group: Group = {
+        id: groupId,
+        name: domain,
+        captureId,
+        position: 0,
+        archived: false,
+      };
 
-    const capture: Capture = {
-      id: captureId,
-      capturedAt: new Date().toISOString(),
-      sourceLabel: settings.sourceLabel,
-      tabCount: 1,
-    };
+      const capture: Capture = {
+        id: captureId,
+        capturedAt: new Date().toISOString(),
+        sourceLabel: settings.sourceLabel,
+        tabCount: 1,
+      };
 
-    await addCapture(capture);
-    await addGroups([group]);
+      await addCapture(capture);
+      await addGroups([group]);
+    }
+
     await addTabs([tab]);
     notifyDataChanged();
   }
