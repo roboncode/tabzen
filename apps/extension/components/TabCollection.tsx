@@ -374,27 +374,23 @@ export default function TabCollection(props: TabCollectionProps) {
     }
   };
 
-  const isWide = () => !props.showExpandButton; // full page view
-
   return (
-    <div class="flex h-full bg-background text-foreground">
-      {/* Sidebar - persistent in full page, drawer in side panel */}
-      <Show when={isWide()}>
-        <div class="w-72 flex-shrink-0 h-full">
-          <AppSidebar
-            domains={domainIndex()}
-            activeDomain={domainFilter()}
-            activeCreator={creatorFilter()}
-            onSelectDomain={(d) => { setDomainFilter(d); setCreatorFilter(null); }}
-            onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
-            totalCount={(allTabs() || []).filter((t) => !t.deletedAt && !t.archived).length}
-          />
-        </div>
-      </Show>
+    <div class="flex h-full bg-background text-foreground @container">
+      {/* Sidebar - persistent when container is wide enough */}
+      <div class="hidden @[768px]:flex w-72 flex-shrink-0 h-full">
+        <AppSidebar
+          domains={domainIndex()}
+          activeDomain={domainFilter()}
+          activeCreator={creatorFilter()}
+          onSelectDomain={(d) => { setDomainFilter(d); setCreatorFilter(null); }}
+          onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
+          totalCount={(allTabs() || []).filter((t) => !t.deletedAt && !t.archived).length}
+        />
+      </div>
 
       {/* Sidebar drawer overlay for narrow views */}
-      <Show when={!isWide() && sidebarOpen()}>
-        <div class="fixed inset-0 z-40 flex">
+      <Show when={sidebarOpen()}>
+        <div class="fixed inset-0 z-40 flex @[768px]:hidden">
           <div class="w-64 h-full bg-background overflow-y-auto">
             <AppSidebar
               domains={domainIndex()}
@@ -414,15 +410,14 @@ export default function TabCollection(props: TabCollectionProps) {
         {/* Top Bar */}
         <div class="flex items-center justify-between px-4 py-3 bg-muted/30">
           <div class="flex items-center gap-2">
-            <Show when={!isWide()}>
-              <button
-                class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                onClick={() => setSidebarOpen(!sidebarOpen())}
-                title="Browse domains"
-              >
-                <Menu size={16} />
-              </button>
-            </Show>
+            {/* Hamburger - visible only when sidebar is hidden */}
+            <button
+              class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors @[768px]:hidden"
+              onClick={() => setSidebarOpen(!sidebarOpen())}
+              title="Browse domains"
+            >
+              <Menu size={16} />
+            </button>
             <h1 class="text-base font-semibold text-foreground">
               Tab Zen
               <Show when={domainFilter()}>
