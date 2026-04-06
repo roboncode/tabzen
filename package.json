@@ -4,14 +4,21 @@
   "scripts": {
     "dev": "nx run extension:dev",
     "dev:sync": "nx run sync-service:dev",
+    "dev:youtube": "nx run content-youtube:dev",
+    "dev:tiktok": "nx run content-tiktok:dev",
     "build": "nx run-many --target=build",
     "test": "nx run-many --target=test",
-    "deploy:sync": "nx run sync-service:deploy"
+    "deploy:sync": "nx run sync-service:deploy",
+    "deploy:youtube": "nx run content-youtube:workers:deploy",
+    "deploy:tiktok": "nx run content-tiktok:workers:deploy"
   },
   "devDependencies": {
     "nx": "^21.0.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "nx", "workerd", "sharp", "spawn-sync"]
+    "onlyBuiltDependencies": ["esbuild", "nx", "workerd", "sharp", "spawn-sync"],
+    "overrides": {
+      "vite": "^6.0.0"
+    }
   }
 }

@@ -1,0 +1,45 @@
+{
+  "name": "content-youtube",
+  "version": "1.0.0",
+  "description": "YouTube content extraction API",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "start": "NODE_ENV=production tsx src/index.ts",
+    "build": "tsc",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "workers:dev": "wrangler dev",
+    "workers:deploy": "wrangler deploy",
+    "workers:deploy:prod": "wrangler deploy --env production",
+    "workers:tail": "wrangler tail",
+    "workers:secrets": "bash scripts/setup-secrets.sh",
+    "workers:secret:put": "wrangler secret put"
+  },
+  "dependencies": {
+    "@hono/zod-openapi": "^1.1.4",
+    "@scalar/hono-api-reference": "^0.9.23",
+    "@tab-zen/content-types": "workspace:*",
+    "@t3-oss/env-core": "^0.13.8",
+    "axios": "^1.7.9",
+    "cheerio": "^1.0.0",
+    "hono": "^4.6.14",
+    "xml2js": "^0.6.2",
+    "youtube-transcript": "^1.2.1",
+    "youtube-transcript-plus": "^1.1.1",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251014.0",
+    "@types/node": "^22.10.2",
+    "@types/xml2js": "^0.4.14",
+    "dotenv": "^16.4.7",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.11",
+    "vite-node": "^2.1.8",
+    "vitest": "^2.1.8",
+    "wrangler": "^4.45.4"
+  }
+}
