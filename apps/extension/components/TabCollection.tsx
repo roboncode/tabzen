@@ -539,16 +539,16 @@ export default function TabCollection(props: TabCollectionProps) {
 
       {/* Collection - @container for responsive card grid */}
       <div class="flex-1 overflow-y-auto @container">
-        <Show when={(allTabs() || []).length > 0} fallback={<EmptyState />}>
+        <Show when={(allTabs() || []).filter((t) => !t.deletedAt).length > 0} fallback={<EmptyState />}>
           {/* Notes view */}
           <Show when={filter() === "notes"}>
             <Show
               when={filteredTabs().length > 0}
               fallback={
                 <div class="flex flex-col items-center justify-center py-20 px-4 text-center">
-                  <StickyNote size={40} class="text-muted-foreground/30 mb-4" />
-                  <p class="text-sm font-medium text-foreground mb-1">No notes yet</p>
-                  <p class="text-sm text-muted-foreground max-w-xs">Add notes to any tab to see them here</p>
+                  <div class="text-muted-foreground/40 mb-5"><StickyNote size={52} /></div>
+                  <h2 class="text-base font-semibold text-foreground mb-2">No notes yet</h2>
+                  <p class="text-sm text-muted-foreground max-w-xs leading-relaxed">Add notes to any tab to see them here.</p>
                 </div>
               }
             >
@@ -572,9 +572,9 @@ export default function TabCollection(props: TabCollectionProps) {
               when={filteredTabs().length > 0}
               fallback={
                 <div class="flex flex-col items-center justify-center py-20 px-4 text-center">
-                  <Calendar size={40} class="text-muted-foreground/30 mb-4" />
-                  <p class="text-sm font-medium text-foreground mb-1">No tabs saved yet</p>
-                  <p class="text-sm text-muted-foreground max-w-xs">Capture some tabs to see them organized by date</p>
+                  <div class="text-muted-foreground/40 mb-5"><Calendar size={52} /></div>
+                  <h2 class="text-base font-semibold text-foreground mb-2">No tabs saved yet</h2>
+                  <p class="text-sm text-muted-foreground max-w-xs leading-relaxed">Capture some tabs to see them organized by date.</p>
                 </div>
               }
             >
@@ -632,9 +632,9 @@ export default function TabCollection(props: TabCollectionProps) {
               when={filteredTabs().length > 0}
               fallback={
                 <div class="flex flex-col items-center justify-center py-20 px-4 text-center">
-                  <Trash2 size={40} class="text-muted-foreground/30 mb-4" />
-                  <p class="text-sm font-medium text-foreground mb-1">Trash is empty</p>
-                  <p class="text-sm text-muted-foreground max-w-xs">Deleted tabs will appear here</p>
+                  <div class="text-muted-foreground/40 mb-5"><Trash2 size={52} /></div>
+                  <h2 class="text-base font-semibold text-foreground mb-2">Trash is empty</h2>
+                  <p class="text-sm text-muted-foreground max-w-xs leading-relaxed">Deleted tabs will appear here.</p>
                 </div>
               }
             >
@@ -673,21 +673,21 @@ export default function TabCollection(props: TabCollectionProps) {
                 <div class="flex flex-col items-center justify-center py-20 px-4 text-center">
                   {filter() === "starred" ? (
                     <>
-                      <Star size={40} class="text-muted-foreground/30 mb-4" />
-                      <p class="text-sm font-medium text-foreground mb-1">No starred tabs</p>
-                      <p class="text-sm text-muted-foreground max-w-xs">Star tabs to quickly find them later</p>
+                      <div class="text-muted-foreground/40 mb-5"><Star size={52} /></div>
+                      <h2 class="text-base font-semibold text-foreground mb-2">No starred tabs</h2>
+                      <p class="text-sm text-muted-foreground max-w-xs leading-relaxed">Star tabs to quickly find them later.</p>
                     </>
                   ) : filter() === "archived" ? (
                     <>
-                      <Archive size={40} class="text-muted-foreground/30 mb-4" />
-                      <p class="text-sm font-medium text-foreground mb-1">No archived tabs</p>
-                      <p class="text-sm text-muted-foreground max-w-xs">Archive tabs to declutter without deleting</p>
+                      <div class="text-muted-foreground/40 mb-5"><Archive size={52} /></div>
+                      <h2 class="text-base font-semibold text-foreground mb-2">No archived tabs</h2>
+                      <p class="text-sm text-muted-foreground max-w-xs leading-relaxed">Archive tabs to declutter without deleting.</p>
                     </>
                   ) : (
                     <>
-                      <Inbox size={40} class="text-muted-foreground/30 mb-4" />
-                      <p class="text-sm font-medium text-foreground mb-1">No tabs to show</p>
-                      <p class="text-sm text-muted-foreground max-w-xs">Capture some tabs to get started</p>
+                      <div class="text-muted-foreground/40 mb-5"><Inbox size={52} /></div>
+                      <h2 class="text-base font-semibold text-foreground mb-2">No tabs to show</h2>
+                      <p class="text-sm text-muted-foreground max-w-xs leading-relaxed">Capture some tabs to get started.</p>
                     </>
                   )}
                 </div>
