@@ -1,5 +1,5 @@
 import { createSignal, createMemo, onMount, onCleanup, For, Show } from "solid-js";
-import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X, ExternalLink, ArrowRight } from "lucide-solid";
+import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X, ExternalLink, ArrowRight, Trash2 } from "lucide-solid";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
 import AppSidebar from "./AppSidebar";
 import type {
@@ -51,6 +51,7 @@ export default function TabCollection(props: TabCollectionProps) {
   const [searchResults, setSearchResults] = createSignal<Tab[] | null>(null);
   const [editingTab, setEditingTab] = createSignal<Tab | null>(null);
   const [deletingTab, setDeletingTab] = createSignal<Tab | null>(null);
+  const [emptyingTrash, setEmptyingTrash] = createSignal(false);
   const [capturePreview, setCapturePreview] =
     createSignal<CapturePreviewData | null>(null);
 
@@ -589,6 +590,22 @@ export default function TabCollection(props: TabCollectionProps) {
 
           {/* Trash view */}
           <Show when={filter() === "trash"}>
+            <div class="mx-4 mt-3 px-4 py-3 bg-muted/30 rounded-xl flex items-center justify-between gap-4">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <Trash2 size={15} class="text-muted-foreground/50 flex-shrink-0" />
+                <span class="text-sm text-muted-foreground">
+                  Items are automatically deleted after 30 days
+                </span>
+              </div>
+              <Show when={filteredTabs().length > 0}>
+                <button
+                  class="text-sm font-medium text-red-400/80 hover:text-red-400 transition-colors flex-shrink-0 px-3 py-1 rounded-full hover:bg-red-400/10"
+                  onClick={() => setEmptyingTrash(true)}
+                >
+                  Empty Now
+                </button>
+              </Show>
+            </div>
             <GroupSection
               group={{
                 id: "trash",
@@ -700,6 +717,26 @@ export default function TabCollection(props: TabCollectionProps) {
             />
           );
         }}
+      </Show>
+
+      {/* Empty Trash Confirmation */}
+      <Show when={emptyingTrash()}>
+        <ConfirmDialog
+          title="Empty trash"
+          message={`Permanently delete all ${filteredTabs().length} items in trash? This cannot be undone.`}
+          confirmLabel="Empty Trash"
+          destructive
+          onConfirm={async () => {
+            const trashTabs = (allTabs() || []).filter((t) => t.deletedAt);
+            for (const tab of trashTabs) {
+              await hardDeleteTab(tab.id);
+            }
+            setEmptyingTrash(false);
+            loadData();
+            notifyChanged();
+          }}
+          onCancel={() => setEmptyingTrash(false)}
+        />
       </Show>
       </div>
     </div>
