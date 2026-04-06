@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import type { Tab, Group, Capture, SyncPayload } from "@tab-zen/shared";
 
 type Bindings = {
   DB: D1Database;
@@ -75,7 +76,7 @@ app.post("/sync/push", async (c) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  const body = await c.req.json();
+  const body = await c.req.json() as SyncPayload;
   const now = new Date().toISOString();
 
   if (body.tabs?.length) {
@@ -185,39 +186,45 @@ app.post("/sync/pull", async (c) => {
     .bind(token, since)
     .all();
 
-  const mapTab = (row: any) => ({
-    id: row.id,
-    url: row.url,
-    title: row.title,
-    favicon: row.favicon,
-    ogTitle: row.og_title,
-    ogDescription: row.og_description,
-    ogImage: row.og_image,
-    metaDescription: row.meta_description,
-    notes: row.notes,
-    viewCount: row.view_count,
-    lastViewedAt: row.last_viewed_at,
-    capturedAt: row.captured_at,
-    sourceLabel: row.source_label,
-    deviceId: row.device_id || "",
+  const mapTab = (row: Record<string, unknown>): Tab => ({
+    id: row.id as string,
+    url: row.url as string,
+    title: row.title as string,
+    favicon: row.favicon as string,
+    ogTitle: row.og_title as string | null,
+    ogDescription: row.og_description as string | null,
+    ogImage: row.og_image as string | null,
+    metaDescription: row.meta_description as string | null,
+    creator: row.creator as string | null,
+    creatorAvatar: row.creator_avatar as string | null,
+    creatorUrl: row.creator_url as string | null,
+    publishedAt: row.published_at as string | null,
+    tags: row.tags ? JSON.parse(row.tags as string) : [],
+    notes: row.notes as string | null,
+    viewCount: row.view_count as number,
+    lastViewedAt: row.last_viewed_at as string | null,
+    capturedAt: row.captured_at as string,
+    sourceLabel: row.source_label as string,
+    deviceId: (row.device_id as string) || "",
     archived: !!row.archived,
     starred: !!row.starred,
-    groupId: row.group_id,
+    deletedAt: row.deleted_at as string | null,
+    groupId: row.group_id as string,
   });
 
-  const mapGroup = (row: any) => ({
-    id: row.id,
-    name: row.name,
-    captureId: row.capture_id,
-    position: row.position,
+  const mapGroup = (row: Record<string, unknown>): Group => ({
+    id: row.id as string,
+    name: row.name as string,
+    captureId: row.capture_id as string,
+    position: row.position as number,
     archived: !!row.archived,
   });
 
-  const mapCapture = (row: any) => ({
-    id: row.id,
-    capturedAt: row.captured_at,
-    sourceLabel: row.source_label,
-    tabCount: row.tab_count,
+  const mapCapture = (row: Record<string, unknown>): Capture => ({
+    id: row.id as string,
+    capturedAt: row.captured_at as string,
+    sourceLabel: row.source_label as string,
+    tabCount: row.tab_count as number,
   });
 
   // Pull settings
@@ -225,16 +232,18 @@ app.post("/sync/pull", async (c) => {
     "SELECT * FROM settings WHERE sync_token = ?",
   ).bind(token).first();
 
-  return c.json({
+  const result: SyncPayload = {
     tabs: tabs.results.map(mapTab),
     groups: groups.results.map(mapGroup),
     captures: captures.results.map(mapCapture),
     settings: settingsRow ? {
-      aiModel: settingsRow.ai_model,
-      encryptedApiKey: settingsRow.encrypted_api_key,
-    } : null,
+      aiModel: settingsRow.ai_model as string,
+      encryptedApiKey: settingsRow.encrypted_api_key as string | null,
+    } : undefined,
     lastSyncedAt: new Date().toISOString(),
-  });
+  };
+
+  return c.json(result);
 });
 
 export default app;
