@@ -253,6 +253,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   await save({ [tokenKey()]: token, syncEnabled: true });
                   const valid = await verifySync();
                   if (valid) {
+                    await save({ syncError: null });
                     setSyncStatus("Connected! Syncing will start automatically.");
                   } else {
                     setSyncStatus("Invalid token or server unreachable.");
@@ -282,7 +283,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   setSyncStatus(null);
                   try {
                     const token = await initSync();
-                    await save({ [tokenKey()]: token, syncEnabled: true });
+                    await save({ [tokenKey()]: token, syncEnabled: true, syncError: null });
                     setSyncStatus("Token generated!");
                   } catch (e) {
                     setConnected(false);

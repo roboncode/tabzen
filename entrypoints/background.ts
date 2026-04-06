@@ -43,6 +43,7 @@ export default defineBackground(() => {
   async function isSyncActive(): Promise<boolean> {
     const settings = await getSettings();
     if (!settings.syncEnabled) return false;
+    if (settings.syncError) return false; // Don't retry after auth failure
     const token = settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken;
     return !!token;
   }
