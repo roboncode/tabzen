@@ -391,7 +391,7 @@ export default function TabCollection(props: TabCollectionProps) {
   return (
     <div class="flex h-full bg-background text-foreground @container">
       {/* Sidebar - persistent when container is wide enough */}
-      <div class="hidden @[768px]:flex w-72 flex-shrink-0 h-full">
+      <div class="hidden @[768px]:block w-72 flex-shrink-0 h-full">
         <AppSidebar
           domains={domainIndex()}
           activeDomain={domainFilter()}
