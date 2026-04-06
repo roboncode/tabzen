@@ -339,18 +339,18 @@ export default function TabCollection(props: TabCollectionProps) {
 
       {/* Sidebar drawer overlay for narrow views */}
       <Show when={!isWide() && sidebarOpen()}>
-        <div class="fixed inset-0 z-40 flex" onClick={() => setSidebarOpen(false)}>
-          <div class="w-64 h-full bg-background" onClick={(e) => e.stopPropagation()}>
+        <div class="fixed inset-0 z-40 flex">
+          <div class="w-64 h-full bg-background overflow-y-auto">
             <AppSidebar
               domains={domainIndex()}
               activeDomain={domainFilter()}
               activeCreator={creatorFilter()}
-              onSelectDomain={(d) => { setDomainFilter(d); setCreatorFilter(null); setSidebarOpen(false); }}
+              onSelectDomain={(d) => { setDomainFilter(d); setCreatorFilter(null); }}
               onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); setSidebarOpen(false); }}
               totalCount={(allTabs() || []).filter((t) => !t.deletedAt && !t.archived).length}
             />
           </div>
-          <div class="flex-1 bg-black/60" />
+          <div class="flex-1 bg-black/60" onClick={() => setSidebarOpen(false)} />
         </div>
       </Show>
 

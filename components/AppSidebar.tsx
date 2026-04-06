@@ -62,7 +62,9 @@ export default function AppSidebar(props: AppSidebarProps) {
                         : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
                     }`}
                     onClick={() => {
-                      if (hasSocialCreators()) toggleExpand(domainInfo.domain);
+                      if (hasSocialCreators()) {
+                        toggleExpand(domainInfo.domain);
+                      }
                       props.onSelectDomain(domainInfo.domain);
                       props.onSelectCreator(domainInfo.domain, null);
                     }}
