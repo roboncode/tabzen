@@ -55,31 +55,23 @@ export default function AppSidebar(props: AppSidebarProps) {
 
               return (
                 <div>
-                  <div class="flex items-center">
-                    {/* Expand toggle for social platforms with creators */}
-                    <Show
-                      when={hasSocialCreators()}
-                      fallback={<div class="w-5" />}
-                    >
-                      <button
-                        class="w-5 flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground"
-                        onClick={() => toggleExpand(domainInfo.domain)}
-                      >
+                  <button
+                    class={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
+                      isActive() && !props.activeCreator
+                        ? "bg-muted/50 text-foreground"
+                        : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+                    }`}
+                    onClick={() => {
+                      if (hasSocialCreators()) toggleExpand(domainInfo.domain);
+                      props.onSelectDomain(domainInfo.domain);
+                      props.onSelectCreator(domainInfo.domain, null);
+                    }}
+                  >
+                    <Show when={hasSocialCreators()} fallback={<div class="w-3" />}>
+                      <span class="w-3 flex items-center justify-center text-muted-foreground/50 flex-shrink-0">
                         {isExpanded() ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                      </button>
+                      </span>
                     </Show>
-
-                    <button
-                      class={`flex-1 flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-sm transition-colors ${
-                        isActive() && !props.activeCreator
-                          ? "bg-muted/50 text-foreground"
-                          : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
-                      }`}
-                      onClick={() => {
-                        props.onSelectDomain(domainInfo.domain);
-                        props.onSelectCreator(domainInfo.domain, null);
-                      }}
-                    >
                       {(() => {
                         const src = domainInfo.favicon && !domainInfo.favicon.startsWith("chrome://")
                           ? domainInfo.favicon
@@ -88,8 +80,7 @@ export default function AppSidebar(props: AppSidebarProps) {
                       })()}
                       <span class="flex-1 text-left truncate">{domainInfo.domain}</span>
                       <span class="text-xs text-muted-foreground/60">{domainInfo.count}</span>
-                    </button>
-                  </div>
+                  </button>
 
                   {/* Creators (expanded) */}
                   <Show when={hasSocialCreators() && isExpanded()}>
