@@ -39,7 +39,9 @@ export default function NotesEditor(props: NotesEditorProps) {
     setTimeout(() => props.onClose(), 200);
   };
 
-  const onBackdropClick = (e: MouseEvent) => {
+  const onBackdropMouseDown = (e: MouseEvent) => {
+    // Only close if the mousedown started on the backdrop itself,
+    // not if the user was selecting text inside and dragged out
     if (e.target === e.currentTarget) {
       animateClose();
     }
@@ -72,7 +74,7 @@ export default function NotesEditor(props: NotesEditorProps) {
   return (
     <div
       class={`fixed inset-0 z-50 transition-colors duration-200 ${visible() ? "bg-black/60" : "bg-black/0"}`}
-      onClick={onBackdropClick}
+      onMouseDown={onBackdropMouseDown}
     >
       <Show when={narrow}>
         {/* Bottom sheet */}
