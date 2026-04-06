@@ -18,12 +18,12 @@ const MIGRATIONS: Record<number, Migration> = {
     aiGrouping: s.aiGrouping ?? DEFAULT_SETTINGS.aiGrouping,
     deviceId: s.deviceId || DEFAULT_SETTINGS.deviceId,
   }),
-  // Future example:
-  // 2: (s) => ({
-  //   ...s,
-  //   settingsVersion: 2,
-  //   newField: s.newField ?? "default value",
-  // }),
+  2: (s) => ({
+    ...s,
+    settingsVersion: 2,
+    // Force default blocked domains for users who got empty list
+    blockedDomains: s.blockedDomains?.length ? s.blockedDomains : DEFAULT_SETTINGS.blockedDomains,
+  }),
 };
 
 function migrateSettings(settings: Settings): Settings {
