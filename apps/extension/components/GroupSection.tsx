@@ -1,12 +1,8 @@
 import { createSignal, For, Show } from "solid-js";
 import { ChevronRight, ChevronDown } from "lucide-solid";
 import type { Tab, Group } from "@/lib/types";
-import type { TranscriptSegment } from "@tab-zen/shared";
-import { isYouTubeWatchUrl } from "@/lib/youtube";
-import { sendMessage } from "@/lib/messages";
 import TabCard from "./TabCard";
 import TabRow from "./TabRow";
-import TranscriptViewer from "./TranscriptViewer";
 
 interface GroupSectionProps {
   group: Group;
@@ -31,32 +27,6 @@ export default function GroupSection(props: GroupSectionProps) {
   const [collapsed, setCollapsed] = createSignal(false);
   const [editing, setEditing] = createSignal(false);
   let inputRef: HTMLInputElement | undefined;
-
-  const [transcriptTab, setTranscriptTab] = createSignal<string | null>(null);
-  const [transcriptSegments, setTranscriptSegments] = createSignal<TranscriptSegment[] | null>(null);
-  const [transcriptLoading, setTranscriptLoading] = createSignal<string | null>(null);
-
-  async function handleTranscript(tab: Tab) {
-    // Toggle off if already showing
-    if (transcriptTab() === tab.id) {
-      setTranscriptTab(null);
-      setTranscriptSegments(null);
-      return;
-    }
-
-    setTranscriptLoading(tab.id);
-    try {
-      const response = await sendMessage({ type: "GET_TRANSCRIPT", tabId: tab.id });
-      if (response.type === "TRANSCRIPT" && response.transcript) {
-        setTranscriptTab(tab.id);
-        setTranscriptSegments(response.transcript);
-      }
-    } catch (e) {
-      console.error("Failed to get transcript:", e);
-    } finally {
-      setTranscriptLoading(null);
-    }
-  }
 
   const captureDate = () => {
     const tab = props.tabs[0];
@@ -159,17 +129,8 @@ export default function GroupSection(props: GroupSectionProps) {
                     onBlockDomain={props.onBlockDomain}
                     onRestore={props.onRestore}
                     onHardDelete={props.onHardDelete}
-                    onTranscript={handleTranscript}
-                    transcriptLoading={transcriptLoading() === tab.id}
                     isTrash={props.isTrash}
                   />
-                  <Show when={transcriptTab() === tab.id && transcriptSegments()}>
-                    <TranscriptViewer
-                      segments={transcriptSegments()!}
-                      videoUrl={tab.url}
-                      onClose={() => { setTranscriptTab(null); setTranscriptSegments(null); }}
-                    />
-                  </Show>
                 </div>
               )}
             </For>
