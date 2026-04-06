@@ -33,8 +33,8 @@ export default function TabCard(props: TabCardProps) {
 
   const creator = () => extractCreator(props.tab);
 
-  const timeAgo = () => {
-    const diff = Date.now() - new Date(props.tab.capturedAt).getTime();
+  const formatTimeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return "just now";
     if (mins < 60) return `${mins}m ago`;
@@ -45,7 +45,14 @@ export default function TabCard(props: TabCardProps) {
     const weeks = Math.floor(days / 7);
     if (weeks < 5) return `${weeks}w ago`;
     const months = Math.floor(days / 30);
-    return `${months}mo ago`;
+    if (months < 12) return `${months}mo ago`;
+    const years = Math.floor(months / 12);
+    return `${years}y ago`;
+  };
+
+  const timeAgo = () => {
+    if (props.tab.publishedAt) return formatTimeAgo(props.tab.publishedAt);
+    return formatTimeAgo(props.tab.capturedAt);
   };
 
   return (

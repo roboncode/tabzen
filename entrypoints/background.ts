@@ -518,6 +518,7 @@ export default defineBackground(() => {
     ogImage: string | null;
     metaDescription: string | null;
     creator: string | null;
+    publishedAt: string | null;
   }> {
     try {
       const response = await fetch(url, {
@@ -529,16 +530,23 @@ export default defineBackground(() => {
       if (!meta.ogImage) {
         meta.ogImage = getYoutubeThumbnail(url);
       }
-      // Try to extract creator from HTML for YouTube
       let creator: string | null = null;
+      let publishedAt: string | null = null;
       try {
         const domain = new URL(url).hostname.replace("www.", "");
         if (domain === "youtube.com") {
-          const authorMatch = html.match(/"author":"([^"]+)"/);
+          const authorMatch = html.match(/"(?:author|ownerChannelName)"\s*:\s*"([^"]+)"/);
           if (authorMatch) creator = authorMatch[1];
+          const dateMatch = html.match(/"(?:publishDate|uploadDate)"\s*:\s*"([^"]+)"/);
+          if (dateMatch) publishedAt = dateMatch[1];
         }
       } catch {}
-      return { ...meta, creator };
+      // Generic publish date
+      if (!publishedAt) {
+        const pubMatch = html.match(/property="article:published_time"\s+content="([^"]+)"/);
+        if (pubMatch) publishedAt = pubMatch[1];
+      }
+      return { ...meta, creator, publishedAt };
     } catch {
       return {
         ogTitle: null,
@@ -546,6 +554,7 @@ export default defineBackground(() => {
         ogImage: getYoutubeThumbnail(url),
         metaDescription: null,
         creator: null,
+        publishedAt: null,
       };
     }
   }
@@ -556,6 +565,7 @@ export default defineBackground(() => {
     ogImage: string | null;
     metaDescription: string | null;
     creator: string | null;
+    publishedAt: string | null;
   }> {
     // Try content script first (works for tabs loaded after extension install)
     try {
@@ -610,6 +620,7 @@ export default defineBackground(() => {
           ogImage: meta.ogImage,
           metaDescription: meta.metaDescription,
           creator: meta.creator || null,
+          publishedAt: meta.publishedAt || null,
           notes: null,
           viewCount: 0,
           lastViewedAt: null,
