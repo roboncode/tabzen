@@ -64,9 +64,12 @@ export default defineBackground(() => {
       const msg = String(e);
       console.warn("[TabZen] Sync push failed:", msg);
       if (msg.includes("401")) {
+        await updateSettings({ syncError: "Sync token is invalid or expired. Reconnect in Settings." });
+        browser.action.setBadgeText({ text: "!" });
+        browser.action.setBadgeBackgroundColor({ color: "#ef4444" });
         browser.runtime.sendMessage({
           type: "SYNC_ERROR",
-          message: "Sync token is invalid or expired. Please reconnect in Settings.",
+          message: "Sync token is invalid or expired. Reconnect in Settings.",
         }).catch(() => {});
       }
     }
@@ -103,9 +106,12 @@ export default defineBackground(() => {
       const msg = String(e);
       console.warn("[TabZen] Sync pull failed:", msg);
       if (msg.includes("401")) {
+        await updateSettings({ syncError: "Sync token is invalid or expired. Reconnect in Settings." });
+        browser.action.setBadgeText({ text: "!" });
+        browser.action.setBadgeBackgroundColor({ color: "#ef4444" });
         browser.runtime.sendMessage({
           type: "SYNC_ERROR",
-          message: "Sync token is invalid or expired. Please reconnect in Settings.",
+          message: "Sync token is invalid or expired. Reconnect in Settings.",
         }).catch(() => {});
       }
     }

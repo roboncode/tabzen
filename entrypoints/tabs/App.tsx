@@ -27,7 +27,7 @@ export default function App() {
         />
       </div>
       <Show when={showSettings()}>
-        <div class="w-[480px] h-screen flex-shrink-0 border-l border-muted/30 overflow-hidden">
+        <div class="w-[480px] h-screen flex-shrink-0 ml-1 bg-muted/10 overflow-hidden">
           <SettingsPanel onClose={() => setShowSettings(false)} />
         </div>
       </Show>

@@ -65,7 +65,10 @@ export default function TabCollection(props: TabCollectionProps) {
 
   // Listen for data changes from background worker
   onMount(() => {
-    getSettings().then((s) => setOpenMode(s.openMode || "new-tab"));
+    getSettings().then((s) => {
+      setOpenMode(s.openMode || "new-tab");
+      if (s.syncError) setSyncError(s.syncError);
+    });
 
     const listener = (message: any) => {
       if (message.type === "DATA_CHANGED") {
@@ -460,7 +463,7 @@ export default function TabCollection(props: TabCollectionProps) {
             </button>
             <button
               class="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => setSyncError(null)}
+              onClick={() => { setSyncError(null); updateSettings({ syncError: null }); }}
             >
               Dismiss
             </button>

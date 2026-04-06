@@ -52,6 +52,7 @@ export interface Settings {
   syncEnv: "local" | "remote";
   blockedDomains: string[];
   openMode: "new-tab" | "current-tab";
+  syncError: string | null;
   viewMode: "cards" | "rows";
   activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates" | "trash";
 }
@@ -68,6 +69,7 @@ export const DEFAULT_SETTINGS: Settings = {
   syncLocalUrl: "http://localhost:8787",
   syncEnv: "local",
   openMode: "new-tab",
+  syncError: null,
   blockedDomains: [
     // Search engines
     "google.com",
