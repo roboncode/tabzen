@@ -590,7 +590,7 @@ export default function TabCollection(props: TabCollectionProps) {
 
           {/* Trash view */}
           <Show when={filter() === "trash"}>
-            <div class="mx-4 mt-3 px-4 py-3 bg-muted/30 rounded-xl flex items-center justify-between gap-4">
+            <div class="mx-4 mt-3 mb-4 px-4 py-3 bg-muted/30 rounded-xl flex items-center justify-between gap-4">
               <div class="flex items-center gap-2.5 min-w-0">
                 <Trash2 size={15} class="text-muted-foreground/50 flex-shrink-0" />
                 <span class="text-sm text-muted-foreground">
