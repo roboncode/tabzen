@@ -449,6 +449,7 @@ export default defineBackground(() => {
       viewCount: tab.viewCount + 1,
       lastViewedAt: new Date().toISOString(),
     });
+    notifyDataChanged();
 
     const updated = await getTab(tabId);
     return { type: "TAB_OPENED", tab: updated! };

@@ -273,6 +273,11 @@ export default function TabCollection(props: TabCollectionProps) {
     }
   };
 
+  /** Notify other views that data changed */
+  const notifyChanged = () => {
+    browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
+  };
+
   const handleOpenTab = async (tab: Tab) => {
     await sendMessage({ type: "OPEN_TAB", tabId: tab.id });
     patchTab(tab.id, { viewCount: tab.viewCount + 1, lastViewedAt: new Date().toISOString() });
@@ -281,28 +286,33 @@ export default function TabCollection(props: TabCollectionProps) {
   const handleSaveNotes = async (tabId: string, notes: string) => {
     await updateTab(tabId, { notes: notes || null });
     patchTab(tabId, { notes: notes || null });
+    notifyChanged();
   };
 
   const handleToggleStar = async (tab: Tab) => {
     const starred = !tab.starred;
     await updateTab(tab.id, { starred });
     patchTab(tab.id, { starred });
+    notifyChanged();
   };
 
   const handleArchive = async (tab: Tab) => {
     const archived = !tab.archived;
     await updateTab(tab.id, { archived });
     patchTab(tab.id, { archived });
+    notifyChanged();
   };
 
   const handleDelete = async (tab: Tab) => {
     await softDeleteTab(tab.id);
     patchTab(tab.id, { deletedAt: new Date().toISOString() });
+    notifyChanged();
   };
 
   const handleRestore = async (tab: Tab) => {
     await restoreTab(tab.id);
     patchTab(tab.id, { deletedAt: null });
+    notifyChanged();
   };
 
   const handleHardDelete = (tab: Tab) => {
@@ -328,6 +338,7 @@ export default function TabCollection(props: TabCollectionProps) {
         if (!blocked.includes(domain)) {
           blocked.push(domain);
           await updateSettings({ blockedDomains: blocked });
+          notifyChanged();
         }
       }
       setBlockingTab(null);
@@ -340,6 +351,7 @@ export default function TabCollection(props: TabCollectionProps) {
       await hardDeleteTab(tab.id);
       setDeletingTab(null);
       removeTab(tab.id);
+      notifyChanged();
     }
   };
 
@@ -348,6 +360,7 @@ export default function TabCollection(props: TabCollectionProps) {
     setAllGroups((prev) =>
       prev.map((g) => (g.id === group.id ? { ...g, name: newName } : g)),
     );
+    notifyChanged();
   };
 
   const handleConfirmCapture = async () => {

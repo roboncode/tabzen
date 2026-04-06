@@ -30,11 +30,16 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [aiTestResult, setAiTestResult] = createSignal<{ ok: boolean; message: string } | null>(null);
   const [aiTesting, setAiTesting] = createSignal(false);
 
+  const notifyChanged = () => {
+    browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
+  };
+
   const save = async (updates: Partial<Settings>) => {
     setSaving(true);
     await updateSettings(updates);
     setRefreshKey((k) => k + 1);
     setSaving(false);
+    notifyChanged();
   };
 
   const handleExportJson = async () => {
@@ -639,6 +644,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   onConfirm={async () => {
                     const s = settings();
                     if (s?.deviceId) await clearProfileData(s.deviceId);
+                    notifyChanged();
                     setShowClearConfirm(false);
                     props.onClose();
                   }}
@@ -654,6 +660,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   destructive
                   onConfirm={async () => {
                     await clearAllData();
+                    notifyChanged();
                     setShowClearConfirm(false);
                     props.onClose();
                   }}
