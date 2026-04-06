@@ -44,6 +44,7 @@ export default function TabCollection(props: TabCollectionProps) {
   const [creatorFilter, setCreatorFilter] = createSignal<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
   const [openMode, setOpenMode] = createSignal<"new-tab" | "current-tab">("new-tab");
+  let searchBarApi: { setSearch: (q: string) => void } | undefined;
   const [searchQuery, setSearchQuery] = createSignal<string>("");
   const [searchResults, setSearchResults] = createSignal<Tab[] | null>(null);
   const [editingTab, setEditingTab] = createSignal<Tab | null>(null);
@@ -217,8 +218,7 @@ export default function TabCollection(props: TabCollectionProps) {
   });
 
   const handleTagClick = (tag: string) => {
-    const query = `#${tag}`;
-    handleSearch(query);
+    searchBarApi?.setSearch(`#${tag}`);
   };
 
   const handleSearch = async (query: string) => {
@@ -443,7 +443,12 @@ export default function TabCollection(props: TabCollectionProps) {
           </div>
         </div>
 
-      <SearchBar onSearch={handleSearch} onAISearch={handleAISearch} value={searchQuery()} tags={tagIndex()} />
+      <SearchBar
+        onSearch={handleSearch}
+        onAISearch={handleAISearch}
+        tags={tagIndex()}
+        ref={(api) => { searchBarApi = api; }}
+      />
       <div class="flex items-center gap-2 px-4 pb-4">
         <div class="flex-1 overflow-x-auto scrollbar-hide">
           <FilterPills active={filter()} onChange={setFilter} />

@@ -1,25 +1,28 @@
-import { createSignal, createMemo, createEffect, For, Show } from "solid-js";
+import { createSignal, createMemo, For, Show } from "solid-js";
 import { Search, X } from "lucide-solid";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
   onAISearch: (query: string) => void;
   placeholder?: string;
-  value?: string;
   tags?: { tag: string; count: number }[];
+  ref?: (api: { setSearch: (q: string) => void }) => void;
 }
 
 export default function SearchBar(props: SearchBarProps) {
-  const [query, setQuery] = createSignal(props.value || "");
+  const [query, setQuery] = createSignal("");
   const [showSuggestions, setShowSuggestions] = createSignal(false);
   const [selectedIndex, setSelectedIndex] = createSignal(-1);
   let debounceTimer: ReturnType<typeof setTimeout>;
   let inputRef: HTMLInputElement | undefined;
 
-  // Sync external value (SolidJS: track prop reactively)
-  createEffect(() => {
-    const v = props.value;
-    if (v !== undefined && v !== query()) setQuery(v);
+  // Expose API for parent to set search externally (e.g., tag click)
+  props.ref?.({
+    setSearch: (q: string) => {
+      setQuery(q);
+      setShowSuggestions(false);
+      props.onSearch(q);
+    },
   });
 
   // Memoize suggestions so it only recomputes when query or tags change
