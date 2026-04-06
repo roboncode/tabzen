@@ -182,14 +182,15 @@ export default function TabCollection(props: TabCollectionProps) {
   };
 
   const handleSearch = async (query: string) => {
-    setSearchQuery(query);
     if (!query.trim()) {
+      setSearchQuery("");
       setSearchResults(null);
       return;
     }
     const response = await sendMessage({ type: "SEARCH_TABS", query });
     if (response.type === "SEARCH_RESULTS") {
       setSearchResults(response.tabs);
+      setSearchQuery(query);
     }
   };
 
