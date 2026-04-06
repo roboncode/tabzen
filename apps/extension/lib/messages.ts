@@ -9,6 +9,7 @@ export type MessageRequest =
   | { type: "AI_SEARCH"; query: string }
   | { type: "OPEN_TAB"; tabId: string }
   | { type: "GET_METADATA"; url: string }
+  | { type: "GET_TRANSCRIPT"; tabId: string }
   | { type: "SYNC_NOW" }
   | { type: "QUICK_CAPTURE" };
 
@@ -18,6 +19,7 @@ export type MessageResponse =
   | { type: "SEARCH_RESULTS"; tabs: Tab[] }
   | { type: "TAB_OPENED"; tab: Tab }
   | { type: "METADATA"; ogTitle: string | null; ogDescription: string | null; ogImage: string | null; metaDescription: string | null }
+  | { type: "TRANSCRIPT"; transcript: { text: string; startMs: number; durationMs: number }[] | null }
   | { type: "ERROR"; message: string }
   | { type: "SUCCESS" }
   | { type: "SYNC_COMPLETE"; pushed: number; pulled: number }

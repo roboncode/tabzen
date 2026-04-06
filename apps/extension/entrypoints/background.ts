@@ -752,6 +752,7 @@ export default defineBackground(() => {
     creatorAvatar: string | null;
     creatorUrl: string | null;
     publishedAt: string | null;
+    transcript: null;
   }> {
     try {
       const response = await fetch(url, {
@@ -814,7 +815,7 @@ export default defineBackground(() => {
         }
       } catch {}
 
-      return { ...meta, creator, creatorAvatar, creatorUrl, publishedAt };
+      return { ...meta, creator, creatorAvatar, creatorUrl, publishedAt, transcript: null };
     } catch {
       return {
         ogTitle: null,
@@ -825,6 +826,7 @@ export default defineBackground(() => {
         creatorAvatar: null,
         creatorUrl: null,
         publishedAt: null,
+        transcript: null,
       };
     }
   }
@@ -838,6 +840,7 @@ export default defineBackground(() => {
     creatorAvatar: string | null;
     creatorUrl: string | null;
     publishedAt: string | null;
+    transcript?: { text: string; startMs: number; durationMs: number }[] | null;
   }> {
     // Try content script first (works for tabs loaded after extension install)
     try {
@@ -877,22 +880,25 @@ export default defineBackground(() => {
       return true;
     });
 
-    const tabsWithMeta: Tab[] = await Promise.all(
+    const tabsWithMeta: (Tab & { transcript?: any })[] = await Promise.all(
       newBrowserTabs.map(async (bt) => {
         const meta = await fetchMetadata(bt.id!, bt.url!);
-        return {
-          id: uuidv4(),
+        const { transcript, ...metaWithoutTranscript } = meta as any;
+        const hasTranscript = Array.isArray(transcript) && transcript.length > 0;
+        const tabId = uuidv4();
+        const tab: Tab & { transcript?: any } = {
+          id: tabId,
           url: bt.url!,
           title: bt.title || "Untitled",
           favicon: bt.favIconUrl || "",
-          ogTitle: meta.ogTitle,
-          ogDescription: meta.ogDescription,
-          ogImage: meta.ogImage,
-          metaDescription: meta.metaDescription,
-          creator: meta.creator || null,
-          creatorAvatar: meta.creatorAvatar || null,
-          creatorUrl: meta.creatorUrl || null,
-          publishedAt: meta.publishedAt || null,
+          ogTitle: metaWithoutTranscript.ogTitle,
+          ogDescription: metaWithoutTranscript.ogDescription,
+          ogImage: metaWithoutTranscript.ogImage,
+          metaDescription: metaWithoutTranscript.metaDescription,
+          creator: metaWithoutTranscript.creator || null,
+          creatorAvatar: metaWithoutTranscript.creatorAvatar || null,
+          creatorUrl: metaWithoutTranscript.creatorUrl || null,
+          publishedAt: metaWithoutTranscript.publishedAt || null,
           tags: [],
           notes: null,
           viewCount: 0,
@@ -904,10 +910,14 @@ export default defineBackground(() => {
           starred: false,
           deletedAt: null,
           groupId: "",
-          contentKey: null,
-          contentType: null,
-          contentFetchedAt: null,
+          contentKey: hasTranscript ? `transcripts/${tabId}` : null,
+          contentType: hasTranscript ? "transcript" : null,
+          contentFetchedAt: hasTranscript ? new Date().toISOString() : null,
         };
+        if (hasTranscript) {
+          (tab as any).transcript = transcript;
+        }
+        return tab;
       }),
     );
 
@@ -1036,15 +1046,18 @@ export default defineBackground(() => {
     if (isDuplicate(url, existingUrls)) return;
 
     const meta = await fetchMetadata(browserTabId, url);
+    const { transcript, ...metaWithoutTranscript } = meta as any;
+    const hasTranscript = Array.isArray(transcript) && transcript.length > 0;
     const captureId = uuidv4();
     const groupId = uuidv4();
+    const tabId = uuidv4();
 
-    const tab: Tab = {
-      id: uuidv4(),
+    const tab: Tab & { transcript?: any } = {
+      id: tabId,
       url,
       title,
       favicon,
-      ...meta,
+      ...metaWithoutTranscript,
       tags: [],
       notes: null,
       viewCount: 0,
@@ -1056,10 +1069,15 @@ export default defineBackground(() => {
       starred: false,
       deletedAt: null,
       groupId,
-      contentKey: null,
-      contentType: null,
-      contentFetchedAt: null,
+      contentKey: hasTranscript ? `transcripts/${tabId}` : null,
+      contentType: hasTranscript ? "transcript" : null,
+      contentFetchedAt: hasTranscript ? new Date().toISOString() : null,
     };
+
+    // Store transcript data on the record for local access
+    if (hasTranscript) {
+      (tab as any).transcript = transcript;
+    }
 
     const group: Group = {
       id: groupId,
