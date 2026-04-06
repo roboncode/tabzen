@@ -33,6 +33,19 @@ export default function TabCard(props: TabCardProps) {
 
   const creator = () => extractCreator(props.tab);
 
+  const creatorUrl = () => {
+    const c = creator();
+    if (!c) return null;
+    const d = domain();
+    if (d === "youtube.com") return `https://www.youtube.com/@${c.replace(/^@/, "")}`;
+    if (d === "instagram.com") return `https://www.instagram.com/${c.replace(/^@/, "")}`;
+    if (d === "tiktok.com") return `https://www.tiktok.com/@${c.replace(/^@/, "")}`;
+    if (d === "twitter.com" || d === "x.com") return `https://x.com/${c.replace(/^@/, "")}`;
+    if (d === "twitch.tv") return `https://www.twitch.tv/${c}`;
+    if (d === "reddit.com") return `https://www.reddit.com/${c}`;
+    return null;
+  };
+
   const formatTimeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
@@ -167,10 +180,15 @@ export default function TabCard(props: TabCardProps) {
           >
             <p class="text-xs text-muted-foreground mt-1">
               <button
-                class="hover:text-foreground transition-colors"
+                class="hover:text-foreground transition-colors cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
-                  props.onSelectCreator?.(domain(), creator()!);
+                  const url = creatorUrl();
+                  if (url) {
+                    window.open(url, "_blank");
+                  } else {
+                    props.onSelectCreator?.(domain(), creator()!);
+                  }
                 }}
               >
                 {creator()}
