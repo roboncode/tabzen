@@ -97,6 +97,11 @@ export default function App() {
     return shouldSkipUrl(tab.url, settings.blockedDomains);
   });
 
+  const [syncError] = createResource(async () => {
+    const settings = await getSettings();
+    return settings.syncError || null;
+  });
+
   const handleCaptureAll = async () => {
     setCapturing(true);
     const response = await sendMessage({ type: "QUICK_CAPTURE" });
@@ -149,6 +154,23 @@ export default function App() {
           </button>
         </div>
       </div>
+
+      {/* Sync error banner */}
+      <Show when={syncError()}>
+        <div class="flex items-center gap-2 bg-red-500/10 rounded-lg px-3 py-2 mb-3">
+          <div class="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+          <p class="text-xs text-red-300 flex-1">{syncError()}</p>
+          <button
+            class="text-xs text-red-300 hover:text-red-200 transition-colors flex-shrink-0"
+            onClick={() => {
+              browser.tabs.create({ url: browser.runtime.getURL("/tabs.html?settings=true") });
+              window.close();
+            }}
+          >
+            Fix
+          </button>
+        </div>
+      </Show>
 
       {/* Current tab - blocked state */}
       <Show when={isBlocked()}>

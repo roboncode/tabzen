@@ -193,9 +193,17 @@ export default defineBackground(() => {
 
   // --- Badge: Uncaptured tab count ---
   async function updateBadge(): Promise<void> {
+    const settings = await getSettings();
+
+    // Show error badge if sync has a problem
+    if (settings.syncError) {
+      await browser.action.setBadgeText({ text: "!" });
+      await browser.action.setBadgeBackgroundColor({ color: "#ef4444" });
+      return;
+    }
+
     const existingTabs = await getAllTabs();
     const existingUrls = buildUrlSet(existingTabs.map((t) => t.url));
-    const settings = await getSettings();
 
     const openTabs = await browser.tabs.query({});
     let uncaptured = 0;

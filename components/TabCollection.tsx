@@ -463,7 +463,11 @@ export default function TabCollection(props: TabCollectionProps) {
             </button>
             <button
               class="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => { setSyncError(null); updateSettings({ syncError: null }); }}
+              onClick={() => {
+                setSyncError(null);
+                updateSettings({ syncError: null });
+                sendMessage({ type: "GET_UNCAPTURED_COUNT" }); // triggers badge refresh
+              }}
             >
               Dismiss
             </button>
