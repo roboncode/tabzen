@@ -111,8 +111,8 @@ export default function GroupSection(props: GroupSectionProps) {
             </div>
           }
         >
-          {/* Responsive grid - cards capped at ~360px like YouTube */}
-          <div class="grid gap-x-4 gap-y-6 px-4" style={{ "grid-template-columns": "repeat(auto-fill, minmax(280px, 360px))" }}>
+          {/* Responsive grid using container queries */}
+          <div class="grid grid-cols-1 @[480px]:grid-cols-2 @[768px]:grid-cols-3 @[1024px]:grid-cols-4 @[1400px]:grid-cols-5 gap-x-4 gap-y-6 px-4">
             <For each={props.tabs}>
               {(tab) => (
                 <TabCard
