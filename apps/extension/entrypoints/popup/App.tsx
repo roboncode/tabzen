@@ -207,7 +207,7 @@ export default function App() {
             <div class="aspect-video rounded-xl overflow-hidden bg-muted/40 mb-3">
               {tab().ogImage ? (
                 <img
-                  src={tab().ogImage}
+                  src={tab().ogImage!}
                   alt=""
                   class="w-full h-full object-cover"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}

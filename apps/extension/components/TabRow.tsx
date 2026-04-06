@@ -15,6 +15,7 @@ interface TabRowProps {
   onBlockDomain?: (tab: Tab) => void;
   onRestore?: (tab: Tab) => void;
   onHardDelete?: (tab: Tab) => void;
+  onSelectCreator?: (domain: string, creator: string) => void;
   onTagClick?: (tag: string) => void;
   isTrash?: boolean;
 }
