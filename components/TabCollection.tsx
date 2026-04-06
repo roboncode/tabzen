@@ -1,5 +1,5 @@
 import { createSignal, createResource, onMount, onCleanup, For, Show } from "solid-js";
-import { Maximize2, Settings as SettingsIcon, Menu, X } from "lucide-solid";
+import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X } from "lucide-solid";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
 import AppSidebar from "./AppSidebar";
 import type {
@@ -301,6 +301,13 @@ export default function TabCollection(props: TabCollectionProps) {
     }
   };
 
+  const openSidePanel = async () => {
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      await browser.sidePanel.open({ tabId: tab.id });
+    }
+  };
+
   const openFullPage = async () => {
     await browser.tabs.create({ url: browser.runtime.getURL("/tabs.html") });
     // Close the side panel if we're in one
@@ -382,6 +389,15 @@ export default function TabCollection(props: TabCollectionProps) {
                 title="Open full page"
               >
                 <Maximize2 size={15} />
+              </button>
+            </Show>
+            <Show when={!props.showExpandButton}>
+              <button
+                class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                onClick={openSidePanel}
+                title="Open side panel"
+              >
+                <PanelRight size={15} />
               </button>
             </Show>
             <button

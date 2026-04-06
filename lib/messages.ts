@@ -9,7 +9,8 @@ export type MessageRequest =
   | { type: "AI_SEARCH"; query: string }
   | { type: "OPEN_TAB"; tabId: string }
   | { type: "GET_METADATA"; url: string }
-  | { type: "SYNC_NOW" };
+  | { type: "SYNC_NOW" }
+  | { type: "QUICK_CAPTURE" };
 
 export type MessageResponse =
   | { type: "CAPTURE_PREVIEW"; data: CapturePreviewData }
@@ -19,7 +20,8 @@ export type MessageResponse =
   | { type: "METADATA"; ogTitle: string | null; ogDescription: string | null; ogImage: string | null; metaDescription: string | null }
   | { type: "ERROR"; message: string }
   | { type: "SUCCESS" }
-  | { type: "SYNC_COMPLETE"; pushed: number; pulled: number };
+  | { type: "SYNC_COMPLETE"; pushed: number; pulled: number }
+  | { type: "QUICK_CAPTURE_DONE"; saved: number; skipped: number };
 
 export function sendMessage(message: MessageRequest): Promise<MessageResponse> {
   return browser.runtime.sendMessage(message);

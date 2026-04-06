@@ -1,7 +1,6 @@
 import { createSignal, createResource, Show } from "solid-js";
 import { PanelRight, Maximize2 } from "lucide-solid";
 import { sendMessage } from "@/lib/messages";
-import type { CapturePreviewData } from "@/lib/types";
 
 function formatTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -21,8 +20,7 @@ function formatTimeAgo(dateStr: string): string {
 
 export default function App() {
   const [capturing, setCapturing] = createSignal(false);
-  const [capturePreview, setCapturePreview] =
-    createSignal<CapturePreviewData | null>(null);
+  const [captureResult, setCaptureResult] = createSignal<{ saved: number; skipped: number } | null>(null);
 
   const [activeTab] = createResource(async () => {
     const [tab] = await browser.tabs.query({
@@ -92,20 +90,11 @@ export default function App() {
 
   const handleCaptureAll = async () => {
     setCapturing(true);
-    const response = await sendMessage({ type: "CAPTURE_ALL_TABS" });
-    if (response.type === "CAPTURE_PREVIEW") {
-      setCapturePreview(response.data);
+    const response = await sendMessage({ type: "QUICK_CAPTURE" });
+    if (response.type === "QUICK_CAPTURE_DONE") {
+      setCaptureResult(response);
     }
     setCapturing(false);
-  };
-
-  const handleConfirm = async () => {
-    const preview = capturePreview();
-    if (preview) {
-      await sendMessage({ type: "CONFIRM_CAPTURE", captureData: preview });
-      setCapturePreview(null);
-      window.close();
-    }
   };
 
   const handleSaveCurrentTab = async () => {
@@ -152,118 +141,96 @@ export default function App() {
         </div>
       </div>
 
-      <Show when={!capturePreview()}>
-        {/* Current tab card */}
-        <Show when={activeTab()}>
-          {(tab) => (
-            <div class="mb-4">
-              <div class="aspect-video rounded-xl overflow-hidden bg-muted/40 mb-3">
-                {tab().ogImage ? (
-                  <img
-                    src={tab().ogImage}
-                    alt=""
-                    class="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                  />
-                ) : (
-                  <div class="w-full h-full flex items-center justify-center">
-                    {tab().favIconUrl ? (
-                      <img src={tab().favIconUrl} alt="" class="w-8 h-8 rounded" />
-                    ) : (
-                      <span class="text-muted-foreground text-sm">{domain()}</span>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div class="flex gap-3">
-                {tab().favIconUrl ? (
-                  <img src={tab().favIconUrl} alt="" class="w-6 h-6 rounded-full mt-0.5 flex-shrink-0" />
-                ) : (
-                  <div class="w-6 h-6 rounded-full bg-muted/50 mt-0.5 flex-shrink-0" />
-                )}
-                <div class="flex-1 min-w-0">
-                  <h3 class="text-sm font-medium text-foreground leading-snug line-clamp-2">
-                    {tab().ogTitle || tab().title}
-                  </h3>
-                  <p class="text-xs text-muted-foreground mt-1">
-                    {tab().creator || domain()}
-                  </p>
-                  {tab().ogDescription && (
-                    <p class="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                      {tab().ogDescription}
-                    </p>
+      {/* Current tab card */}
+      <Show when={activeTab()}>
+        {(tab) => (
+          <div class="mb-4">
+            <div class="aspect-video rounded-xl overflow-hidden bg-muted/40 mb-3">
+              {tab().ogImage ? (
+                <img
+                  src={tab().ogImage}
+                  alt=""
+                  class="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              ) : (
+                <div class="w-full h-full flex items-center justify-center">
+                  {tab().favIconUrl ? (
+                    <img src={tab().favIconUrl} alt="" class="w-8 h-8 rounded" />
+                  ) : (
+                    <span class="text-muted-foreground text-sm">{domain()}</span>
                   )}
-                  <div class="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground/60">
-                    {tab().publishedAt && (
-                      <>
-                        <span>{formatTimeAgo(tab().publishedAt!)}</span>
-                        <span>·</span>
-                      </>
-                    )}
-                    <span>{domain()}</span>
-                  </div>
+                </div>
+              )}
+            </div>
+            <div class="flex gap-3">
+              {tab().favIconUrl ? (
+                <img src={tab().favIconUrl} alt="" class="w-6 h-6 rounded-full mt-0.5 flex-shrink-0" />
+              ) : (
+                <div class="w-6 h-6 rounded-full bg-muted/50 mt-0.5 flex-shrink-0" />
+              )}
+              <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-medium text-foreground leading-snug line-clamp-2">
+                  {tab().ogTitle || tab().title}
+                </h3>
+                <p class="text-xs text-muted-foreground mt-1">
+                  {tab().creator || domain()}
+                </p>
+                {tab().ogDescription && (
+                  <p class="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                    {tab().ogDescription}
+                  </p>
+                )}
+                <div class="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground/60">
+                  {tab().publishedAt && (
+                    <>
+                      <span>{formatTimeAgo(tab().publishedAt!)}</span>
+                      <span>·</span>
+                    </>
+                  )}
+                  <span>{domain()}</span>
                 </div>
               </div>
-            </div>
-          )}
-        </Show>
-
-        {/* Action buttons */}
-        <div class="space-y-2">
-          <button
-            class="w-full px-3 py-2.5 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-            onClick={handleCaptureAll}
-            disabled={capturing() || uncapturedCount() === 0}
-          >
-            {capturing()
-              ? "Analyzing..."
-              : uncapturedCount() === 0
-                ? "All tabs captured"
-                : `Capture All Tabs (${uncapturedCount()} new)`}
-          </button>
-          <button
-            class="w-full px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors"
-            onClick={handleSaveCurrentTab}
-          >
-            Save This Tab
-          </button>
-        </div>
-      </Show>
-
-      <Show when={capturePreview()}>
-        {(preview) => (
-          <div>
-            <p class="text-sm text-foreground mb-3">
-              {preview().tabs.length} new tabs in {preview().groups.length}{" "}
-              groups
-            </p>
-            <div class="space-y-1.5 max-h-48 overflow-y-auto mb-4">
-              {preview().groups.map((g) => (
-                <div class="text-sm text-muted-foreground">
-                  <span class="text-foreground font-medium">
-                    {g.groupName}
-                  </span>{" "}
-                  ({g.tabIds.length})
-                </div>
-              ))}
-            </div>
-            <div class="flex gap-2">
-              <button
-                class="flex-1 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
-                onClick={() => setCapturePreview(null)}
-              >
-                Cancel
-              </button>
-              <button
-                class="flex-1 px-3 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-                onClick={handleConfirm}
-              >
-                Confirm
-              </button>
             </div>
           </div>
         )}
       </Show>
+
+      {/* Capture result */}
+      <Show when={captureResult()}>
+        {(result) => (
+          <div class="bg-muted/30 rounded-lg p-3 mb-3">
+            <p class="text-sm text-foreground">
+              Saved {result().saved} tabs
+              {result().skipped > 0 && ` (${result().skipped} duplicates skipped)`}
+            </p>
+            <p class="text-xs text-muted-foreground mt-1">
+              Metadata and AI grouping updating in the background
+            </p>
+          </div>
+        )}
+      </Show>
+
+      {/* Action buttons */}
+      <div class="space-y-2">
+        <button
+          class="w-full px-3 py-2.5 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+          onClick={handleCaptureAll}
+          disabled={capturing() || uncapturedCount() === 0}
+        >
+          {capturing()
+            ? "Saving..."
+            : uncapturedCount() === 0
+              ? "All tabs captured"
+              : `Capture All Tabs (${uncapturedCount()} new)`}
+        </button>
+        <button
+          class="w-full px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors"
+          onClick={handleSaveCurrentTab}
+        >
+          Save This Tab
+        </button>
+      </div>
     </div>
   );
 }

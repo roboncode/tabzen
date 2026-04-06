@@ -268,6 +268,8 @@ export default defineBackground(() => {
         return handleOpenTab(message.tabId);
       case "SYNC_NOW":
         return handleSyncNow();
+      case "QUICK_CAPTURE":
+        return handleQuickCapture();
       default:
         return { type: "ERROR", message: "Unknown message type" };
     }
@@ -467,6 +469,178 @@ export default defineBackground(() => {
       return { type: "SYNC_COMPLETE", pushed, pulled };
     } catch (e) {
       console.error("[TabZen] Manual sync error:", e);
+      return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleQuickCapture(): Promise<MessageResponse> {
+    try {
+      const settings = await getSettings();
+      const existingTabs = await getAllTabs();
+      const existingUrls = buildUrlSet(existingTabs.map((t) => t.url));
+      const openTabs = await browser.tabs.query({});
+      const captureId = uuidv4();
+
+      // Filter new tabs
+      const candidateTabs = openTabs.filter(
+        (t) =>
+          t.url &&
+          !t.url.startsWith("chrome://") &&
+          !t.url.startsWith("chrome-extension://") &&
+          !isDuplicate(t.url!, existingUrls) &&
+          !isDomainBlocked(t.url!, settings.blockedDomains),
+      );
+
+      const seenUrls = new Set<string>();
+      const newBrowserTabs = candidateTabs.filter((t) => {
+        const normalized = normalizeUrl(t.url!);
+        if (seenUrls.has(normalized)) return false;
+        seenUrls.add(normalized);
+        return true;
+      });
+
+      if (newBrowserTabs.length === 0) {
+        return { type: "QUICK_CAPTURE_DONE", saved: 0, skipped: 0 };
+      }
+
+      // Pass 1: Instant save with basic data + domain grouping
+      const byDomain = new Map<string, { groupId: string; tabs: Tab[] }>();
+
+      const tabs: Tab[] = newBrowserTabs.map((bt) => {
+        const domain = (() => {
+          try { return new URL(bt.url!).hostname.replace("www.", ""); }
+          catch { return "Other"; }
+        })();
+
+        if (!byDomain.has(domain)) {
+          byDomain.set(domain, { groupId: uuidv4(), tabs: [] });
+        }
+        const group = byDomain.get(domain)!;
+
+        const tab: Tab = {
+          id: uuidv4(),
+          url: bt.url!,
+          title: bt.title || "Untitled",
+          favicon: bt.favIconUrl || "",
+          ogTitle: null,
+          ogDescription: null,
+          ogImage: null,
+          metaDescription: null,
+          creator: null,
+          publishedAt: null,
+          notes: null,
+          viewCount: 0,
+          lastViewedAt: null,
+          capturedAt: new Date().toISOString(),
+          sourceLabel: settings.sourceLabel,
+          deviceId: settings.deviceId,
+          archived: false,
+          starred: false,
+          deletedAt: null,
+          groupId: group.groupId,
+        };
+        group.tabs.push(tab);
+        return tab;
+      });
+
+      const groups: Group[] = Array.from(byDomain.entries()).map(
+        ([domain, { groupId }], i) => ({
+          id: groupId,
+          name: domain,
+          captureId,
+          position: i,
+          archived: false,
+        }),
+      );
+
+      const capture: Capture = {
+        id: captureId,
+        capturedAt: new Date().toISOString(),
+        sourceLabel: settings.sourceLabel,
+        tabCount: tabs.length,
+      };
+
+      await addCapture(capture);
+      await addGroups(groups);
+      await addTabs(tabs);
+      await updateBadge();
+      notifyDataChanged();
+
+      console.log(`[TabZen] Quick capture: saved ${tabs.length} tabs in ${groups.length} groups`);
+
+      // Pass 2: Background enrichment (metadata + creator + publishedAt)
+      (async () => {
+        let enriched = 0;
+        for (const tab of tabs) {
+          try {
+            const browserTab = newBrowserTabs.find((bt) => bt.url === tab.url);
+            if (browserTab?.id) {
+              const meta = await fetchMetadata(browserTab.id, tab.url);
+              const updates: Partial<Tab> = {};
+              if (meta.ogTitle) updates.ogTitle = meta.ogTitle;
+              if (meta.ogDescription) updates.ogDescription = meta.ogDescription;
+              if (meta.ogImage) updates.ogImage = meta.ogImage;
+              if (meta.metaDescription) updates.metaDescription = meta.metaDescription;
+              if (meta.creator) updates.creator = meta.creator;
+              if (meta.publishedAt) updates.publishedAt = meta.publishedAt;
+              if (Object.keys(updates).length > 0) {
+                await updateTab(tab.id, updates);
+                enriched++;
+              }
+            }
+          } catch {}
+        }
+        if (enriched > 0) {
+          console.log(`[TabZen] Enriched ${enriched}/${tabs.length} tabs with metadata`);
+          notifyDataChanged();
+        }
+
+        // Pass 3: AI re-grouping (if API key configured)
+        if (settings.openRouterApiKey) {
+          try {
+            const enrichedTabs = await Promise.all(
+              tabs.map(async (t) => (await getTab(t.id)) || t),
+            );
+            const aiGroups = await groupTabsWithAI(
+              settings.openRouterApiKey,
+              settings.aiModel,
+              enrichedTabs.map((t) => ({
+                id: t.id,
+                title: t.ogTitle || t.title,
+                url: t.url,
+                description: t.ogDescription || t.metaDescription,
+              })),
+            );
+
+            // Create new groups and reassign tabs
+            const validTabIds = new Set(tabs.map((t) => t.id));
+            for (const g of aiGroups) {
+              const newGroupId = uuidv4();
+              const matched = g.tabIds.filter((id) => validTabIds.has(id));
+              if (matched.length > 0) {
+                await addGroups([{
+                  id: newGroupId,
+                  name: g.groupName,
+                  captureId,
+                  position: 0,
+                  archived: false,
+                }]);
+                for (const tabId of matched) {
+                  await updateTab(tabId, { groupId: newGroupId });
+                }
+              }
+            }
+            console.log("[TabZen] AI re-grouped tabs");
+            notifyDataChanged();
+          } catch (e) {
+            console.warn("[TabZen] AI re-grouping failed:", e);
+          }
+        }
+      })();
+
+      return { type: "QUICK_CAPTURE_DONE", saved: tabs.length, skipped: candidateTabs.length - newBrowserTabs.length };
+    } catch (e) {
+      console.error("[TabZen] Quick capture error:", e);
       return { type: "ERROR", message: String(e) };
     }
   }
