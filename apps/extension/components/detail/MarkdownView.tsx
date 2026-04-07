@@ -258,7 +258,7 @@ export default function MarkdownView(props: MarkdownViewProps) {
           </div>
         }
       >
-        <div class="max-w-3xl mx-auto px-2 pb-12">
+        <div class="px-2 pb-12">
           <div
             ref={contentRef}
             class="prose-custom space-y-4"

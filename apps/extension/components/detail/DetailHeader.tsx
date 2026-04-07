@@ -46,7 +46,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
   // ── Hero Only mode: the scrollable card ──
   if (props.heroOnly) {
     return (
-      <div class="@container px-4 py-4 max-w-[1000px] mx-auto pr-16">
+      <div class="@container px-4 py-4 pr-16">
         {/*
           Container query breakpoints:
           < 480px: stacked (thumbnail on top, info below) — like a card

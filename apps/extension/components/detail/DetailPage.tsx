@@ -287,56 +287,59 @@ export default function DetailPage(props: DetailPageProps) {
           class="flex-1 overflow-y-auto scrollbar-hide"
           onScroll={handleScroll}
         >
-          {/* Hero card — full width above the content+sidebar row */}
-          <div ref={heroRef}>
-            <DetailHeader
-              tab={currentTab()}
-              onBack={handleBack}
-              onToggleStar={handleToggleStar}
-              onOpenSource={handleOpenSource}
-              onArchive={handleArchive}
-              onDelete={handleDelete}
-              onEditNotes={handleEditNotes}
-              heroOnly
-            />
-          </div>
+          {/* Content + sidebar in a flex row */}
+          <div class="flex max-w-[1000px] mx-auto">
+            {/* Content column */}
+            <div class="flex-1 min-w-0">
+              {/* Hero card */}
+              <div ref={heroRef}>
+                <DetailHeader
+                  tab={currentTab()}
+                  onBack={handleBack}
+                  onToggleStar={handleToggleStar}
+                  onOpenSource={handleOpenSource}
+                  onArchive={handleArchive}
+                  onDelete={handleDelete}
+                  onEditNotes={handleEditNotes}
+                  heroOnly
+                />
+              </div>
 
-          {/* Narrow: inline tags + notes */}
-          <Show when={isNarrow()}>
-            <div class="px-4 flex flex-col gap-2 mb-2">
-              <Show when={currentTab().tags && currentTab().tags.length > 0}>
-                <div class="flex flex-wrap gap-x-2 gap-y-1">
-                  {currentTab().tags.map((tag) => (
-                    <span class="text-sm text-sky-400">#{tag}</span>
-                  ))}
+              {/* Narrow: inline tags + notes */}
+              <Show when={isNarrow()}>
+                <div class="px-4 flex flex-col gap-2 mb-2">
+                  <Show when={currentTab().tags && currentTab().tags.length > 0}>
+                    <div class="flex flex-wrap gap-x-2 gap-y-1">
+                      {currentTab().tags.map((tag) => (
+                        <span class="text-sm text-sky-400">#{tag}</span>
+                      ))}
+                    </div>
+                  </Show>
+                  <Show when={currentTab().notes}>
+                    <button
+                      onClick={handleEditNotes}
+                      class="text-left bg-muted/30 rounded-lg px-3 py-2 text-sm text-muted-foreground leading-relaxed hover:bg-muted/40 transition-colors line-clamp-2"
+                    >
+                      {currentTab().notes}
+                    </button>
+                  </Show>
                 </div>
               </Show>
-              <Show when={currentTab().notes}>
-                <button
-                  onClick={handleEditNotes}
-                  class="text-left bg-muted/30 rounded-lg px-3 py-2 text-sm text-muted-foreground leading-relaxed hover:bg-muted/40 transition-colors line-clamp-2"
-                >
-                  {currentTab().notes}
-                </button>
+
+              {/* Reading progress */}
+              <Show when={hasContent()}>
+                <div class="sticky top-0 z-10 bg-background">
+                  <ReadingProgress
+                    scrollRef={scrollRef}
+                    readingTimeMin={readingTimeMin()}
+                  />
+                </div>
               </Show>
-            </div>
-          </Show>
 
-          {/* Reading progress */}
-          <Show when={hasContent()}>
-            <div class="sticky top-0 z-10 bg-background">
-              <ReadingProgress
-                scrollRef={scrollRef}
-                readingTimeMin={readingTimeMin()}
-              />
-            </div>
-          </Show>
-
-          {/* Content + sidebar in a flex row, centered */}
-          <div class="flex max-w-[1000px] mx-auto">
-            {/* Content */}
-            <div class="flex-1 min-w-0 px-4 pb-6">
-              <ContentView />
+              {/* Article / Transcript content */}
+              <div class="px-4 pb-6">
+                <ContentView />
+              </div>
             </div>
 
             {/* Sidebar — sticky, hidden on narrow */}

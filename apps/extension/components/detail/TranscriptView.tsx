@@ -182,7 +182,7 @@ export default function TranscriptView(props: TranscriptViewProps) {
           </div>
         }
       >
-        <div ref={contentRef} class="max-w-3xl mx-auto px-2 pb-12 relative">
+        <div ref={contentRef} class="px-2 pb-12 relative">
           {/* Floating timestamp indicator */}
           <Show when={hoveredSeg()}>
             {(hovered) => (
