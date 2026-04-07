@@ -1,5 +1,7 @@
 import { isYouTubeWatchUrl } from "./youtube";
 import TurndownService from "turndown";
+import { Readability } from "@mozilla/readability";
+import { Window } from "happy-dom";
 
 export interface PageExtractResult {
   title: string;
@@ -37,37 +39,11 @@ export function htmlToMarkdown(html: string): string {
 }
 
 /**
- * Injected function — runs inside the target page via executeScript.
- * MUST be fully self-contained (no imports, no outer-scope references).
- */
-function runReadabilityOnPage(): {
-  title: string;
-  byline: string | null;
-  content: string;
-  excerpt: string | null;
-  siteName: string | null;
-} | null {
-  try {
-    // @ts-expect-error — Readability is injected via separate executeScript call
-    const { Readability } = globalThis.__readability__;
-    const clone = document.cloneNode(true) as Document;
-    const article = new Readability(clone).parse();
-    if (!article || !article.content) return null;
-    return {
-      title: article.title,
-      byline: article.byline,
-      content: article.content,
-      excerpt: article.excerpt,
-      siteName: article.siteName,
-    };
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Extract content from a browser tab using Readability + Turndown.
- * Injects Readability into the page, gets clean HTML, converts to markdown.
+ *
+ * Strategy: inject a minimal function to grab the page HTML (no CSP issues),
+ * then run Readability + Turndown in the background script using happy-dom
+ * as the DOM parser.
  */
 export async function extractPageContent(
   browserTabId: number,
@@ -76,53 +52,38 @@ export async function extractPageContent(
   if (!shouldExtractContent(url)) return null;
 
   try {
-    // First, inject Readability library into the page
-    await browser.scripting.executeScript({
-      target: { tabId: browserTabId },
-      func: (readabilityCode: string) => {
-        const module = { exports: {} as any };
-        const fn = new Function("module", "exports", readabilityCode);
-        fn(module, module.exports);
-        (globalThis as any).__readability__ = { Readability: module.exports.Readability || module.exports };
-      },
-      args: [await getReadabilitySource()],
-    });
-
-    // Then run the extraction
+    // Inject a trivial function that returns the page HTML — no libraries,
+    // no eval, no CSP concerns
     const results = await browser.scripting.executeScript({
       target: { tabId: browserTabId },
-      func: runReadabilityOnPage,
+      func: () => document.documentElement.innerHTML,
     });
 
-    const articleData = results?.[0]?.result;
-    if (!articleData || !articleData.content) return null;
+    const rawHtml = results?.[0]?.result;
+    if (!rawHtml || typeof rawHtml !== "string") return null;
 
-    // Convert HTML to markdown in the background script
-    const markdown = htmlToMarkdown(articleData.content);
+    // Parse in background script using happy-dom + Readability
+    const window = new Window({ url });
+    window.document.documentElement.innerHTML = rawHtml;
+
+    const article = new Readability(window.document as any).parse();
+    window.close();
+
+    if (!article || !article.content) return null;
+
+    // Convert Readability's clean HTML to markdown
+    const markdown = htmlToMarkdown(article.content);
     if (!markdown.trim()) return null;
 
     return {
-      title: articleData.title,
-      byline: articleData.byline,
+      title: article.title ?? "",
+      byline: article.byline ?? null,
       content: markdown,
-      excerpt: articleData.excerpt,
-      siteName: articleData.siteName,
+      excerpt: article.excerpt ?? null,
+      siteName: article.siteName ?? null,
     };
   } catch (e) {
     console.warn("[TabZen] Page content extraction failed:", e);
     return null;
   }
-}
-
-/** Cache the Readability source code so we don't re-read it on every extraction */
-let readabilitySourceCache: string | null = null;
-
-async function getReadabilitySource(): Promise<string> {
-  if (readabilitySourceCache) return readabilitySourceCache;
-  // Cast needed because WXT's PublicPath type is generated from the manifest
-  // and doesn't include readability.js yet — it will exist at runtime
-  const url = browser.runtime.getURL("readability.js" as any);
-  const response = await fetch(url);
-  readabilitySourceCache = await response.text();
-  return readabilitySourceCache;
 }
