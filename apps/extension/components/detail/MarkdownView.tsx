@@ -9,6 +9,19 @@ interface MarkdownViewProps {
   loading?: boolean;
 }
 
+// Set before each parse call so the renderer can resolve relative URLs
+let currentSourceUrl: string | undefined;
+
+function resolveUrl(href: string): string {
+  if (!currentSourceUrl || !href) return href;
+  if (href.startsWith("http") || href.startsWith("mailto:") || href.startsWith("#") || href.startsWith("data:")) return href;
+  try {
+    return new URL(href, currentSourceUrl).href;
+  } catch {
+    return href;
+  }
+}
+
 // Configure marked with custom renderer using this.parser.parseInline
 // for proper inline markdown rendering (backticks, bold, italic, links)
 const HEADING_STYLES: Record<number, string> = {
@@ -33,11 +46,10 @@ marked.use({
     },
     link({ href, tokens }) {
       const text = this.parser.parseInline(tokens);
-      // href will be resolved at render time via resolveUrl
-      return `<a href="${href}" target="_blank" class="text-sky-400 hover:underline">${text}</a>`;
+      return `<a href="${resolveUrl(href)}" target="_blank" class="text-sky-400 hover:underline">${text}</a>`;
     },
     image({ href, text }) {
-      return `<img src="${href}" alt="${text}" class="rounded-lg max-w-full my-4" />`;
+      return `<img src="${resolveUrl(href)}" alt="${text}" class="rounded-lg max-w-full my-4" />`;
     },
     code({ text, lang }) {
       const langAttr = lang ? ` data-lang="${lang}"` : "";
@@ -171,6 +183,7 @@ async function highlightCodeBlocks(container: HTMLElement) {
 export default function MarkdownView(props: MarkdownViewProps) {
   const htmlContent = createMemo(() => {
     if (!props.content) return "";
+    currentSourceUrl = props.sourceUrl;
     return marked.parse(props.content, { async: false }) as string;
   });
 
@@ -182,29 +195,7 @@ export default function MarkdownView(props: MarkdownViewProps) {
     if (!html || !contentRef) return;
 
     requestAnimationFrame(() => {
-      if (!contentRef) return;
-
-      // Resolve relative URLs against the source page
-      if (props.sourceUrl) {
-        for (const a of Array.from(contentRef.querySelectorAll("a[href]"))) {
-          const href = a.getAttribute("href");
-          if (href && !href.startsWith("http") && !href.startsWith("mailto:") && !href.startsWith("#")) {
-            try {
-              a.setAttribute("href", new URL(href, props.sourceUrl).href);
-            } catch {}
-          }
-        }
-        for (const img of Array.from(contentRef.querySelectorAll("img[src]"))) {
-          const src = img.getAttribute("src");
-          if (src && !src.startsWith("http") && !src.startsWith("data:")) {
-            try {
-              img.setAttribute("src", new URL(src, props.sourceUrl).href);
-            } catch {}
-          }
-        }
-      }
-
-      highlightCodeBlocks(contentRef);
+      if (contentRef) highlightCodeBlocks(contentRef);
     });
   });
 
