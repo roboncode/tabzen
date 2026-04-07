@@ -27,15 +27,19 @@ export function shouldExtractContent(url: string): boolean {
   return true;
 }
 
-/** Convert HTML string to markdown using Turndown. Runs in background script. */
+/** Convert HTML string to markdown using Turndown. Runs in background service worker. */
 export function htmlToMarkdown(html: string): string {
   if (!html || !html.trim()) return "";
+  // Turndown uses `document` internally to parse HTML strings, which doesn't
+  // exist in MV3 service workers. Parse with linkedom and pass the DOM node.
+  // Wrap in <html><body> so linkedom places content in document.body.
+  const { document: doc } = parseHTML(`<html><body>${html}</body></html>`);
   const td = new TurndownService({
     headingStyle: "atx",
     codeBlockStyle: "fenced",
     bulletListMarker: "-",
   });
-  return td.turndown(html);
+  return td.turndown(doc.body as any);
 }
 
 /**
