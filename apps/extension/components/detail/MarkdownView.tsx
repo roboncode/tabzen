@@ -1,4 +1,4 @@
-import { createMemo, createEffect, Show, onCleanup } from "solid-js";
+import { createMemo, createEffect, Show } from "solid-js";
 import { FileText } from "lucide-solid";
 import { marked } from "marked";
 
@@ -124,36 +124,15 @@ async function getHighlighter() {
 }
 
 async function highlightCodeBlocks(container: HTMLElement) {
-  // Check ALL pre blocks, not just ones with data-lang
-  const allPreBlocks = container.querySelectorAll("pre");
   const preWithLang = container.querySelectorAll("pre[data-lang]");
-  console.log(`[TabZen Shiki] Found ${allPreBlocks.length} <pre> blocks total, ${preWithLang.length} with data-lang`);
+  if (preWithLang.length === 0) return;
 
-  // Log what languages are present
-  for (const pre of allPreBlocks) {
-    const lang = pre.getAttribute("data-lang");
-    const codeEl = pre.querySelector("code");
-    const snippet = (codeEl?.textContent || pre.textContent || "").substring(0, 60);
-    console.log("[TabZen Shiki]   <pre> data-lang=" + JSON.stringify(lang) + "  snippet: " + snippet + "...");
-  }
-
-  if (preWithLang.length === 0) {
-    console.log("[TabZen Shiki] No code blocks with language detected — skipping Shiki");
-    return;
-  }
-
-  console.log("[TabZen Shiki] Loading Shiki (bundled)...");
   const highlighter = await getHighlighter();
-  if (!highlighter) {
-    console.log("[TabZen Shiki] Highlighter failed to load — aborting");
-    return;
-  }
-  console.log("[TabZen Shiki] Highlighter ready, processing blocks...");
+  if (!highlighter) return;
 
   for (const pre of preWithLang) {
     const rawLang = pre.getAttribute("data-lang") || "";
     const lang = LANG_MAP[rawLang.toLowerCase()];
-    console.log(`[TabZen Shiki] Block lang="${rawLang}" → mapped="${lang || "(unmapped)"}"`);
     if (!lang) continue;
 
     const code = pre.querySelector("code");
@@ -168,20 +147,22 @@ async function highlightCodeBlocks(container: HTMLElement) {
       tmp.innerHTML = highlighted;
       const shikiPre = tmp.querySelector("pre");
       if (shikiPre) {
+        // Keep our rounded/padding classes, replace inner content with Shiki output
         pre.innerHTML = shikiPre.innerHTML;
+        // Carry over Shiki's inline background style
+        const bg = (shikiPre as HTMLElement).style.backgroundColor;
+        if (bg) (pre as HTMLElement).style.backgroundColor = bg;
         pre.removeAttribute("data-lang");
-        console.log(`[TabZen Shiki] ✓ Highlighted ${rawLang} block`);
       }
-    } catch (e) {
-      console.warn(`[TabZen Shiki] Failed to highlight ${rawLang} block:`, e);
+    } catch {
+      // Language not supported or error — leave as plain text
     }
   }
-  console.log("[TabZen Shiki] Done");
 }
 
 /**
  * Renders extracted markdown content as styled HTML.
- * Code blocks get syntax highlighting via Shiki (CDN-loaded).
+ * Code blocks get syntax highlighting via Shiki (bundled, lazy-loaded).
  */
 export default function MarkdownView(props: MarkdownViewProps) {
   const htmlContent = createMemo(() => {
@@ -196,7 +177,6 @@ export default function MarkdownView(props: MarkdownViewProps) {
     const html = htmlContent();
     if (!html || !contentRef) return;
 
-    // Wait for innerHTML to be applied, then highlight
     requestAnimationFrame(() => {
       if (contentRef) highlightCodeBlocks(contentRef);
     });
