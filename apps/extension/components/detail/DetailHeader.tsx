@@ -78,9 +78,13 @@ export default function DetailHeader(props: DetailHeaderProps) {
 
           {/* Info */}
           <div class="flex-1 min-w-0">
-            <h1 class="text-base @[480px]:text-lg font-semibold text-foreground leading-snug">
+            <a
+              href={props.tab.url}
+              target="_blank"
+              class="text-base @[480px]:text-lg font-semibold text-foreground leading-snug hover:text-sky-400 transition-colors cursor-pointer"
+            >
               {title()}
-            </h1>
+            </a>
 
             {/* Creator — clickable */}
             <div class="flex items-center gap-2 mt-2">
@@ -99,7 +103,14 @@ export default function DetailHeader(props: DetailHeaderProps) {
                 </button>
               </Show>
               <Show when={!creator()}>
-                <span class="text-sm text-muted-foreground">{domain()}</span>
+                <a
+                  href={`https://${domain()}`}
+                  target="_blank"
+                  class="text-sm text-muted-foreground hover:text-sky-400 transition-colors cursor-pointer"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {domain()}
+                </a>
               </Show>
             </div>
 
