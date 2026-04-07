@@ -28,12 +28,32 @@ export function shouldExtractContent(url: string): boolean {
 }
 
 /** Convert HTML string to markdown using Turndown. Runs in background service worker. */
-export function htmlToMarkdown(html: string): string {
+export function htmlToMarkdown(html: string, sourceUrl?: string): string {
   if (!html || !html.trim()) return "";
   // Turndown uses `document` internally to parse HTML strings, which doesn't
   // exist in MV3 service workers. Parse with linkedom and pass the DOM node.
   // Wrap in <html><body> so linkedom places content in document.body.
   const { document: doc } = parseHTML(`<html><body>${html}</body></html>`);
+
+  // Resolve relative URLs to absolute using the source page's URL
+  if (sourceUrl) {
+    for (const a of Array.from(doc.querySelectorAll("a[href]"))) {
+      const href = a.getAttribute("href");
+      if (href && !href.startsWith("http") && !href.startsWith("mailto:") && !href.startsWith("#")) {
+        try {
+          a.setAttribute("href", new URL(href, sourceUrl).href);
+        } catch {}
+      }
+    }
+    for (const img of Array.from(doc.querySelectorAll("img[src]"))) {
+      const src = img.getAttribute("src");
+      if (src && !src.startsWith("http") && !src.startsWith("data:")) {
+        try {
+          img.setAttribute("src", new URL(src, sourceUrl).href);
+        } catch {}
+      }
+    }
+  }
   const td = new TurndownService({
     headingStyle: "atx",
     codeBlockStyle: "fenced",
@@ -233,7 +253,7 @@ export async function extractPageContent(
     console.log("[TabZen] Readability extracted:", article.title, "—", article.content.length, "chars HTML");
 
     // Convert Readability's clean HTML to markdown
-    const markdown = htmlToMarkdown(article.content);
+    const markdown = htmlToMarkdown(article.content, url);
     if (!markdown.trim()) {
       console.log("[TabZen] Turndown returned empty markdown for:", url);
       return null;
