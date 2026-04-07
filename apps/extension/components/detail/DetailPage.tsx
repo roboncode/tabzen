@@ -12,7 +12,7 @@ import MarkdownView from "./MarkdownView";
 import DetailSidebar, { type TocEntry } from "./DetailSidebar";
 import ChatFab from "./ChatFab";
 import NotesEditor from "@/components/NotesEditor";
-import ReadingProgress from "@/components/ReadingProgress";
+// import ReadingProgress from "@/components/ReadingProgress";
 import { X, ChevronDown, List } from "lucide-solid";
 
 interface DetailPageProps {
@@ -121,19 +121,6 @@ export default function DetailPage(props: DetailPageProps) {
     transcriptSegments().length > 0 || markdownContent().length > 0,
   );
 
-  const readingTimeMin = createMemo(() => {
-    const segments = transcriptSegments();
-    const content = markdownContent();
-    let totalWords = 0;
-
-    if (segments.length > 0) {
-      totalWords = segments.reduce((sum, s) => sum + s.text.split(/\s+/).length, 0);
-    } else if (content) {
-      totalWords = content.split(/\s+/).length;
-    }
-
-    return Math.max(1, Math.round(totalWords / 200));
-  });
 
   const notifyChanged = () => {
     browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
@@ -323,7 +310,7 @@ export default function DetailPage(props: DetailPageProps) {
           onScroll={handleScroll}
         >
           {/* Content + sidebar row */}
-          <div class="flex mx-auto" style={{ "max-width": "calc(688px + 220px + 64px + 32px)" }}>
+          <div class="flex gap-16 mx-auto" style={{ "max-width": "calc(688px + 220px + 64px + 32px)" }}>
             {/* Content column — max 688px like VitePress */}
             <div class="flex-1 min-w-0 max-w-[688px] px-4">
               {/* Hero card */}
@@ -358,16 +345,6 @@ export default function DetailPage(props: DetailPageProps) {
                       {currentTab().notes}
                     </button>
                   </Show>
-                </div>
-              </Show>
-
-              {/* Reading progress */}
-              <Show when={hasContent()}>
-                <div class="sticky top-0 z-10 bg-background">
-                  <ReadingProgress
-                    scrollRef={scrollRef}
-                    readingTimeMin={readingTimeMin()}
-                  />
                 </div>
               </Show>
 
