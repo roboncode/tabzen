@@ -224,12 +224,13 @@ export default function DetailPage(props: DetailPageProps) {
       </Show>
       {/* Non-YouTube with content: render markdown */}
       <Show when={!isYouTube() && markdownContent()}>
-        <MarkdownView content={markdownContent()} />
+        <MarkdownView content={markdownContent()} sourceUrl={props.tab.url} />
       </Show>
       {/* Non-YouTube without content: show extract button */}
       <Show when={!isYouTube() && !markdownContent()}>
         <MarkdownView
           content=""
+          sourceUrl={props.tab.url}
           onFetchContent={handleFetchContent}
           loading={fetchingContent()}
         />

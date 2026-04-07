@@ -4,6 +4,7 @@ import { marked } from "marked";
 
 interface MarkdownViewProps {
   content: string;
+  sourceUrl?: string;
   onFetchContent?: () => void;
   loading?: boolean;
 }
@@ -32,6 +33,7 @@ marked.use({
     },
     link({ href, tokens }) {
       const text = this.parser.parseInline(tokens);
+      // href will be resolved at render time via resolveUrl
       return `<a href="${href}" target="_blank" class="text-sky-400 hover:underline">${text}</a>`;
     },
     image({ href, text }) {
@@ -174,13 +176,35 @@ export default function MarkdownView(props: MarkdownViewProps) {
 
   let contentRef: HTMLDivElement | undefined;
 
-  // After content renders, apply syntax highlighting
+  // After content renders, resolve relative URLs and apply syntax highlighting
   createEffect(() => {
     const html = htmlContent();
     if (!html || !contentRef) return;
 
     requestAnimationFrame(() => {
-      if (contentRef) highlightCodeBlocks(contentRef);
+      if (!contentRef) return;
+
+      // Resolve relative URLs against the source page
+      if (props.sourceUrl) {
+        for (const a of Array.from(contentRef.querySelectorAll("a[href]"))) {
+          const href = a.getAttribute("href");
+          if (href && !href.startsWith("http") && !href.startsWith("mailto:") && !href.startsWith("#")) {
+            try {
+              a.setAttribute("href", new URL(href, props.sourceUrl).href);
+            } catch {}
+          }
+        }
+        for (const img of Array.from(contentRef.querySelectorAll("img[src]"))) {
+          const src = img.getAttribute("src");
+          if (src && !src.startsWith("http") && !src.startsWith("data:")) {
+            try {
+              img.setAttribute("src", new URL(src, props.sourceUrl).href);
+            } catch {}
+          }
+        }
+      }
+
+      highlightCodeBlocks(contentRef);
     });
   });
 
