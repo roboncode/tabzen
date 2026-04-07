@@ -40,19 +40,57 @@ export function htmlToMarkdown(html: string): string {
     bulletListMarker: "-",
   });
 
-  // Preserve language info from <code class="language-xxx"> or auto-detect
+  // Preserve language info from <code class="language-xxx">, language labels
+  // in sibling elements (e.g. TypeScript docs: <pre><p>ts</p><code>...</code></pre>),
+  // or auto-detect from content.
   td.addRule("fencedCodeWithLang", {
-    filter: (node) =>
-      node.nodeName === "PRE" &&
-      node.firstChild !== null &&
-      node.firstChild.nodeName === "CODE",
+    filter: (node) => {
+      if (node.nodeName !== "PRE") return false;
+      // Match if there's a <code> anywhere inside, or if it looks like a code block
+      const hasCode = node.querySelector?.("code") !== null && node.querySelector?.("code") !== undefined;
+      const firstChild = node.firstChild;
+      const firstChildIsCode = firstChild?.nodeName === "CODE";
+      return hasCode || firstChildIsCode;
+    },
     replacement: (_content, node) => {
-      const code = node.firstChild as Element;
-      const text = code.textContent || "";
-      // Try class="language-xxx" or "lang-xxx" first
-      const className = code.getAttribute("class") || "";
+      const el = node as Element;
+      const codeEl = el.querySelector?.("code");
+
+      // Get the raw code text — prefer <code> textContent, fall back to <pre> textContent
+      let text = codeEl?.textContent || node.textContent || "";
+
+      // Try to find language from:
+      // 1. class="language-xxx" on <code>
+      let lang = "";
+      const className = codeEl?.getAttribute?.("class") || "";
       const langMatch = className.match(/(?:language-|lang-)(\w+)/);
-      const lang = langMatch ? langMatch[1] : detectLanguage(text);
+      if (langMatch) {
+        lang = langMatch[1];
+      }
+
+      // 2. A short text node or <p> before <code> (e.g. <pre><p>ts</p><code>...)
+      if (!lang) {
+        const children = Array.from(node.childNodes || []);
+        for (const child of children) {
+          if (child === codeEl) break;
+          const childText = (child.textContent || "").trim();
+          // Short text (1-15 chars) before code is likely a language label
+          if (childText && childText.length <= 15 && /^[a-zA-Z][\w+-]*$/.test(childText)) {
+            lang = childText.toLowerCase();
+            // Remove this label from the code text if it got included
+            if (text.startsWith(childText)) {
+              text = text.slice(childText.length).replace(/^\s*\n?/, "");
+            }
+            break;
+          }
+        }
+      }
+
+      // 3. Auto-detect from content
+      if (!lang) {
+        lang = detectLanguage(text);
+      }
+
       return `\n\n\`\`\`${lang}\n${text.replace(/\n$/, "")}\n\`\`\`\n\n`;
     },
   });
