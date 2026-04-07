@@ -1,7 +1,6 @@
 import { isYouTubeWatchUrl } from "./youtube";
 import TurndownService from "turndown";
 import { Readability } from "@mozilla/readability";
-import { Window } from "happy-dom";
 
 export interface PageExtractResult {
   title: string;
@@ -39,11 +38,23 @@ export function htmlToMarkdown(html: string): string {
 }
 
 /**
+ * Parse raw HTML string into a Document using DOMParser.
+ * Available in Chrome extension service workers.
+ */
+function parseHtml(html: string, url: string): Document {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  // Set the documentURI for Readability's base URL resolution
+  Object.defineProperty(doc, "documentURI", { value: url });
+  return doc;
+}
+
+/**
  * Extract content from a browser tab using Readability + Turndown.
  *
- * Strategy: inject a minimal function to grab the page HTML (no CSP issues),
- * then run Readability + Turndown in the background script using happy-dom
- * as the DOM parser.
+ * Injects a trivial function to grab the page HTML (no CSP issues),
+ * then runs Readability + Turndown in the background service worker
+ * using DOMParser (available in service workers).
  */
 export async function extractPageContent(
   browserTabId: number,
@@ -52,8 +63,7 @@ export async function extractPageContent(
   if (!shouldExtractContent(url)) return null;
 
   try {
-    // Inject a trivial function that returns the page HTML — no libraries,
-    // no eval, no CSP concerns
+    // Inject a trivial function that returns the page HTML
     const results = await browser.scripting.executeScript({
       target: { tabId: browserTabId },
       func: () => document.documentElement.innerHTML,
@@ -62,12 +72,9 @@ export async function extractPageContent(
     const rawHtml = results?.[0]?.result;
     if (!rawHtml || typeof rawHtml !== "string") return null;
 
-    // Parse in background script using happy-dom + Readability
-    const window = new Window({ url });
-    window.document.documentElement.innerHTML = rawHtml;
-
-    const article = new Readability(window.document as any).parse();
-    window.close();
+    // Parse HTML and extract article in the service worker
+    const doc = parseHtml(rawHtml, url);
+    const article = new Readability(doc).parse();
 
     if (!article || !article.content) return null;
 
