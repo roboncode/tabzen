@@ -77,7 +77,7 @@ marked.use({
       const tag = `h${depth}`;
       // Generate ID from raw text for TOC linking
       const id = raw.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
-      return `<${tag} id="${id}" class="${HEADING_STYLES[depth] || HEADING_STYLES[4]}" style="scroll-margin-top:3rem">${text}</${tag}>`;
+      return `<${tag} id="${id}" class="${HEADING_STYLES[depth] || HEADING_STYLES[4]}" style="scroll-margin-top:1rem">${text}</${tag}>`;
     },
     paragraph({ tokens }) {
       const text = this.parser.parseInline(tokens);
