@@ -64,16 +64,13 @@ renderer.hr = () => `<hr class="border-muted/30 my-8" />`;
 
 marked.use({ renderer });
 
-// --- Shiki syntax highlighting (CDN-loaded, lazy) ---
+// --- Shiki syntax highlighting (bundled, lazy-loaded) ---
 
-const SHIKI_CDN = "https://unpkg.com/shiki@1.29.2";
-
-// Languages we support highlighting for
 const LANG_MAP: Record<string, string> = {
   js: "javascript",
   ts: "typescript",
-  jsx: "jsx",
-  tsx: "tsx",
+  jsx: "javascript",
+  tsx: "typescript",
   javascript: "javascript",
   typescript: "typescript",
   json: "json",
@@ -86,11 +83,7 @@ const LANG_MAP: Record<string, string> = {
   yml: "yaml",
   python: "python",
   py: "python",
-  rust: "rust",
-  go: "go",
   sql: "sql",
-  markdown: "markdown",
-  md: "markdown",
   xml: "xml",
 };
 
@@ -101,14 +94,27 @@ async function getHighlighter() {
 
   highlighterPromise = (async () => {
     try {
-      const shiki = await import(/* @vite-ignore */ `${SHIKI_CDN}/dist/index.mjs`);
-      const highlighter = await shiki.createHighlighter({
-        themes: ["github-dark-dimmed"],
-        langs: Object.values(LANG_MAP).filter((v, i, a) => a.indexOf(v) === i),
+      const { createHighlighterCore } = await import("shiki/core");
+      const { createJavaScriptRegexEngine } = await import("shiki/engine/javascript");
+      const highlighter = await createHighlighterCore({
+        themes: [import("shiki/themes/github-dark-dimmed.mjs")],
+        langs: [
+          import("shiki/langs/javascript.mjs"),
+          import("shiki/langs/typescript.mjs"),
+          import("shiki/langs/json.mjs"),
+          import("shiki/langs/css.mjs"),
+          import("shiki/langs/html.mjs"),
+          import("shiki/langs/bash.mjs"),
+          import("shiki/langs/yaml.mjs"),
+          import("shiki/langs/python.mjs"),
+          import("shiki/langs/xml.mjs"),
+          import("shiki/langs/sql.mjs"),
+        ],
+        engine: createJavaScriptRegexEngine(),
       });
       return highlighter;
     } catch (e) {
-      console.warn("[TabZen] Failed to load Shiki from CDN:", e);
+      console.warn("[TabZen] Failed to load Shiki:", e);
       highlighterPromise = null;
       return null;
     }
@@ -136,7 +142,7 @@ async function highlightCodeBlocks(container: HTMLElement) {
     return;
   }
 
-  console.log(`[TabZen Shiki] Loading Shiki from ${SHIKI_CDN}...`);
+  console.log("[TabZen Shiki] Loading Shiki (bundled)...");
   const highlighter = await getHighlighter();
   if (!highlighter) {
     console.log("[TabZen Shiki] Highlighter failed to load — aborting");
