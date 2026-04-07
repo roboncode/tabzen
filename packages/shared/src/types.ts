@@ -25,8 +25,20 @@ export interface Tab {
   contentKey: string | null;
   contentType: "transcript" | "markdown" | null;
   contentFetchedAt: string | null;
+  contentVersion?: number;
   transcript?: TranscriptSegment[];
   content?: string;
+}
+
+export interface MigrationAction {
+  type: "re-extract-content" | "regenerate-tags" | "regenerate-summary";
+  behavior: "silent" | "prompted" | "destructive";
+  reason: string;
+}
+
+export interface Migration {
+  version: number;
+  actions: MigrationAction[];
 }
 
 export interface Group {

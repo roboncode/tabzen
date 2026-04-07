@@ -15,6 +15,7 @@ import {
 import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate, shouldSkipUrl } from "@/lib/duplicates";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
+import { CURRENT_CONTENT_VERSION } from "@/lib/page-extract";
 import type { TranscriptSegment } from "@tab-zen/shared";
 import { aiSearch, generateTags } from "@/lib/ai";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
@@ -315,6 +316,8 @@ export default defineBackground(() => {
         return handleGetTranscript(message.tabId);
       case "GET_CONTENT":
         return handleGetContent(message.tabId);
+      case "RE_EXTRACT_CONTENT":
+        return handleReExtractContent(message.tabId);
       case "SYNC_NOW":
         return handleSyncNow();
       case "QUICK_CAPTURE":
@@ -552,6 +555,50 @@ export default defineBackground(() => {
     }
 
     return { type: "CONTENT", content: null };
+  }
+
+  async function handleReExtractContent(tabId: string): Promise<MessageResponse> {
+    const tab = await getTab(tabId);
+    if (!tab) return { type: "ERROR", message: "Tab not found" };
+
+    const { extractPageContent, extractPageContentViaFetch, CURRENT_CONTENT_VERSION } = await import("@/lib/page-extract");
+
+    let result = null;
+
+    // 1. Try open browser tab first (best quality — gets JS-rendered content)
+    const openTabs = await browser.tabs.query({ url: tab.url });
+    if (openTabs.length > 0 && openTabs[0].id) {
+      console.log("[TabZen] Re-extracting from open tab:", tab.url);
+      try {
+        result = await extractPageContent(openTabs[0].id, tab.url);
+      } catch (e) {
+        console.warn("[TabZen] executeScript re-extraction failed, trying fetch:", e);
+      }
+    }
+
+    // 2. Fall back to fetch (works without tab open)
+    if (!result) {
+      console.log("[TabZen] Re-extracting via fetch:", tab.url);
+      result = await extractPageContentViaFetch(tab.url);
+    }
+
+    if (!result) {
+      return { type: "ERROR", message: "Could not extract content from this page" };
+    }
+
+    // Update the tab with new content and version
+    const { addTab } = await import("@/lib/db");
+    await addTab({
+      ...tab,
+      content: result.content,
+      contentKey: `content/${tab.id}`,
+      contentType: "markdown",
+      contentFetchedAt: new Date().toISOString(),
+      contentVersion: CURRENT_CONTENT_VERSION,
+    });
+    notifyDataChanged();
+
+    return { type: "CONTENT", content: result.content };
   }
 
   async function handleSyncNow(): Promise<MessageResponse> {
@@ -1101,6 +1148,7 @@ export default defineBackground(() => {
           contentKey: hasTranscript ? `transcripts/${tabId}` : hasContent ? `content/${tabId}` : null,
           contentType: hasTranscript ? "transcript" : hasContent ? "markdown" : null,
           contentFetchedAt: (hasTranscript || hasContent) ? new Date().toISOString() : null,
+          contentVersion: (hasTranscript || hasContent) ? CURRENT_CONTENT_VERSION : undefined,
           transcript: hasTranscript ? transcriptSegments! : undefined,
           content: hasContent ? markdownContent! : undefined,
         };
@@ -1306,6 +1354,7 @@ export default defineBackground(() => {
       contentKey: hasTranscript ? `transcripts/${tabId}` : hasContent ? `content/${tabId}` : null,
       contentType: hasTranscript ? "transcript" : hasContent ? "markdown" : null,
       contentFetchedAt: (hasTranscript || hasContent) ? new Date().toISOString() : null,
+      contentVersion: (hasTranscript || hasContent) ? CURRENT_CONTENT_VERSION : undefined,
       transcript: hasTranscript ? transcriptSegments! : undefined,
       content: hasContent ? markdownContent! : undefined,
     };

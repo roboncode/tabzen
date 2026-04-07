@@ -2,6 +2,24 @@ import { isYouTubeWatchUrl } from "./youtube";
 import TurndownService from "turndown";
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
+import type { Migration } from "@tab-zen/shared";
+
+/** Current content version — bump when extraction logic improves */
+export const CURRENT_CONTENT_VERSION = 2;
+
+/** Registry of migrations — each defines what actions to take when upgrading */
+export const MIGRATIONS: Migration[] = [
+  {
+    version: 2,
+    actions: [
+      {
+        type: "re-extract-content",
+        behavior: "prompted",
+        reason: "Improved content extraction with better code block parsing and relative URL resolution",
+      },
+    ],
+  },
+];
 
 export interface PageExtractResult {
   title: string;
@@ -271,4 +289,64 @@ export async function extractPageContent(
     console.warn("[TabZen] Page content extraction failed:", e);
     return null;
   }
+}
+
+/**
+ * Extract page content via fetch (no browser tab needed).
+ * Falls back to this when the page isn't open in a tab.
+ * Works for server-rendered pages; won't work for SPAs that require JS.
+ */
+export async function extractPageContentViaFetch(
+  url: string,
+): Promise<PageExtractResult | null> {
+  if (!shouldExtractContent(url)) return null;
+
+  try {
+    console.log("[TabZen] Fetching page content via fetch:", url);
+    const response = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
+    });
+
+    if (!response.ok) {
+      console.warn("[TabZen] Fetch failed:", response.status, url);
+      return null;
+    }
+
+    const rawHtml = await response.text();
+    if (!rawHtml) return null;
+    console.log("[TabZen] Fetched HTML:", rawHtml.length, "chars from", url);
+
+    // Parse with linkedom + Readability (same as executeScript path)
+    const { document } = parseHTML(rawHtml);
+    const article = new Readability(document as any).parse();
+
+    if (!article || !article.content) {
+      console.log("[TabZen] Readability returned no content for fetched:", url);
+      return null;
+    }
+
+    const markdown = htmlToMarkdown(article.content, url);
+    if (!markdown.trim()) return null;
+
+    console.log("[TabZen] Content extracted via fetch:", url, "—", markdown.length, "chars markdown");
+
+    return {
+      title: article.title ?? "",
+      byline: article.byline ?? null,
+      content: markdown,
+      excerpt: article.excerpt ?? null,
+      siteName: article.siteName ?? null,
+    };
+  } catch (e) {
+    console.warn("[TabZen] Fetch extraction failed:", e);
+    return null;
+  }
+}
+
+/**
+ * Get pending migrations for a tab based on its contentVersion.
+ */
+export function getPendingMigrations(tabContentVersion?: number): Migration[] {
+  const currentVersion = tabContentVersion || 0;
+  return MIGRATIONS.filter((m) => m.version > currentVersion);
 }

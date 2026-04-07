@@ -5,12 +5,14 @@ import { formatTimestamp } from "./TranscriptView";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { sendMessage } from "@/lib/messages";
 import { updateTab, getTab, softDeleteTab } from "@/lib/db";
+import { getPendingMigrations } from "@/lib/page-extract";
 import DetailHeader from "./DetailHeader";
 import TranscriptView from "./TranscriptView";
 import MarkdownView from "./MarkdownView";
 import ChatPanel from "./ChatPanel";
 import NotesEditor from "@/components/NotesEditor";
 import ReadingProgress from "@/components/ReadingProgress";
+import { RefreshCw } from "lucide-solid";
 
 interface DetailPageProps {
   tab: Tab;
@@ -30,6 +32,22 @@ export default function DetailPage(props: DetailPageProps) {
   const [editingNotes, setEditingNotes] = createSignal(false);
   const [copied, setCopied] = createSignal(false);
   const [heroScrolledPast, setHeroScrolledPast] = createSignal(false);
+  const [reExtracting, setReExtracting] = createSignal(false);
+  const [migrationDismissed, setMigrationDismissed] = createSignal(false);
+
+  // Check for pending migrations
+  const pendingActions = createMemo(() => {
+    if (migrationDismissed()) return [];
+    const migrations = getPendingMigrations(props.tab.contentVersion);
+    // Collect all prompted actions
+    return migrations.flatMap((m) =>
+      m.actions.filter((a: { behavior: string }) => a.behavior === "prompted"),
+    );
+  });
+
+  const hasReExtractAction = createMemo(() =>
+    pendingActions().some((a) => a.type === "re-extract-content"),
+  );
 
   let containerRef: HTMLDivElement | undefined;
   let scrollRef: HTMLDivElement | undefined;
@@ -166,6 +184,23 @@ export default function DetailPage(props: DetailPageProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleReExtract = async () => {
+    setReExtracting(true);
+    try {
+      const response = await sendMessage({ type: "RE_EXTRACT_CONTENT", tabId: props.tab.id });
+      if (response.type === "CONTENT" && response.content) {
+        setMarkdownContent(response.content);
+        setMigrationDismissed(true);
+      } else if (response.type === "ERROR") {
+        console.error("Re-extraction failed:", response.message);
+      }
+    } catch (e) {
+      console.error("Re-extraction failed:", e);
+    } finally {
+      setReExtracting(false);
+    }
+  };
+
   const handleScroll = () => {
     if (!heroRef || !scrollRef) return;
     const heroBottom = heroRef.offsetTop + heroRef.offsetHeight;
@@ -239,6 +274,29 @@ export default function DetailPage(props: DetailPageProps) {
               heroOnly
             />
           </div>
+
+          {/* Migration banner */}
+          <Show when={hasReExtractAction() && hasContent()}>
+            <div class="mx-4 mt-2 mb-1 flex items-center gap-3 rounded-lg bg-sky-500/10 px-4 py-2.5">
+              <RefreshCw size={15} class={`text-sky-400 flex-shrink-0 ${reExtracting() ? "animate-spin" : ""}`} />
+              <p class="text-sm text-sky-300/80 flex-1">
+                Improved content extraction available
+              </p>
+              <button
+                onClick={handleReExtract}
+                disabled={reExtracting()}
+                class="text-sm font-medium text-sky-400 hover:text-sky-300 transition-colors disabled:opacity-50"
+              >
+                {reExtracting() ? "Updating..." : "Update"}
+              </button>
+              <button
+                onClick={() => setMigrationDismissed(true)}
+                class="text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          </Show>
 
           {/* Reading progress */}
           <Show when={hasContent()}>

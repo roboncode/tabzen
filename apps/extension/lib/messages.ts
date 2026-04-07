@@ -11,6 +11,7 @@ export type MessageRequest =
   | { type: "GET_METADATA"; url: string }
   | { type: "GET_TRANSCRIPT"; tabId: string }
   | { type: "GET_CONTENT"; tabId: string }
+  | { type: "RE_EXTRACT_CONTENT"; tabId: string }
   | { type: "SYNC_NOW" }
   | { type: "QUICK_CAPTURE" };
 
