@@ -57,7 +57,7 @@ marked.use({
       return `<${tag} class="ml-4 space-y-1 ${token.ordered ? "list-decimal" : "list-disc"}">${body}</${tag}>`;
     },
     listitem({ tokens }) {
-      const text = this.parser.parseInline(tokens);
+      const text = this.parser.parse(tokens);
       return `<li class="text-sm text-foreground/80 leading-[1.8]">${text}</li>`;
     },
     hr() {
