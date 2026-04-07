@@ -1,7 +1,7 @@
 import { isYouTubeWatchUrl } from "./youtube";
 import TurndownService from "turndown";
 import { Readability } from "@mozilla/readability";
-import { Window } from "happy-dom";
+import { parseHTML } from "linkedom";
 
 export interface PageExtractResult {
   title: string;
@@ -43,8 +43,7 @@ export function htmlToMarkdown(html: string): string {
  *
  * Injects a trivial function to grab the page HTML (no CSP issues),
  * then runs Readability + Turndown in the background service worker
- * using happy-dom as the DOM parser (DOMParser is not available in
- * MV3 service workers).
+ * using linkedom as the DOM parser (lightweight, no Node.js deps).
  */
 export async function extractPageContent(
   browserTabId: number,
@@ -56,18 +55,15 @@ export async function extractPageContent(
     // Inject a trivial function that returns the page HTML
     const results = await browser.scripting.executeScript({
       target: { tabId: browserTabId },
-      func: () => document.documentElement.innerHTML,
+      func: () => document.documentElement.outerHTML,
     });
 
     const rawHtml = results?.[0]?.result;
     if (!rawHtml || typeof rawHtml !== "string") return null;
 
-    // Parse HTML in the service worker using happy-dom + Readability
-    const window = new Window({ url });
-    window.document.documentElement.innerHTML = rawHtml;
-
-    const article = new Readability(window.document as any).parse();
-    window.close();
+    // Parse HTML in the service worker using linkedom + Readability
+    const { document } = parseHTML(rawHtml);
+    const article = new Readability(document as any).parse();
 
     if (!article || !article.content) return null;
 
