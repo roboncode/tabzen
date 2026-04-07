@@ -72,10 +72,12 @@ marked.use({
   gfm: true,
   breaks: false,
   renderer: {
-    heading({ tokens, depth }) {
+    heading({ tokens, depth, raw }) {
       const text = this.parser.parseInline(tokens);
       const tag = `h${depth}`;
-      return `<${tag} class="${HEADING_STYLES[depth] || HEADING_STYLES[4]}">${text}</${tag}>`;
+      // Generate ID from raw text for TOC linking
+      const id = raw.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
+      return `<${tag} id="${id}" class="${HEADING_STYLES[depth] || HEADING_STYLES[4]}">${text}</${tag}>`;
     },
     paragraph({ tokens }) {
       const text = this.parser.parseInline(tokens);

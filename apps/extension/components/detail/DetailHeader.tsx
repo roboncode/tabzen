@@ -1,5 +1,5 @@
 import { createMemo, Show } from "solid-js";
-import { ArrowLeft, Star, ExternalLink, Archive, ArchiveRestore, Trash2, MessageCircle, StickyNote, Copy, Check } from "lucide-solid";
+import { ArrowLeft, Star, ExternalLink, Archive, ArchiveRestore, Trash2, StickyNote, Copy, Check } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 import { extractCreator, getDomain, getFaviconUrl } from "@/lib/domains";
 import { formatTimeAgo } from "@/lib/format";
@@ -16,8 +16,6 @@ interface DetailHeaderProps {
   onArchive: () => void;
   onDelete: () => void;
   onEditNotes: () => void;
-  chatCollapsed: boolean;
-  onToggleChat: () => void;
   onCopy?: () => void;
   copied?: boolean;
   /** Render only the hero card (no action bar) */
@@ -223,11 +221,6 @@ export default function DetailHeader(props: DetailHeaderProps) {
         <IconButton onClick={props.onDelete} variant="destructive" title="Delete">
           <Trash2 size={16} />
         </IconButton>
-        <Show when={props.chatCollapsed}>
-          <IconButton onClick={props.onToggleChat} title="Open chat">
-            <MessageCircle size={16} />
-          </IconButton>
-        </Show>
       </div>
     </div>
   );

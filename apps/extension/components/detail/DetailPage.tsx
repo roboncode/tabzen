@@ -1,4 +1,4 @@
-import { createSignal, createMemo, Show, onMount, onCleanup } from "solid-js";
+import { createSignal, createMemo, createEffect, Show, onMount, onCleanup } from "solid-js";
 import type { Tab } from "@/lib/types";
 import type { TranscriptSegment } from "@tab-zen/shared";
 import { formatTimestamp } from "./TranscriptView";
@@ -9,7 +9,8 @@ import { getPendingMigrations } from "@/lib/page-extract";
 import DetailHeader from "./DetailHeader";
 import TranscriptView from "./TranscriptView";
 import MarkdownView from "./MarkdownView";
-import ChatPanel from "./ChatPanel";
+import DetailSidebar, { type TocEntry } from "./DetailSidebar";
+import ChatFab from "./ChatFab";
 import NotesEditor from "@/components/NotesEditor";
 import ReadingProgress from "@/components/ReadingProgress";
 import { X } from "lucide-solid";
@@ -19,7 +20,6 @@ interface DetailPageProps {
 }
 
 export default function DetailPage(props: DetailPageProps) {
-  const [chatCollapsed, setChatCollapsed] = createSignal(true);
   const [transcriptSegments, setTranscriptSegments] = createSignal<TranscriptSegment[]>(
     props.tab.transcript || [],
   );
@@ -35,8 +35,9 @@ export default function DetailPage(props: DetailPageProps) {
   const [reExtracting, setReExtracting] = createSignal(false);
   const [migrationDismissed, setMigrationDismissed] = createSignal(false);
   const [updateSuccess, setUpdateSuccess] = createSignal(false);
+  const [tocEntries, setTocEntries] = createSignal<TocEntry[]>([]);
 
-  // Check for pending migrations — separate silent vs prompted
+  // Check for pending migrations
   const pendingMigrations = createMemo(() => getPendingMigrations(props.tab.contentVersion));
 
   const promptedActions = createMemo(() => {
@@ -91,6 +92,26 @@ export default function DetailPage(props: DetailPageProps) {
     };
     browser.runtime.onMessage.addListener(handleMessage);
     onCleanup(() => browser.runtime.onMessage.removeListener(handleMessage));
+  });
+
+  // Extract TOC entries from rendered headings after content changes
+  createEffect(() => {
+    // Track these signals so effect re-runs when content changes
+    markdownContent();
+    transcriptSegments();
+
+    requestAnimationFrame(() => {
+      if (!scrollRef) return;
+      const headings = scrollRef.querySelectorAll("h1[id], h2[id], h3[id]");
+      const entries: TocEntry[] = [];
+      for (const h of headings) {
+        const level = parseInt(h.tagName[1]);
+        if (level <= 3) {
+          entries.push({ id: h.id, text: h.textContent || "", level });
+        }
+      }
+      setTocEntries(entries);
+    });
   });
 
   const isYouTube = createMemo(() => isYouTubeWatchUrl(props.tab.url));
@@ -200,7 +221,6 @@ export default function DetailPage(props: DetailPageProps) {
       if (response.type === "CONTENT" && response.content) {
         setMarkdownContent(response.content);
         setMigrationDismissed(true);
-        // Show success feedback
         setUpdateSuccess(true);
         setTimeout(() => setUpdateSuccess(false), 3000);
       } else if (response.type === "ERROR") {
@@ -221,7 +241,6 @@ export default function DetailPage(props: DetailPageProps) {
 
   const ContentView = () => (
     <>
-      {/* YouTube: always use TranscriptView (it has its own empty/fetch state) */}
       <Show when={isYouTube()}>
         <TranscriptView
           segments={transcriptSegments()}
@@ -230,11 +249,9 @@ export default function DetailPage(props: DetailPageProps) {
           loading={fetchingContent()}
         />
       </Show>
-      {/* Non-YouTube with content: render markdown */}
       <Show when={!isYouTube() && markdownContent()}>
         <MarkdownView content={markdownContent()} sourceUrl={props.tab.url} />
       </Show>
-      {/* Non-YouTube without content: show extract button */}
       <Show when={!isYouTube() && !markdownContent()}>
         <MarkdownView
           content=""
@@ -247,8 +264,8 @@ export default function DetailPage(props: DetailPageProps) {
   );
 
   return (
-    <div ref={containerRef} class="flex h-screen bg-background relative">
-      {/* Main content */}
+    <div ref={containerRef} class="@container flex h-screen bg-background relative">
+      {/* Main content + sidebar */}
       <div class="flex-1 min-w-0 flex flex-col">
         {/* Fixed action bar */}
         <DetailHeader
@@ -259,58 +276,84 @@ export default function DetailPage(props: DetailPageProps) {
           onArchive={handleArchive}
           onDelete={handleDelete}
           onEditNotes={handleEditNotes}
-          chatCollapsed={chatCollapsed()}
-          onToggleChat={() => setChatCollapsed(!chatCollapsed())}
           onCopy={hasContent() ? handleCopy : undefined}
           copied={copied()}
           compact={heroScrolledPast()}
         />
 
-        {/* Scrollable area: hero + progress + content */}
-        <div
-          ref={scrollRef}
-          class="flex-1 overflow-y-auto scrollbar-hide"
-          onScroll={handleScroll}
-        >
-          {/* Hero card */}
-          <div ref={heroRef}>
-            <DetailHeader
-              tab={currentTab()}
-              onBack={handleBack}
-              onToggleStar={handleToggleStar}
-              onOpenSource={handleOpenSource}
-              onArchive={handleArchive}
-              onDelete={handleDelete}
-              onEditNotes={handleEditNotes}
-              chatCollapsed={chatCollapsed()}
-              onToggleChat={() => setChatCollapsed(!chatCollapsed())}
-              heroOnly
-            />
-          </div>
-
-          {/* Reading progress */}
-          <Show when={hasContent()}>
-            <div class="sticky top-0 z-10 bg-background">
-              <ReadingProgress
-                scrollRef={scrollRef}
-                readingTimeMin={readingTimeMin()}
+        {/* Body: scrollable content + sticky sidebar */}
+        <div class="flex-1 flex overflow-hidden">
+          {/* Scrollable content area */}
+          <div
+            ref={scrollRef}
+            class="flex-1 min-w-0 overflow-y-auto scrollbar-hide"
+            onScroll={handleScroll}
+          >
+            {/* Hero card */}
+            <div ref={heroRef}>
+              <DetailHeader
+                tab={currentTab()}
+                onBack={handleBack}
+                onToggleStar={handleToggleStar}
+                onOpenSource={handleOpenSource}
+                onArchive={handleArchive}
+                onDelete={handleDelete}
+                onEditNotes={handleEditNotes}
+                heroOnly
               />
             </div>
-          </Show>
 
-          {/* Content */}
-          <div class="px-4 pb-6 flex-1">
-            <ContentView />
+            {/* Narrow: inline tags + notes */}
+            <Show when={isNarrow()}>
+              <div class="px-4 flex flex-col gap-2 mb-2">
+                <Show when={currentTab().tags && currentTab().tags.length > 0}>
+                  <div class="flex flex-wrap gap-x-2 gap-y-1">
+                    {currentTab().tags.map((tag) => (
+                      <span class="text-sm text-sky-400">#{tag}</span>
+                    ))}
+                  </div>
+                </Show>
+                <Show when={currentTab().notes}>
+                  <button
+                    onClick={handleEditNotes}
+                    class="text-left bg-muted/30 rounded-lg px-3 py-2 text-sm text-muted-foreground leading-relaxed hover:bg-muted/40 transition-colors line-clamp-2"
+                  >
+                    {currentTab().notes}
+                  </button>
+                </Show>
+              </div>
+            </Show>
+
+            {/* Reading progress */}
+            <Show when={hasContent()}>
+              <div class="sticky top-0 z-10 bg-background">
+                <ReadingProgress
+                  scrollRef={scrollRef}
+                  readingTimeMin={readingTimeMin()}
+                />
+              </div>
+            </Show>
+
+            {/* Content */}
+            <div class="px-4 pb-6 flex-1">
+              <ContentView />
+            </div>
           </div>
+
+          {/* Sidebar — hidden on narrow */}
+          <Show when={!isNarrow()}>
+            <DetailSidebar
+              tab={currentTab()}
+              tocEntries={tocEntries()}
+              scrollRef={scrollRef}
+              onEditNotes={handleEditNotes}
+            />
+          </Show>
         </div>
       </div>
 
-      {/* Chat panel */}
-      <ChatPanel
-        collapsed={chatCollapsed()}
-        onToggle={() => setChatCollapsed(!chatCollapsed())}
-        overlay={isNarrow()}
-      />
+      {/* Chat FAB */}
+      <ChatFab />
 
       {/* Notes editor */}
       <Show when={editingNotes()}>
