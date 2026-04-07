@@ -56,7 +56,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
   // ── Hero Only mode: the scrollable card ──
   if (props.heroOnly) {
     return (
-      <div class="@container px-4 pt-24 pb-12 pr-16">
+      <div class="@container px-4 pt-24 pb-12">
         {/*
           Container query breakpoints:
           < 480px: stacked (thumbnail on top, info below) — like a card
@@ -91,7 +91,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
             <a
               href={props.tab.url}
               target="_blank"
-              class="text-base @[480px]:text-lg font-semibold text-foreground leading-snug hover:text-sky-400 transition-colors cursor-pointer"
+              class="text-xl @[480px]:text-2xl font-bold text-foreground leading-snug hover:text-sky-400 transition-colors cursor-pointer"
             >
               {title()}
             </a>

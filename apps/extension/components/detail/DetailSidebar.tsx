@@ -59,24 +59,29 @@ export default function DetailSidebar(props: DetailSidebarProps) {
     const content = props.tab.content || "";
     const links: { text: string; href: string }[] = [];
     const seen = new Set<string>();
-    const regex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+    // Match [text](url) but not ![image](url)
+    const regex = /(?<!!)\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
     let match;
     while ((match = regex.exec(content)) !== null) {
+      const text = match[1];
+      const href = match[2];
+      // Skip image URLs
+      if (/\.(png|jpe?g|gif|svg|webp|ico|bmp)(\?|$)/i.test(href)) continue;
       // Skip links to the same domain as the source
       try {
-        const linkDomain = new URL(match[2]).hostname;
+        const linkDomain = new URL(href).hostname;
         const sourceDomain = new URL(props.tab.url).hostname;
         if (linkDomain === sourceDomain) continue;
       } catch {}
-      if (seen.has(match[2])) continue;
-      seen.add(match[2]);
-      links.push({ text: match[1], href: match[2] });
+      if (seen.has(href)) continue;
+      seen.add(href);
+      links.push({ text, href });
     }
     return links.slice(0, 8); // Cap at 8 links
   };
 
   return (
-    <div class="w-[220px] flex-shrink-0 pl-4 pr-4 py-1 sticky top-4 self-start border-l border-muted-foreground/10">
+    <div class="w-[256px] flex-shrink-0 pl-4 pr-4 py-1 sticky top-4 self-start border-l border-muted-foreground/10">
       {/* Table of Contents */}
       <Show when={props.tocEntries.length > 0}>
         <div class="mb-5">

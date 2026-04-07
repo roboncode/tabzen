@@ -62,10 +62,10 @@ function resolveUrl(href: string): string {
 // Configure marked with custom renderer using this.parser.parseInline
 // for proper inline markdown rendering (backticks, bold, italic, links)
 const HEADING_STYLES: Record<number, string> = {
-  1: "text-xl font-semibold text-foreground mt-10 mb-4",
-  2: "text-lg font-semibold text-foreground mt-10 mb-3",
-  3: "text-base font-semibold text-foreground mt-8 mb-3",
-  4: "text-sm font-semibold text-foreground mt-6 mb-2",
+  1: "text-3xl font-bold text-foreground mt-10 mb-4",
+  2: "text-2xl font-semibold text-foreground mt-10 mb-3",
+  3: "text-lg font-semibold text-foreground mt-8 mb-3",
+  4: "text-base font-semibold text-foreground mt-6 mb-2",
 };
 
 marked.use({
