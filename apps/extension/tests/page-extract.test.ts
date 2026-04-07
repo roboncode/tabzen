@@ -193,6 +193,38 @@ describe("htmlToMarkdown", () => {
     expect(md).not.toContain("Try");
     expect(md).toContain("const x = 1;");
   });
+
+  // --- Heading anchor links ---
+
+  it("strips anchor tags wrapping headings", () => {
+    const html = '<a href="#my-section" id="my-section"><span><h2>My Section</h2></span></a>';
+    const md = htmlToMarkdown(html);
+    expect(md).toContain("## My Section");
+    expect(md).not.toContain("[");
+    expect(md).not.toContain("](#");
+  });
+
+  it("strips anchor tags wrapping headings with SVG icons", () => {
+    const html = '<a href="#intro"><span><h2>Introduction</h2></span><svg width="16" height="16"><path d="M1 1"/></svg></a>';
+    const md = htmlToMarkdown(html);
+    expect(md).toContain("## Introduction");
+    expect(md).not.toContain("[##");
+    expect(md).not.toContain("svg");
+  });
+
+  it("handles multiple heading levels in anchor wraps", () => {
+    const html = '<a href="#a"><h3>Sub Heading</h3></a><a href="#b"><h4>Deep Heading</h4></a>';
+    const md = htmlToMarkdown(html);
+    expect(md).toContain("### Sub Heading");
+    expect(md).toContain("#### Deep Heading");
+    expect(md).not.toContain("[###");
+  });
+
+  it("keeps normal links that don't wrap headings", () => {
+    const html = '<p>Visit <a href="https://example.com">Example</a> for more.</p>';
+    const md = htmlToMarkdown(html);
+    expect(md).toContain("[Example](https://example.com)");
+  });
 });
 
 describe("getPendingMigrations", () => {

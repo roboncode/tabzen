@@ -5,7 +5,7 @@ import { parseHTML } from "linkedom";
 import type { Migration } from "@tab-zen/shared";
 
 /** Current content version — bump when extraction logic improves */
-export const CURRENT_CONTENT_VERSION = 4;
+export const CURRENT_CONTENT_VERSION = 5;
 
 /** Registry of migrations — each defines what actions to take when upgrading */
 export const MIGRATIONS: Migration[] = [
@@ -101,6 +101,28 @@ export function htmlToMarkdown(html: string, sourceUrl?: string): string {
   // Preserve language info from <code class="language-xxx">, language labels
   // in sibling elements (e.g. TypeScript docs: <pre><p>ts</p><code>...</code></pre>),
   // or auto-detect from content.
+  // Strip anchor tags that wrap headings (common blog pattern: <a href="#id"><h2>...</h2></a>)
+  // These produce broken markdown like [## Heading](url)
+  td.addRule("headingAnchorStrip", {
+    filter: (node) => {
+      if (node.nodeName !== "A") return false;
+      // Check if this anchor contains a heading as a child
+      const hasHeading = node.querySelector?.("h1, h2, h3, h4, h5, h6");
+      return !!hasHeading;
+    },
+    replacement: (_content, node) => {
+      // Just return the inner content — Turndown will process the heading inside
+      const el = node as Element;
+      const heading = el.querySelector?.("h1, h2, h3, h4, h5, h6");
+      if (heading) {
+        const level = parseInt(heading.nodeName[1]);
+        const prefix = "#".repeat(level);
+        return `\n\n${prefix} ${heading.textContent?.trim() || ""}\n\n`;
+      }
+      return _content;
+    },
+  });
+
   td.addRule("fencedCodeWithLang", {
     filter: (node) => {
       if (node.nodeName !== "PRE") return false;
