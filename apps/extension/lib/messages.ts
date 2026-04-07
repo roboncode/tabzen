@@ -10,6 +10,7 @@ export type MessageRequest =
   | { type: "OPEN_TAB"; tabId: string }
   | { type: "GET_METADATA"; url: string }
   | { type: "GET_TRANSCRIPT"; tabId: string }
+  | { type: "GET_CONTENT"; tabId: string }
   | { type: "SYNC_NOW" }
   | { type: "QUICK_CAPTURE" };
 
@@ -20,6 +21,7 @@ export type MessageResponse =
   | { type: "TAB_OPENED"; tab: Tab }
   | { type: "METADATA"; ogTitle: string | null; ogDescription: string | null; ogImage: string | null; metaDescription: string | null }
   | { type: "TRANSCRIPT"; transcript: { text: string; startMs: number; durationMs: number }[] | null }
+  | { type: "CONTENT"; content: string | null }
   | { type: "ERROR"; message: string }
   | { type: "SUCCESS" }
   | { type: "SYNC_COMPLETE"; pushed: number; pulled: number }
