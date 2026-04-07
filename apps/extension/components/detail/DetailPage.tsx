@@ -294,6 +294,8 @@ export default function DetailPage(props: DetailPageProps) {
               <ChevronDown size={14} class={`ml-auto transition-transform ${tocDropdownOpen() ? "rotate-180" : ""}`} />
             </button>
             <Show when={tocDropdownOpen()}>
+              {/* Backdrop to close on outside click */}
+              <div class="fixed inset-0 z-10" onClick={() => setTocDropdownOpen(false)} />
               <div class="absolute top-full left-0 right-0 z-20 bg-background/95 backdrop-blur-sm shadow-lg animate-[fadeIn_0.15s_ease-out]">
                 {tocEntries().map((entry) => (
                   <button
