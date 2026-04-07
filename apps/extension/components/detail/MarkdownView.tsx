@@ -8,61 +8,63 @@ interface MarkdownViewProps {
   loading?: boolean;
 }
 
-// Configure marked for our use case
-marked.setOptions({
+// Configure marked with custom renderer using this.parser.parseInline
+// for proper inline markdown rendering (backticks, bold, italic, links)
+const HEADING_STYLES: Record<number, string> = {
+  1: "text-xl font-semibold text-foreground mt-10 mb-4",
+  2: "text-lg font-semibold text-foreground mt-10 mb-3",
+  3: "text-base font-semibold text-foreground mt-8 mb-3",
+  4: "text-sm font-semibold text-foreground mt-6 mb-2",
+};
+
+marked.use({
   gfm: true,
   breaks: false,
+  renderer: {
+    heading({ tokens, depth }) {
+      const text = this.parser.parseInline(tokens);
+      const tag = `h${depth}`;
+      return `<${tag} class="${HEADING_STYLES[depth] || HEADING_STYLES[4]}">${text}</${tag}>`;
+    },
+    paragraph({ tokens }) {
+      const text = this.parser.parseInline(tokens);
+      return `<p class="text-sm text-foreground/80 leading-[1.8]">${text}</p>`;
+    },
+    link({ href, tokens }) {
+      const text = this.parser.parseInline(tokens);
+      return `<a href="${href}" target="_blank" class="text-sky-400 hover:underline">${text}</a>`;
+    },
+    image({ href, text }) {
+      return `<img src="${href}" alt="${text}" class="rounded-lg max-w-full my-4" />`;
+    },
+    code({ text, lang }) {
+      const langAttr = lang ? ` data-lang="${lang}"` : "";
+      return `<pre class="bg-muted/30 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed my-4"${langAttr}><code>${text}</code></pre>`;
+    },
+    codespan({ text }) {
+      return `<code class="bg-muted/30 px-1.5 py-0.5 rounded text-sm">${text}</code>`;
+    },
+    blockquote({ tokens }) {
+      const body = this.parser.parse(tokens);
+      return `<blockquote class="border-l-2 border-muted-foreground/20 pl-4 italic text-muted-foreground">${body}</blockquote>`;
+    },
+    list(token) {
+      const tag = token.ordered ? "ol" : "ul";
+      let body = "";
+      for (const item of token.items) {
+        body += this.listitem(item);
+      }
+      return `<${tag} class="ml-4 space-y-1 ${token.ordered ? "list-decimal" : "list-disc"}">${body}</${tag}>`;
+    },
+    listitem({ tokens }) {
+      const text = this.parser.parseInline(tokens);
+      return `<li class="text-sm text-foreground/80 leading-[1.8]">${text}</li>`;
+    },
+    hr() {
+      return `<hr class="border-muted/30 my-8" />`;
+    },
+  },
 });
-
-// Custom renderer to apply our Tailwind classes
-const renderer = new marked.Renderer();
-
-renderer.heading = ({ text, depth }) => {
-  const styles: Record<number, string> = {
-    1: "text-xl font-semibold text-foreground mt-10 mb-4",
-    2: "text-lg font-semibold text-foreground mt-10 mb-3",
-    3: "text-base font-semibold text-foreground mt-8 mb-3",
-    4: "text-sm font-semibold text-foreground mt-6 mb-2",
-  };
-  const tag = `h${depth}`;
-  return `<${tag} class="${styles[depth] || styles[4]}">${text}</${tag}>`;
-};
-
-renderer.paragraph = ({ text }) =>
-  `<p class="text-sm text-foreground/80 leading-[1.8]">${text}</p>`;
-
-renderer.link = ({ href, text }) =>
-  `<a href="${href}" target="_blank" class="text-sky-400 hover:underline">${text}</a>`;
-
-renderer.image = ({ href, text }) =>
-  `<img src="${href}" alt="${text}" class="rounded-lg max-w-full my-4" />`;
-
-renderer.code = ({ text, lang }) => {
-  const langAttr = lang ? ` data-lang="${lang}"` : "";
-  return `<pre class="bg-muted/30 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed my-4"${langAttr}><code>${text}</code></pre>`;
-};
-
-renderer.codespan = ({ text }) =>
-  `<code class="bg-muted/30 px-1.5 py-0.5 rounded text-sm">${text}</code>`;
-
-renderer.blockquote = ({ text }) =>
-  `<blockquote class="border-l-2 border-muted-foreground/20 pl-4 italic text-muted-foreground">${text}</blockquote>`;
-
-renderer.list = (token) => {
-  const tag = token.ordered ? "ol" : "ul";
-  let body = "";
-  for (const item of token.items) {
-    body += renderer.listitem(item);
-  }
-  return `<${tag} class="ml-4 space-y-1 ${token.ordered ? "list-decimal" : "list-disc"}">${body}</${tag}>`;
-};
-
-renderer.listitem = ({ text }) =>
-  `<li class="text-sm text-foreground/80 leading-[1.8]">${text}</li>`;
-
-renderer.hr = () => `<hr class="border-muted/30 my-8" />`;
-
-marked.use({ renderer });
 
 // --- Shiki syntax highlighting (bundled, lazy-loaded) ---
 
