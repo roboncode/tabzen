@@ -36,18 +36,18 @@ export default function DetailPage(props: DetailPageProps) {
   const [migrationDismissed, setMigrationDismissed] = createSignal(false);
   const [updateSuccess, setUpdateSuccess] = createSignal(false);
 
-  // Check for pending migrations
-  const pendingActions = createMemo(() => {
+  // Check for pending migrations — separate silent vs prompted
+  const pendingMigrations = createMemo(() => getPendingMigrations(props.tab.contentVersion));
+
+  const promptedActions = createMemo(() => {
     if (migrationDismissed()) return [];
-    const migrations = getPendingMigrations(props.tab.contentVersion);
-    // Collect all prompted actions
-    return migrations.flatMap((m) =>
+    return pendingMigrations().flatMap((m) =>
       m.actions.filter((a: { behavior: string }) => a.behavior === "prompted"),
     );
   });
 
-  const hasReExtractAction = createMemo(() =>
-    pendingActions().some((a) => a.type === "re-extract-content"),
+  const hasPromptedReExtract = createMemo(() =>
+    promptedActions().some((a) => a.type === "re-extract-content"),
   );
 
   let containerRef: HTMLDivElement | undefined;
@@ -55,6 +55,14 @@ export default function DetailPage(props: DetailPageProps) {
   let heroRef: HTMLDivElement | undefined;
 
   onMount(() => {
+    // Auto-run silent migration actions
+    const silentActions = pendingMigrations().flatMap((m) =>
+      m.actions.filter((a) => a.behavior === "silent"),
+    );
+    if (silentActions.some((a) => a.type === "re-extract-content")) {
+      handleReExtract();
+    }
+
     if (!containerRef) return;
 
     const resizeObserver = new ResizeObserver((entries) => {
@@ -314,7 +322,7 @@ export default function DetailPage(props: DetailPageProps) {
       </Show>
 
       {/* Update available toast */}
-      <Show when={hasReExtractAction() && hasContent()}>
+      <Show when={hasPromptedReExtract() && hasContent()}>
         <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5 bg-[#1e1e22]/95 backdrop-blur-sm px-4 py-2.5 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)] whitespace-nowrap">
           <span class={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${reExtracting() ? "bg-amber-400 animate-pulse" : "bg-emerald-400 animate-[pulse_2s_ease-in-out_infinite]"}`} />
           <span class="text-sm text-foreground/70">

@@ -217,10 +217,7 @@ export default function MarkdownView(props: MarkdownViewProps) {
   const htmlContent = createMemo(() => {
     if (!props.content) return "";
     currentSourceUrl = props.sourceUrl;
-    console.log("[TabZen URL] Parsing markdown, sourceUrl:", currentSourceUrl, "content length:", props.content.length);
-    const result = marked.parse(props.content, { async: false }) as string;
-    console.log("[TabZen URL] Parse complete, HTML length:", result.length);
-    return result;
+    return marked.parse(props.content, { async: false }) as string;
   });
 
   let contentRef: HTMLDivElement | undefined;

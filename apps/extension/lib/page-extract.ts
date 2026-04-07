@@ -14,8 +14,8 @@ export const MIGRATIONS: Migration[] = [
     actions: [
       {
         type: "re-extract-content",
-        behavior: "prompted",
-        reason: "Improved content extraction with better code block parsing and relative URL resolution",
+        behavior: "silent",
+        reason: "Improved content extraction with syntax highlighting, code blocks, and URL resolution",
       },
     ],
   },
@@ -45,33 +45,53 @@ export function shouldExtractContent(url: string): boolean {
   return true;
 }
 
+/**
+ * Resolve relative URLs in a raw HTML string.
+ * Must be called BEFORE linkedom/Readability parse the HTML, because
+ * linkedom in a service worker resolves getAttribute("href") against
+ * the chrome-extension:// origin.
+ */
+function resolveRelativeUrls(html: string, sourceUrl: string): string {
+  try {
+    const origin = new URL(sourceUrl).origin;
+    const baseUrl = sourceUrl.replace(/\/[^/]*$/, "/");
+
+    // Resolve href="/path" and src="/path" (root-relative)
+    let result = html.replace(
+      /(href|src)="(\/[^"]*?)"/g,
+      (_match, attr, path) => `${attr}="${origin}${path}"`,
+    );
+
+    // Resolve href="path" and src="path" (relative, not protocol/anchor/data/root)
+    result = result.replace(
+      /(href|src)="(?!https?:\/\/|mailto:|#|data:|\/\/|\/[^/])([^"]*?)"/g,
+      (_match, attr, path) => {
+        try {
+          return `${attr}="${new URL(path, baseUrl).href}"`;
+        } catch {
+          return _match;
+        }
+      },
+    );
+
+    return result;
+  } catch {
+    return html;
+  }
+}
+
 /** Convert HTML string to markdown using Turndown. Runs in background service worker. */
 export function htmlToMarkdown(html: string, sourceUrl?: string): string {
   if (!html || !html.trim()) return "";
+
+  // If sourceUrl provided, resolve any remaining relative URLs in the HTML
+  // (most should already be resolved before Readability, this is a safety net)
+  const processedHtml = sourceUrl ? resolveRelativeUrls(html, sourceUrl) : html;
+
   // Turndown uses `document` internally to parse HTML strings, which doesn't
   // exist in MV3 service workers. Parse with linkedom and pass the DOM node.
   // Wrap in <html><body> so linkedom places content in document.body.
-  const { document: doc } = parseHTML(`<html><body>${html}</body></html>`);
-
-  // Resolve relative URLs to absolute using the source page's URL
-  if (sourceUrl) {
-    for (const a of Array.from(doc.querySelectorAll("a[href]"))) {
-      const href = a.getAttribute("href");
-      if (href && !href.startsWith("http") && !href.startsWith("mailto:") && !href.startsWith("#")) {
-        try {
-          a.setAttribute("href", new URL(href, sourceUrl).href);
-        } catch {}
-      }
-    }
-    for (const img of Array.from(doc.querySelectorAll("img[src]"))) {
-      const src = img.getAttribute("src");
-      if (src && !src.startsWith("http") && !src.startsWith("data:")) {
-        try {
-          img.setAttribute("src", new URL(src, sourceUrl).href);
-        } catch {}
-      }
-    }
-  }
+  const { document: doc } = parseHTML(`<html><body>${processedHtml}</body></html>`);
   const td = new TurndownService({
     headingStyle: "atx",
     codeBlockStyle: "fenced",
@@ -238,45 +258,26 @@ export async function extractPageContent(
   browserTabId: number,
   url: string,
 ): Promise<PageExtractResult | null> {
-  console.log("[TabZen] extractPageContent called for:", url);
-
-  if (!shouldExtractContent(url)) {
-    console.log("[TabZen] Skipping extraction (filtered out):", url);
-    return null;
-  }
+  if (!shouldExtractContent(url)) return null;
 
   try {
-    // Inject a trivial function that returns the page HTML
-    console.log("[TabZen] Injecting script into tab", browserTabId);
     const results = await browser.scripting.executeScript({
       target: { tabId: browserTabId },
       func: () => document.documentElement.outerHTML,
     });
 
     const rawHtml = results?.[0]?.result;
-    if (!rawHtml || typeof rawHtml !== "string") {
-      console.log("[TabZen] No HTML returned from tab", browserTabId);
-      return null;
-    }
-    console.log("[TabZen] Got HTML:", rawHtml.length, "chars from", url);
+    if (!rawHtml || typeof rawHtml !== "string") return null;
 
-    // Parse HTML in the service worker using linkedom + Readability
-    const { document } = parseHTML(rawHtml);
+    // Resolve relative URLs BEFORE parsing — linkedom resolves against extension origin
+    const resolvedHtml = resolveRelativeUrls(rawHtml, url);
+
+    const { document } = parseHTML(resolvedHtml);
     const article = new Readability(document as any).parse();
+    if (!article || !article.content) return null;
 
-    if (!article || !article.content) {
-      console.log("[TabZen] Readability returned no content for:", url);
-      return null;
-    }
-    console.log("[TabZen] Readability extracted:", article.title, "—", article.content.length, "chars HTML");
-
-    // Convert Readability's clean HTML to markdown
     const markdown = htmlToMarkdown(article.content, url);
-    if (!markdown.trim()) {
-      console.log("[TabZen] Turndown returned empty markdown for:", url);
-      return null;
-    }
-    console.log("[TabZen] Content extracted:", url, "—", markdown.length, "chars markdown");
+    if (!markdown.trim()) return null;
 
     return {
       title: article.title ?? "",
@@ -302,33 +303,24 @@ export async function extractPageContentViaFetch(
   if (!shouldExtractContent(url)) return null;
 
   try {
-    console.log("[TabZen] Fetching page content via fetch:", url);
     const response = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
     });
 
-    if (!response.ok) {
-      console.warn("[TabZen] Fetch failed:", response.status, url);
-      return null;
-    }
+    if (!response.ok) return null;
 
     const rawHtml = await response.text();
     if (!rawHtml) return null;
-    console.log("[TabZen] Fetched HTML:", rawHtml.length, "chars from", url);
 
-    // Parse with linkedom + Readability (same as executeScript path)
-    const { document } = parseHTML(rawHtml);
+    // Resolve relative URLs BEFORE parsing — linkedom resolves against extension origin
+    const resolvedHtml = resolveRelativeUrls(rawHtml, url);
+
+    const { document } = parseHTML(resolvedHtml);
     const article = new Readability(document as any).parse();
-
-    if (!article || !article.content) {
-      console.log("[TabZen] Readability returned no content for fetched:", url);
-      return null;
-    }
+    if (!article || !article.content) return null;
 
     const markdown = htmlToMarkdown(article.content, url);
     if (!markdown.trim()) return null;
-
-    console.log("[TabZen] Content extracted via fetch:", url, "—", markdown.length, "chars markdown");
 
     return {
       title: article.title ?? "",
@@ -348,5 +340,15 @@ export async function extractPageContentViaFetch(
  */
 export function getPendingMigrations(tabContentVersion?: number): Migration[] {
   const currentVersion = tabContentVersion || 0;
-  return MIGRATIONS.filter((m) => m.version > currentVersion);
+  if (currentVersion >= CURRENT_CONTENT_VERSION) return [];
+  const pending = MIGRATIONS.filter((m) => m.version > currentVersion);
+  // If tab is behind current version but no specific migration entries exist,
+  // return a default re-extract action so the banner still shows
+  if (pending.length === 0 && currentVersion < CURRENT_CONTENT_VERSION) {
+    return [{
+      version: CURRENT_CONTENT_VERSION,
+      actions: [{ type: "re-extract-content", behavior: "prompted", reason: "Content extraction improvements available" }],
+    }];
+  }
+  return pending;
 }
