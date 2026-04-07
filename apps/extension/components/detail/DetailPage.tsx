@@ -12,7 +12,7 @@ import MarkdownView from "./MarkdownView";
 import ChatPanel from "./ChatPanel";
 import NotesEditor from "@/components/NotesEditor";
 import ReadingProgress from "@/components/ReadingProgress";
-import { RefreshCw } from "lucide-solid";
+import { X } from "lucide-solid";
 
 interface DetailPageProps {
   tab: Tab;
@@ -275,29 +275,6 @@ export default function DetailPage(props: DetailPageProps) {
             />
           </div>
 
-          {/* Migration banner */}
-          <Show when={hasReExtractAction() && hasContent()}>
-            <div class="mx-4 mt-2 mb-1 flex items-center gap-3 rounded-lg bg-sky-500/10 px-4 py-2.5">
-              <RefreshCw size={15} class={`text-sky-400 flex-shrink-0 ${reExtracting() ? "animate-spin" : ""}`} />
-              <p class="text-sm text-sky-300/80 flex-1">
-                Improved content extraction available
-              </p>
-              <button
-                onClick={handleReExtract}
-                disabled={reExtracting()}
-                class="text-sm font-medium text-sky-400 hover:text-sky-300 transition-colors disabled:opacity-50"
-              >
-                {reExtracting() ? "Updating..." : "Update"}
-              </button>
-              <button
-                onClick={() => setMigrationDismissed(true)}
-                class="text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-              >
-                Dismiss
-              </button>
-            </div>
-          </Show>
-
           {/* Reading progress */}
           <Show when={hasContent()}>
             <div class="sticky top-0 z-10 bg-background">
@@ -329,6 +306,29 @@ export default function DetailPage(props: DetailPageProps) {
           onSave={handleSaveNotes}
           onClose={() => setEditingNotes(false)}
         />
+      </Show>
+
+      {/* Update available toast */}
+      <Show when={hasReExtractAction() && hasContent()}>
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5 bg-[#1e1e22]/95 backdrop-blur-sm px-4 py-2.5 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)] whitespace-nowrap">
+          <span class={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${reExtracting() ? "bg-amber-400 animate-pulse" : "bg-emerald-400 animate-[pulse_2s_ease-in-out_infinite]"}`} />
+          <span class="text-sm text-foreground/70">
+            {reExtracting() ? "Updating..." : "Content update available"}
+          </span>
+          <button
+            onClick={handleReExtract}
+            disabled={reExtracting()}
+            class="text-sm font-medium text-emerald-400 hover:bg-emerald-400/10 px-2.5 py-1 rounded-md transition-colors disabled:opacity-50"
+          >
+            Update
+          </button>
+          <button
+            onClick={() => setMigrationDismissed(true)}
+            class="text-foreground/20 hover:text-foreground/40 transition-colors p-0.5"
+          >
+            <X size={14} />
+          </button>
+        </div>
       </Show>
     </div>
   );
