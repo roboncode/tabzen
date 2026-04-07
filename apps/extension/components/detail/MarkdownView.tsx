@@ -1,4 +1,4 @@
-import { createMemo, Show } from "solid-js";
+import { createMemo, createEffect, Show, onCleanup } from "solid-js";
 import { FileText } from "lucide-solid";
 import { marked } from "marked";
 
@@ -37,8 +37,10 @@ renderer.link = ({ href, text }) =>
 renderer.image = ({ href, text }) =>
   `<img src="${href}" alt="${text}" class="rounded-lg max-w-full my-4" />`;
 
-renderer.code = ({ text, lang }) =>
-  `<pre class="bg-muted/30 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed my-4"><code class="language-${lang || ""}">${text}</code></pre>`;
+renderer.code = ({ text, lang }) => {
+  const langAttr = lang ? ` data-lang="${lang}"` : "";
+  return `<pre class="bg-muted/30 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed my-4"${langAttr}><code>${text}</code></pre>`;
+};
 
 renderer.codespan = ({ text }) =>
   `<code class="bg-muted/30 px-1.5 py-0.5 rounded text-sm">${text}</code>`;
@@ -62,14 +64,116 @@ renderer.hr = () => `<hr class="border-muted/30 my-8" />`;
 
 marked.use({ renderer });
 
+// --- Shiki syntax highlighting (CDN-loaded, lazy) ---
+
+const SHIKI_CDN = "https://unpkg.com/shiki@1.29.2";
+
+// Languages we support highlighting for
+const LANG_MAP: Record<string, string> = {
+  js: "javascript",
+  ts: "typescript",
+  jsx: "jsx",
+  tsx: "tsx",
+  javascript: "javascript",
+  typescript: "typescript",
+  json: "json",
+  css: "css",
+  html: "html",
+  bash: "bash",
+  sh: "bash",
+  shell: "bash",
+  yaml: "yaml",
+  yml: "yaml",
+  python: "python",
+  py: "python",
+  rust: "rust",
+  go: "go",
+  sql: "sql",
+  markdown: "markdown",
+  md: "markdown",
+  xml: "xml",
+};
+
+let highlighterPromise: Promise<any> | null = null;
+
+async function getHighlighter() {
+  if (highlighterPromise) return highlighterPromise;
+
+  highlighterPromise = (async () => {
+    try {
+      const shiki = await import(/* @vite-ignore */ `${SHIKI_CDN}/dist/index.mjs`);
+      const highlighter = await shiki.createHighlighter({
+        themes: ["github-dark-dimmed"],
+        langs: Object.values(LANG_MAP).filter((v, i, a) => a.indexOf(v) === i),
+      });
+      return highlighter;
+    } catch (e) {
+      console.warn("[TabZen] Failed to load Shiki from CDN:", e);
+      highlighterPromise = null;
+      return null;
+    }
+  })();
+
+  return highlighterPromise;
+}
+
+async function highlightCodeBlocks(container: HTMLElement) {
+  const preBlocks = container.querySelectorAll("pre[data-lang]");
+  if (preBlocks.length === 0) return;
+
+  const highlighter = await getHighlighter();
+  if (!highlighter) return;
+
+  for (const pre of preBlocks) {
+    const rawLang = pre.getAttribute("data-lang") || "";
+    const lang = LANG_MAP[rawLang.toLowerCase()];
+    if (!lang) continue;
+
+    const code = pre.querySelector("code");
+    if (!code) continue;
+
+    try {
+      const highlighted = highlighter.codeToHtml(code.textContent || "", {
+        lang,
+        theme: "github-dark-dimmed",
+      });
+      // Shiki returns a <pre><code>...</code></pre> with inline styles.
+      // Extract just the inner content and merge with our styling.
+      const tmp = document.createElement("div");
+      tmp.innerHTML = highlighted;
+      const shikiPre = tmp.querySelector("pre");
+      if (shikiPre) {
+        // Keep our classes, add shiki's background
+        pre.innerHTML = shikiPre.innerHTML;
+        pre.removeAttribute("data-lang");
+      }
+    } catch {
+      // Language not supported or error — leave as plain text
+    }
+  }
+}
+
 /**
  * Renders extracted markdown content as styled HTML.
- * Matches the reading experience of TranscriptView.
+ * Code blocks get syntax highlighting via Shiki (CDN-loaded).
  */
 export default function MarkdownView(props: MarkdownViewProps) {
   const htmlContent = createMemo(() => {
     if (!props.content) return "";
     return marked.parse(props.content, { async: false }) as string;
+  });
+
+  let contentRef: HTMLDivElement | undefined;
+
+  // After content renders, apply syntax highlighting
+  createEffect(() => {
+    const html = htmlContent();
+    if (!html || !contentRef) return;
+
+    // Wait for innerHTML to be applied, then highlight
+    requestAnimationFrame(() => {
+      if (contentRef) highlightCodeBlocks(contentRef);
+    });
   });
 
   return (
@@ -94,6 +198,7 @@ export default function MarkdownView(props: MarkdownViewProps) {
       >
         <div class="max-w-3xl mx-auto px-2 pb-12">
           <div
+            ref={contentRef}
             class="prose-custom space-y-4"
             innerHTML={htmlContent()}
           />
