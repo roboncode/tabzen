@@ -158,6 +158,9 @@ importers:
       '@wxt-dev/storage':
         specifier: ^1.2.8
         version: 1.2.8
+      happy-dom:
+        specifier: ^20.8.9
+        version: 20.8.9
       idb:
         specifier: ^8.0.3
         version: 8.0.3
@@ -192,9 +195,6 @@ importers:
       autoprefixer:
         specifier: ^10.4.27
         version: 10.4.27(postcss@8.5.8)
-      happy-dom:
-        specifier: ^20.8.9
-        version: 20.8.9
       postcss:
         specifier: ^8.5.8
         version: 8.5.8

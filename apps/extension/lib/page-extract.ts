@@ -1,6 +1,7 @@
 import { isYouTubeWatchUrl } from "./youtube";
 import TurndownService from "turndown";
 import { Readability } from "@mozilla/readability";
+import { Window } from "happy-dom";
 
 export interface PageExtractResult {
   title: string;
@@ -38,23 +39,12 @@ export function htmlToMarkdown(html: string): string {
 }
 
 /**
- * Parse raw HTML string into a Document using DOMParser.
- * Available in Chrome extension service workers.
- */
-function parseHtml(html: string, url: string): Document {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
-  // Set the documentURI for Readability's base URL resolution
-  Object.defineProperty(doc, "documentURI", { value: url });
-  return doc;
-}
-
-/**
  * Extract content from a browser tab using Readability + Turndown.
  *
  * Injects a trivial function to grab the page HTML (no CSP issues),
  * then runs Readability + Turndown in the background service worker
- * using DOMParser (available in service workers).
+ * using happy-dom as the DOM parser (DOMParser is not available in
+ * MV3 service workers).
  */
 export async function extractPageContent(
   browserTabId: number,
@@ -72,9 +62,12 @@ export async function extractPageContent(
     const rawHtml = results?.[0]?.result;
     if (!rawHtml || typeof rawHtml !== "string") return null;
 
-    // Parse HTML and extract article in the service worker
-    const doc = parseHtml(rawHtml, url);
-    const article = new Readability(doc).parse();
+    // Parse HTML in the service worker using happy-dom + Readability
+    const window = new Window({ url });
+    window.document.documentElement.innerHTML = rawHtml;
+
+    const article = new Readability(window.document as any).parse();
+    window.close();
 
     if (!article || !article.content) return null;
 
