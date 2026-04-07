@@ -12,9 +12,42 @@ interface MarkdownViewProps {
 // Set before each parse call so the renderer can resolve relative URLs
 let currentSourceUrl: string | undefined;
 
+// The extension origin prefix that the browser resolves relative URLs against
+const EXT_ORIGIN = (() => {
+  try {
+    return browser.runtime.getURL("").replace(/\/$/, "");
+  } catch {
+    return "";
+  }
+})();
+
 function resolveUrl(href: string): string {
   if (!currentSourceUrl || !href) return href;
-  if (href.startsWith("http") || href.startsWith("mailto:") || href.startsWith("#") || href.startsWith("data:")) return href;
+  if (href.startsWith("mailto:") || href.startsWith("data:")) return href;
+
+  // If the browser already resolved a relative URL against the extension origin,
+  // recover the original path and resolve against the source page instead
+  if (EXT_ORIGIN && href.startsWith(EXT_ORIGIN)) {
+    const path = href.slice(EXT_ORIGIN.length);
+    // Skip if it's a real extension resource (like background.js with just an anchor)
+    if (path.startsWith("/background.js#")) {
+      // This was a #anchor link — resolve as anchor on the source page
+      const anchor = path.replace("/background.js", "");
+      return currentSourceUrl + anchor;
+    }
+    try {
+      const resolved = new URL(path, currentSourceUrl).href;
+      return resolved;
+    } catch {
+      return href;
+    }
+  }
+
+  // Already absolute and not extension-relative
+  if (href.startsWith("http://") || href.startsWith("https://")) return href;
+  // Pure anchor
+  if (href.startsWith("#")) return href;
+
   try {
     return new URL(href, currentSourceUrl).href;
   } catch {
@@ -184,7 +217,10 @@ export default function MarkdownView(props: MarkdownViewProps) {
   const htmlContent = createMemo(() => {
     if (!props.content) return "";
     currentSourceUrl = props.sourceUrl;
-    return marked.parse(props.content, { async: false }) as string;
+    console.log("[TabZen URL] Parsing markdown, sourceUrl:", currentSourceUrl, "content length:", props.content.length);
+    const result = marked.parse(props.content, { async: false }) as string;
+    console.log("[TabZen URL] Parse complete, HTML length:", result.length);
+    return result;
   });
 
   let contentRef: HTMLDivElement | undefined;
