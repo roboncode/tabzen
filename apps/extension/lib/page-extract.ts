@@ -39,7 +39,65 @@ export function htmlToMarkdown(html: string): string {
     codeBlockStyle: "fenced",
     bulletListMarker: "-",
   });
+
+  // Preserve language info from <code class="language-xxx"> or auto-detect
+  td.addRule("fencedCodeWithLang", {
+    filter: (node) =>
+      node.nodeName === "PRE" &&
+      node.firstChild !== null &&
+      node.firstChild.nodeName === "CODE",
+    replacement: (_content, node) => {
+      const code = node.firstChild as Element;
+      const text = code.textContent || "";
+      // Try class="language-xxx" or "lang-xxx" first
+      const className = code.getAttribute("class") || "";
+      const langMatch = className.match(/(?:language-|lang-)(\w+)/);
+      const lang = langMatch ? langMatch[1] : detectLanguage(text);
+      return `\n\n\`\`\`${lang}\n${text.replace(/\n$/, "")}\n\`\`\`\n\n`;
+    },
+  });
+
   return td.turndown(doc.body as any);
+}
+
+/** Best-effort language detection from code content */
+function detectLanguage(code: string): string {
+  const trimmed = code.trim();
+
+  // JSON: starts with { or [
+  if (/^\s*[\{\[]/.test(trimmed) && /[\}\]]\s*$/.test(trimmed)) return "json";
+
+  // HTML/XML: starts with < tag
+  if (/^\s*<[a-zA-Z!]/.test(trimmed)) return "html";
+
+  // YAML: key: value pattern, no braces
+  if (/^\s*[\w-]+\s*:(?:\s|$)/m.test(trimmed) && !trimmed.includes("{")) return "yaml";
+
+  // CSS: has selectors with { } and properties with :
+  if (/[.#@]\w+.*\{[\s\S]*?:/.test(trimmed)) return "css";
+
+  // SQL: common keywords
+  if (/^\s*(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\b/im.test(trimmed)) return "sql";
+
+  // Python: def/import/class with colon, no semicolons
+  if (/^\s*(def |import |from |class )/m.test(trimmed) && !trimmed.includes(";")) return "python";
+
+  // Rust: fn/let mut/impl/pub fn
+  if (/^\s*(fn |let mut |impl |pub fn |use std::)/m.test(trimmed)) return "rust";
+
+  // Go: func/package/import with Go patterns
+  if (/^\s*(func |package |import \()/m.test(trimmed)) return "go";
+
+  // Bash/shell: shebang, common commands, $variables
+  if (/^#!\/bin\/(ba)?sh/m.test(trimmed) || /^\s*(export |echo |if \[\[|npm |pnpm |yarn |git |cd |mkdir |curl )/m.test(trimmed)) return "bash";
+
+  // TypeScript: import/export with types, interface, type
+  if (/^\s*(interface |type \w+ =|export (interface|type))/m.test(trimmed)) return "typescript";
+
+  // JavaScript/TypeScript: import/export/const/function with common patterns
+  if (/^\s*(import |export |const |let |function |=>|require\()/m.test(trimmed)) return "javascript";
+
+  return "";
 }
 
 /**
@@ -53,27 +111,45 @@ export async function extractPageContent(
   browserTabId: number,
   url: string,
 ): Promise<PageExtractResult | null> {
-  if (!shouldExtractContent(url)) return null;
+  console.log("[TabZen] extractPageContent called for:", url);
+
+  if (!shouldExtractContent(url)) {
+    console.log("[TabZen] Skipping extraction (filtered out):", url);
+    return null;
+  }
 
   try {
     // Inject a trivial function that returns the page HTML
+    console.log("[TabZen] Injecting script into tab", browserTabId);
     const results = await browser.scripting.executeScript({
       target: { tabId: browserTabId },
       func: () => document.documentElement.outerHTML,
     });
 
     const rawHtml = results?.[0]?.result;
-    if (!rawHtml || typeof rawHtml !== "string") return null;
+    if (!rawHtml || typeof rawHtml !== "string") {
+      console.log("[TabZen] No HTML returned from tab", browserTabId);
+      return null;
+    }
+    console.log("[TabZen] Got HTML:", rawHtml.length, "chars from", url);
 
     // Parse HTML in the service worker using linkedom + Readability
     const { document } = parseHTML(rawHtml);
     const article = new Readability(document as any).parse();
 
-    if (!article || !article.content) return null;
+    if (!article || !article.content) {
+      console.log("[TabZen] Readability returned no content for:", url);
+      return null;
+    }
+    console.log("[TabZen] Readability extracted:", article.title, "—", article.content.length, "chars HTML");
 
     // Convert Readability's clean HTML to markdown
     const markdown = htmlToMarkdown(article.content);
-    if (!markdown.trim()) return null;
+    if (!markdown.trim()) {
+      console.log("[TabZen] Turndown returned empty markdown for:", url);
+      return null;
+    }
+    console.log("[TabZen] Content extracted:", url, "—", markdown.length, "chars markdown");
 
     return {
       title: article.title ?? "",

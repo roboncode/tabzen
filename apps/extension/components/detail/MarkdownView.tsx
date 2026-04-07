@@ -118,15 +118,36 @@ async function getHighlighter() {
 }
 
 async function highlightCodeBlocks(container: HTMLElement) {
-  const preBlocks = container.querySelectorAll("pre[data-lang]");
-  if (preBlocks.length === 0) return;
+  // Check ALL pre blocks, not just ones with data-lang
+  const allPreBlocks = container.querySelectorAll("pre");
+  const preWithLang = container.querySelectorAll("pre[data-lang]");
+  console.log(`[TabZen Shiki] Found ${allPreBlocks.length} <pre> blocks total, ${preWithLang.length} with data-lang`);
 
+  // Log what languages are present
+  for (const pre of allPreBlocks) {
+    const lang = pre.getAttribute("data-lang");
+    const codeEl = pre.querySelector("code");
+    const snippet = (codeEl?.textContent || pre.textContent || "").substring(0, 60);
+    console.log("[TabZen Shiki]   <pre> data-lang=" + JSON.stringify(lang) + "  snippet: " + snippet + "...");
+  }
+
+  if (preWithLang.length === 0) {
+    console.log("[TabZen Shiki] No code blocks with language detected — skipping Shiki");
+    return;
+  }
+
+  console.log(`[TabZen Shiki] Loading Shiki from ${SHIKI_CDN}...`);
   const highlighter = await getHighlighter();
-  if (!highlighter) return;
+  if (!highlighter) {
+    console.log("[TabZen Shiki] Highlighter failed to load — aborting");
+    return;
+  }
+  console.log("[TabZen Shiki] Highlighter ready, processing blocks...");
 
-  for (const pre of preBlocks) {
+  for (const pre of preWithLang) {
     const rawLang = pre.getAttribute("data-lang") || "";
     const lang = LANG_MAP[rawLang.toLowerCase()];
+    console.log(`[TabZen Shiki] Block lang="${rawLang}" → mapped="${lang || "(unmapped)"}"`);
     if (!lang) continue;
 
     const code = pre.querySelector("code");
@@ -137,20 +158,19 @@ async function highlightCodeBlocks(container: HTMLElement) {
         lang,
         theme: "github-dark-dimmed",
       });
-      // Shiki returns a <pre><code>...</code></pre> with inline styles.
-      // Extract just the inner content and merge with our styling.
       const tmp = document.createElement("div");
       tmp.innerHTML = highlighted;
       const shikiPre = tmp.querySelector("pre");
       if (shikiPre) {
-        // Keep our classes, add shiki's background
         pre.innerHTML = shikiPre.innerHTML;
         pre.removeAttribute("data-lang");
+        console.log(`[TabZen Shiki] ✓ Highlighted ${rawLang} block`);
       }
-    } catch {
-      // Language not supported or error — leave as plain text
+    } catch (e) {
+      console.warn(`[TabZen Shiki] Failed to highlight ${rawLang} block:`, e);
     }
   }
+  console.log("[TabZen Shiki] Done");
 }
 
 /**
