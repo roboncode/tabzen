@@ -76,29 +76,35 @@ export default function DetailSidebar(props: DetailSidebarProps) {
   };
 
   return (
-    <div class="w-[220px] flex-shrink-0 ml-16 pl-4 pr-4 py-1 sticky top-4 self-start border-l border-muted-foreground/10">
+    <div class="w-[220px] flex-shrink-0 ml-16 pl-4 pr-4 py-1 border-l border-muted-foreground/10">
       {/* Table of Contents */}
       <Show when={props.tocEntries.length > 0}>
         <div class="mb-5">
           <div class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             Contents
           </div>
-          <For each={props.tocEntries}>
-            {(entry) => (
-              <button
-                onClick={() => handleTocClick(entry.id)}
-                class={`block w-full text-left text-sm py-1 transition-colors ${
-                  entry.level >= 3 ? "pl-3" : ""
-                } ${
-                  activeId() === entry.id
-                    ? "text-sky-400"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {entry.text}
-              </button>
-            )}
-          </For>
+          <div class="relative">
+            <For each={props.tocEntries}>
+              {(entry) => (
+                <button
+                  onClick={() => handleTocClick(entry.id)}
+                  class={`relative block w-full text-left text-sm py-1 transition-colors ${
+                    entry.level >= 3 ? "pl-3" : ""
+                  } ${
+                    activeId() === entry.id
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {/* Active indicator bar */}
+                  <Show when={activeId() === entry.id}>
+                    <div class="absolute left-[-17px] top-1 bottom-1 w-[2px] bg-sky-400 rounded-full" />
+                  </Show>
+                  {entry.text}
+                </button>
+              )}
+            </For>
+          </div>
         </div>
       </Show>
 
