@@ -287,59 +287,58 @@ export default function DetailPage(props: DetailPageProps) {
           class="flex-1 overflow-y-auto scrollbar-hide"
           onScroll={handleScroll}
         >
-          {/* Content + sidebar in a flex row */}
+          {/* Hero card — above content+sidebar row */}
+          <div class="max-w-[1000px] mx-auto">
+            <div ref={heroRef}>
+              <DetailHeader
+                tab={currentTab()}
+                onBack={handleBack}
+                onToggleStar={handleToggleStar}
+                onOpenSource={handleOpenSource}
+                onArchive={handleArchive}
+                onDelete={handleDelete}
+                onEditNotes={handleEditNotes}
+                heroOnly
+              />
+            </div>
+
+            {/* Narrow: inline tags + notes */}
+            <Show when={isNarrow()}>
+              <div class="px-4 flex flex-col gap-2 mb-2">
+                <Show when={currentTab().tags && currentTab().tags.length > 0}>
+                  <div class="flex flex-wrap gap-x-2 gap-y-1">
+                    {currentTab().tags.map((tag) => (
+                      <span class="text-sm text-sky-400">#{tag}</span>
+                    ))}
+                  </div>
+                </Show>
+                <Show when={currentTab().notes}>
+                  <button
+                    onClick={handleEditNotes}
+                    class="text-left bg-muted/30 rounded-lg px-3 py-2 text-sm text-muted-foreground leading-relaxed hover:bg-muted/40 transition-colors line-clamp-2"
+                  >
+                    {currentTab().notes}
+                  </button>
+                </Show>
+              </div>
+            </Show>
+          </div>
+
+          {/* Reading progress */}
+          <Show when={hasContent()}>
+            <div class="sticky top-0 z-10 bg-background">
+              <ReadingProgress
+                scrollRef={scrollRef}
+                readingTimeMin={readingTimeMin()}
+              />
+            </div>
+          </Show>
+
+          {/* Content + sidebar row — sidebar starts here, aligned with content */}
           <div class="flex max-w-[1000px] mx-auto">
-            {/* Content column */}
-            <div class="flex-1 min-w-0">
-              {/* Hero card */}
-              <div ref={heroRef}>
-                <DetailHeader
-                  tab={currentTab()}
-                  onBack={handleBack}
-                  onToggleStar={handleToggleStar}
-                  onOpenSource={handleOpenSource}
-                  onArchive={handleArchive}
-                  onDelete={handleDelete}
-                  onEditNotes={handleEditNotes}
-                  heroOnly
-                />
-              </div>
-
-              {/* Narrow: inline tags + notes */}
-              <Show when={isNarrow()}>
-                <div class="px-4 flex flex-col gap-2 mb-2">
-                  <Show when={currentTab().tags && currentTab().tags.length > 0}>
-                    <div class="flex flex-wrap gap-x-2 gap-y-1">
-                      {currentTab().tags.map((tag) => (
-                        <span class="text-sm text-sky-400">#{tag}</span>
-                      ))}
-                    </div>
-                  </Show>
-                  <Show when={currentTab().notes}>
-                    <button
-                      onClick={handleEditNotes}
-                      class="text-left bg-muted/30 rounded-lg px-3 py-2 text-sm text-muted-foreground leading-relaxed hover:bg-muted/40 transition-colors line-clamp-2"
-                    >
-                      {currentTab().notes}
-                    </button>
-                  </Show>
-                </div>
-              </Show>
-
-              {/* Reading progress */}
-              <Show when={hasContent()}>
-                <div class="sticky top-0 z-10 bg-background">
-                  <ReadingProgress
-                    scrollRef={scrollRef}
-                    readingTimeMin={readingTimeMin()}
-                  />
-                </div>
-              </Show>
-
-              {/* Article / Transcript content */}
-              <div class="px-4 pb-6">
-                <ContentView />
-              </div>
+            {/* Content */}
+            <div class="flex-1 min-w-0 px-4 pb-6">
+              <ContentView />
             </div>
 
             {/* Sidebar — sticky, hidden on narrow */}
