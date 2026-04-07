@@ -1,5 +1,15 @@
 import { createMemo, Show } from "solid-js";
-import { ArrowLeft, Star, ExternalLink, Archive, ArchiveRestore, Trash2, StickyNote, Copy, Check } from "lucide-solid";
+import {
+  ArrowLeft,
+  Star,
+  ExternalLink,
+  Archive,
+  ArchiveRestore,
+  Trash2,
+  StickyNote,
+  Copy,
+  Check,
+} from "lucide-solid";
 import type { Tab } from "@/lib/types";
 import { extractCreator, getDomain, getFaviconUrl } from "@/lib/domains";
 import { formatTimeAgo } from "@/lib/format";
@@ -46,7 +56,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
   // ── Hero Only mode: the scrollable card ──
   if (props.heroOnly) {
     return (
-      <div class="@container px-4 py-4 pr-16">
+      <div class="@container px-4 pt-20 pb-4 pr-16">
         {/*
           Container query breakpoints:
           < 480px: stacked (thumbnail on top, info below) — like a card
@@ -61,7 +71,9 @@ export default function DetailHeader(props: DetailHeaderProps) {
                 src={props.tab.ogImage}
                 alt=""
                 class="w-full h-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
               />
             ) : (
               <div class="w-full h-full flex items-center justify-center">
@@ -94,9 +106,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
                     if (url) window.open(url, "_blank");
                   }}
                 >
-                  {avatarSrc() && (
-                    <Avatar src={avatarSrc()} size="md" />
-                  )}
+                  {avatarSrc() && <Avatar src={avatarSrc()} size="md" />}
                   <span>{creator()}</span>
                 </button>
               </Show>
@@ -180,7 +190,9 @@ export default function DetailHeader(props: DetailHeaderProps) {
               src={props.tab.ogImage}
               alt=""
               class="w-7 h-7 rounded object-cover flex-shrink-0"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
             />
           )}
           <span class="text-sm font-medium text-foreground truncate">
@@ -202,7 +214,9 @@ export default function DetailHeader(props: DetailHeaderProps) {
             <Check size={16} class="text-green-400" />
           </Show>
         </IconButton>
-        <div class={`w-px h-4 mx-1.5 transition-opacity ${props.onCopy ? "bg-muted-foreground/30" : "bg-transparent"}`} />
+        <div
+          class={`w-px h-4 mx-1.5 transition-opacity ${props.onCopy ? "bg-muted-foreground/30" : "bg-transparent"}`}
+        />
         <IconButton onClick={props.onOpenSource} title="Visit page">
           <ExternalLink size={16} />
         </IconButton>
@@ -213,12 +227,19 @@ export default function DetailHeader(props: DetailHeaderProps) {
         >
           <Star size={16} fill={props.tab.starred ? "currentColor" : "none"} />
         </IconButton>
-        <IconButton onClick={props.onArchive} title={props.tab.archived ? "Unarchive" : "Archive"}>
+        <IconButton
+          onClick={props.onArchive}
+          title={props.tab.archived ? "Unarchive" : "Archive"}
+        >
           <Show when={props.tab.archived} fallback={<Archive size={16} />}>
             <ArchiveRestore size={16} />
           </Show>
         </IconButton>
-        <IconButton onClick={props.onDelete} variant="destructive" title="Delete">
+        <IconButton
+          onClick={props.onDelete}
+          variant="destructive"
+          title="Delete"
+        >
           <Trash2 size={16} />
         </IconButton>
       </div>
