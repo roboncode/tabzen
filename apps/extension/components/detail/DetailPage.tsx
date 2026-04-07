@@ -377,14 +377,28 @@ export default function DetailPage(props: DetailPageProps) {
               </div>
             </div>
 
-            {/* Sidebar — sticky, hidden on narrow */}
+            {/* Sidebar — full height, padding pushes TOC to content level (VitePress pattern) */}
             <Show when={!isNarrow()}>
-              <DetailSidebar
-                tab={currentTab()}
-                tocEntries={tocEntries()}
-                scrollRef={scrollRef}
-                onEditNotes={handleEditNotes}
-              />
+              <div ref={(el) => {
+                // Dynamically set padding-top to match hero height
+                const updatePadding = () => {
+                  if (heroRef && el) {
+                    el.style.paddingTop = `${heroRef.offsetHeight}px`;
+                  }
+                };
+                requestAnimationFrame(updatePadding);
+                // Re-measure if window resizes
+                const observer = new ResizeObserver(updatePadding);
+                if (heroRef) observer.observe(heroRef);
+                onCleanup(() => observer.disconnect());
+              }}>
+                <DetailSidebar
+                  tab={currentTab()}
+                  tocEntries={tocEntries()}
+                  scrollRef={scrollRef}
+                  onEditNotes={handleEditNotes}
+                />
+              </div>
             </Show>
           </div>
         </div>
