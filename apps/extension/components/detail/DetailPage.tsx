@@ -13,7 +13,7 @@ import DetailSidebar, { type TocEntry } from "./DetailSidebar";
 import ChatFab from "./ChatFab";
 import NotesEditor from "@/components/NotesEditor";
 import ReadingProgress from "@/components/ReadingProgress";
-import { X } from "lucide-solid";
+import { X, ChevronDown, List } from "lucide-solid";
 
 interface DetailPageProps {
   tab: Tab;
@@ -36,6 +36,7 @@ export default function DetailPage(props: DetailPageProps) {
   const [migrationDismissed, setMigrationDismissed] = createSignal(false);
   const [updateSuccess, setUpdateSuccess] = createSignal(false);
   const [tocEntries, setTocEntries] = createSignal<TocEntry[]>([]);
+  const [tocDropdownOpen, setTocDropdownOpen] = createSignal(false);
 
   // Check for pending migrations
   const pendingMigrations = createMemo(() => getPendingMigrations(props.tab.contentVersion));
@@ -280,6 +281,38 @@ export default function DetailPage(props: DetailPageProps) {
           copied={copied()}
           compact={heroScrolledPast()}
         />
+
+        {/* Narrow: "On this page" TOC button + dropdown */}
+        <Show when={isNarrow() && tocEntries().length > 0}>
+          <div class="relative">
+            <button
+              onClick={() => setTocDropdownOpen(!tocDropdownOpen())}
+              class="flex items-center gap-1.5 w-full px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors bg-muted/20"
+            >
+              <List size={14} />
+              <span>On this page</span>
+              <ChevronDown size={14} class={`ml-auto transition-transform ${tocDropdownOpen() ? "rotate-180" : ""}`} />
+            </button>
+            <Show when={tocDropdownOpen()}>
+              <div class="absolute top-full left-0 right-0 z-20 bg-background/95 backdrop-blur-sm shadow-lg animate-[fadeIn_0.15s_ease-out]">
+                {tocEntries().map((entry) => (
+                  <button
+                    class={`block w-full text-left px-4 py-2 text-sm transition-colors hover:bg-muted/30 ${
+                      entry.level >= 3 ? "pl-8" : ""
+                    } text-muted-foreground hover:text-foreground`}
+                    onClick={() => {
+                      const el = scrollRef?.querySelector(`#${CSS.escape(entry.id)}`);
+                      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                      setTocDropdownOpen(false);
+                    }}
+                  >
+                    {entry.text}
+                  </button>
+                ))}
+              </div>
+            </Show>
+          </div>
+        </Show>
 
         {/* Scrollable area containing content + sticky sidebar */}
         <div
