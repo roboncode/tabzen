@@ -81,7 +81,7 @@ export default function DetailSidebar(props: DetailSidebarProps) {
       <Show when={props.tocEntries.length > 0}>
         <div class="mb-5">
           <div class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-            Contents
+            On this page
           </div>
           <div class="relative">
             <For each={props.tocEntries}>
