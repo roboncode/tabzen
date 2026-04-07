@@ -29,15 +29,19 @@ function resolveUrl(href: string): string {
   // recover the original path and resolve against the source page instead
   if (EXT_ORIGIN && href.startsWith(EXT_ORIGIN)) {
     const path = href.slice(EXT_ORIGIN.length);
-    // Skip if it's a real extension resource (like background.js with just an anchor)
-    if (path.startsWith("/background.js#")) {
-      // This was a #anchor link — resolve as anchor on the source page
+    // background.js#anchor = was originally a #anchor link on the source page
+    if (path.startsWith("/background.js#") || path === "/background.js") {
       const anchor = path.replace("/background.js", "");
-      return currentSourceUrl + anchor;
+      if (!anchor || anchor === "#") return "#";
+      try {
+        return new URL(currentSourceUrl).origin + new URL(currentSourceUrl).pathname + anchor;
+      } catch {
+        return anchor;
+      }
     }
+    // Other extension-resolved paths — resolve against source
     try {
-      const resolved = new URL(path, currentSourceUrl).href;
-      return resolved;
+      return new URL(path, currentSourceUrl).href;
     } catch {
       return href;
     }

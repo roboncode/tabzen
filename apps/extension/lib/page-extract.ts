@@ -5,7 +5,7 @@ import { parseHTML } from "linkedom";
 import type { Migration } from "@tab-zen/shared";
 
 /** Current content version — bump when extraction logic improves */
-export const CURRENT_CONTENT_VERSION = 2;
+export const CURRENT_CONTENT_VERSION = 4;
 
 /** Registry of migrations — each defines what actions to take when upgrading */
 export const MIGRATIONS: Migration[] = [
