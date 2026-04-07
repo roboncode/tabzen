@@ -332,8 +332,8 @@ export default function DetailPage(props: DetailPageProps) {
             </div>
           </Show>
 
-          {/* Content + sidebar in a flex row */}
-          <div class="flex">
+          {/* Content + sidebar in a flex row, centered */}
+          <div class="flex max-w-[1000px] mx-auto">
             {/* Content */}
             <div class="flex-1 min-w-0 px-4 pb-6">
               <ContentView />
