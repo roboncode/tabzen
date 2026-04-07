@@ -22,8 +22,8 @@ interface DetailHeaderProps {
   copied?: boolean;
   /** Render only the hero card (no action bar) */
   heroOnly?: boolean;
-  /** Content to render in the center (e.g. tabs) */
-  children?: any;
+  /** Show compact title + thumbnail in the action bar */
+  compact?: boolean;
 }
 
 export default function DetailHeader(props: DetailHeaderProps) {
@@ -163,10 +163,25 @@ export default function DetailHeader(props: DetailHeaderProps) {
         <span>Back</span>
       </button>
 
-      {/* Center content (tabs) */}
-      <div class="flex-1 flex justify-center min-w-0">
-        {props.children}
-      </div>
+      {/* Compact title — visible when hero scrolled past */}
+      <Show when={props.compact}>
+        <div class="flex items-center gap-2.5 ml-3 flex-1 min-w-0">
+          {props.tab.ogImage && (
+            <img
+              src={props.tab.ogImage}
+              alt=""
+              class="w-7 h-7 rounded object-cover flex-shrink-0"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+          )}
+          <span class="text-sm font-medium text-foreground truncate">
+            {title()}
+          </span>
+        </div>
+      </Show>
+      <Show when={!props.compact}>
+        <div class="flex-1" />
+      </Show>
 
       <div class="flex items-center gap-0.5 ml-auto">
         <IconButton

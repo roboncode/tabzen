@@ -7,36 +7,37 @@ import { sendMessage } from "@/lib/messages";
 import { updateTab, getTab, softDeleteTab } from "@/lib/db";
 import DetailHeader from "./DetailHeader";
 import TranscriptView from "./TranscriptView";
+import MarkdownView from "./MarkdownView";
 import ChatPanel from "./ChatPanel";
-import PlaceholderTab from "./PlaceholderTab";
 import NotesEditor from "@/components/NotesEditor";
 import ReadingProgress from "@/components/ReadingProgress";
-
-type ContentTab = "transcript" | "summary" | "content";
 
 interface DetailPageProps {
   tab: Tab;
 }
 
 export default function DetailPage(props: DetailPageProps) {
-  const [activeTab, setActiveTab] = createSignal<ContentTab>("transcript");
   const [chatCollapsed, setChatCollapsed] = createSignal(true);
   const [transcriptSegments, setTranscriptSegments] = createSignal<TranscriptSegment[]>(
-    (props.tab as any).transcript || [],
+    props.tab.transcript || [],
   );
-  const [fetchingTranscript, setFetchingTranscript] = createSignal(false);
+  const [markdownContent, setMarkdownContent] = createSignal<string>(
+    props.tab.content || "",
+  );
+  const [fetchingContent, setFetchingContent] = createSignal(false);
   const [currentTab, setCurrentTab] = createSignal(props.tab);
   const [isNarrow, setIsNarrow] = createSignal(false);
   const [editingNotes, setEditingNotes] = createSignal(false);
   const [copied, setCopied] = createSignal(false);
+  const [heroScrolledPast, setHeroScrolledPast] = createSignal(false);
 
   let containerRef: HTMLDivElement | undefined;
   let scrollRef: HTMLDivElement | undefined;
+  let heroRef: HTMLDivElement | undefined;
 
   onMount(() => {
     if (!containerRef) return;
 
-    // Detect narrow width
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         setIsNarrow(entry.contentRect.width < 768);
@@ -52,8 +53,11 @@ export default function DetailPage(props: DetailPageProps) {
         const updated = await getTab(props.tab.id);
         if (updated) {
           setCurrentTab(updated);
-          if ((updated as any).transcript) {
-            setTranscriptSegments((updated as any).transcript);
+          if (updated.transcript) {
+            setTranscriptSegments(updated.transcript);
+          }
+          if (updated.content) {
+            setMarkdownContent(updated.content);
           }
         }
       }
@@ -64,14 +68,24 @@ export default function DetailPage(props: DetailPageProps) {
 
   const isYouTube = createMemo(() => isYouTubeWatchUrl(props.tab.url));
 
+  const hasContent = createMemo(() =>
+    transcriptSegments().length > 0 || markdownContent().length > 0,
+  );
+
   const readingTimeMin = createMemo(() => {
     const segments = transcriptSegments();
-    if (segments.length === 0) return 0;
-    const totalWords = segments.reduce((sum, s) => sum + s.text.split(/\s+/).length, 0);
+    const content = markdownContent();
+    let totalWords = 0;
+
+    if (segments.length > 0) {
+      totalWords = segments.reduce((sum, s) => sum + s.text.split(/\s+/).length, 0);
+    } else if (content) {
+      totalWords = content.split(/\s+/).length;
+    }
+
     return Math.max(1, Math.round(totalWords / 200));
   });
 
-  /** Notify all other views (side panel, full page) that data changed */
   const notifyChanged = () => {
     browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
   };
@@ -114,79 +128,72 @@ export default function DetailPage(props: DetailPageProps) {
     notifyChanged();
   };
 
-  const handleFetchTranscript = async () => {
-    setFetchingTranscript(true);
+  const handleFetchContent = async () => {
+    setFetchingContent(true);
     try {
-      const response = await sendMessage({ type: "GET_TRANSCRIPT", tabId: props.tab.id });
-      if (response.type === "TRANSCRIPT" && response.transcript) {
-        setTranscriptSegments(response.transcript);
+      if (isYouTube()) {
+        const response = await sendMessage({ type: "GET_TRANSCRIPT", tabId: props.tab.id });
+        if (response.type === "TRANSCRIPT" && response.transcript) {
+          setTranscriptSegments(response.transcript);
+        }
+      } else {
+        const response = await sendMessage({ type: "GET_CONTENT", tabId: props.tab.id });
+        if (response.type === "CONTENT" && response.content) {
+          setMarkdownContent(response.content);
+        }
       }
     } catch (e) {
-      console.error("Failed to fetch transcript:", e);
+      console.error("Failed to fetch content:", e);
     } finally {
-      setFetchingTranscript(false);
+      setFetchingContent(false);
     }
   };
 
-  const handleCopyTranscript = () => {
+  const handleCopy = () => {
     const segments = transcriptSegments();
-    if (segments.length === 0) return;
-    const text = segments.map((s) => `[${formatTimestamp(s.startMs)}] ${s.text}`).join("\n");
-    navigator.clipboard.writeText(text);
+    const content = markdownContent();
+
+    if (segments.length > 0) {
+      const text = segments.map((s) => `[${formatTimestamp(s.startMs)}] ${s.text}`).join("\n");
+      navigator.clipboard.writeText(text);
+    } else if (content) {
+      navigator.clipboard.writeText(content);
+    } else {
+      return;
+    }
+
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const contentTabs: { id: ContentTab; label: string }[] = [
-    { id: "transcript", label: "Transcript" },
-    { id: "summary", label: "Summary" },
-    { id: "content", label: "Content" },
-  ];
+  const handleScroll = () => {
+    if (!heroRef || !scrollRef) return;
+    const heroBottom = heroRef.offsetTop + heroRef.offsetHeight;
+    setHeroScrolledPast(scrollRef.scrollTop > heroBottom - 10);
+  };
 
-  const PillTabs = () => (
-    <div class="flex items-center gap-2">
-      {contentTabs.map((tab) => (
-        <button
-          class={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap outline-none ${
-            activeTab() === tab.id
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-          }`}
-          onClick={() => setActiveTab(tab.id)}
-        >
-          {tab.label}
-        </button>
-      ))}
-    </div>
-  );
-
-  const TabContent = () => (
+  const ContentView = () => (
     <>
-      <Show when={activeTab() === "transcript"}>
-        <Show
-          when={isYouTube()}
-          fallback={
-            <PlaceholderTab
-              title="Transcript not available"
-              description="Transcripts are available for YouTube videos"
-            />
-          }
-        >
-          <TranscriptView
-            segments={transcriptSegments()}
-            videoUrl={props.tab.url}
-            onFetchTranscript={
-              transcriptSegments().length === 0 ? handleFetchTranscript : undefined
-            }
-            loading={fetchingTranscript()}
-          />
-        </Show>
+      {/* YouTube: always use TranscriptView (it has its own empty/fetch state) */}
+      <Show when={isYouTube()}>
+        <TranscriptView
+          segments={transcriptSegments()}
+          videoUrl={props.tab.url}
+          onFetchTranscript={transcriptSegments().length === 0 ? handleFetchContent : undefined}
+          loading={fetchingContent()}
+        />
       </Show>
-      <Show when={activeTab() === "summary"}>
-        <PlaceholderTab title="Summary" description="AI-generated summaries coming in a future update" />
+      {/* Non-YouTube with content: render markdown */}
+      <Show when={!isYouTube() && markdownContent()}>
+        <MarkdownView content={markdownContent()} />
       </Show>
-      <Show when={activeTab() === "content"}>
-        <PlaceholderTab title="Content" description="Web page content extraction coming in a future update" />
+      {/* Non-YouTube without content: show extract button */}
+      <Show when={!isYouTube() && !markdownContent()}>
+        <MarkdownView
+          content=""
+          onFetchContent={handleFetchContent}
+          loading={fetchingContent()}
+        />
       </Show>
     </>
   );
@@ -195,7 +202,7 @@ export default function DetailPage(props: DetailPageProps) {
     <div ref={containerRef} class="flex h-screen bg-background relative">
       {/* Main content */}
       <div class="flex-1 min-w-0 flex flex-col">
-        {/* Fixed action bar with tabs and copy */}
+        {/* Fixed action bar */}
         <DetailHeader
           tab={currentTab()}
           onBack={handleBack}
@@ -206,33 +213,35 @@ export default function DetailPage(props: DetailPageProps) {
           onEditNotes={handleEditNotes}
           chatCollapsed={chatCollapsed()}
           onToggleChat={() => setChatCollapsed(!chatCollapsed())}
-          onCopy={activeTab() === "transcript" && transcriptSegments().length > 0 ? handleCopyTranscript : undefined}
+          onCopy={hasContent() ? handleCopy : undefined}
           copied={copied()}
-        >
-          <PillTabs />
-        </DetailHeader>
+          compact={heroScrolledPast()}
+        />
 
         {/* Scrollable area: hero + progress + content */}
         <div
           ref={scrollRef}
           class="flex-1 overflow-y-auto scrollbar-hide"
+          onScroll={handleScroll}
         >
           {/* Hero card */}
-          <DetailHeader
-            tab={currentTab()}
-            onBack={handleBack}
-            onToggleStar={handleToggleStar}
-            onOpenSource={handleOpenSource}
-            onArchive={handleArchive}
-            onDelete={handleDelete}
-            onEditNotes={handleEditNotes}
-            chatCollapsed={chatCollapsed()}
-            onToggleChat={() => setChatCollapsed(!chatCollapsed())}
-            heroOnly
-          />
+          <div ref={heroRef}>
+            <DetailHeader
+              tab={currentTab()}
+              onBack={handleBack}
+              onToggleStar={handleToggleStar}
+              onOpenSource={handleOpenSource}
+              onArchive={handleArchive}
+              onDelete={handleDelete}
+              onEditNotes={handleEditNotes}
+              chatCollapsed={chatCollapsed()}
+              onToggleChat={() => setChatCollapsed(!chatCollapsed())}
+              heroOnly
+            />
+          </div>
 
-          {/* Reading progress — inside scroll container so it tracks correctly */}
-          <Show when={activeTab() === "transcript" && transcriptSegments().length > 0}>
+          {/* Reading progress */}
+          <Show when={hasContent()}>
             <div class="sticky top-0 z-10 bg-background">
               <ReadingProgress
                 scrollRef={scrollRef}
@@ -241,9 +250,9 @@ export default function DetailPage(props: DetailPageProps) {
             </div>
           </Show>
 
-          {/* Tab content */}
+          {/* Content */}
           <div class="px-4 pb-6 flex-1">
-            <TabContent />
+            <ContentView />
           </div>
         </div>
       </div>
