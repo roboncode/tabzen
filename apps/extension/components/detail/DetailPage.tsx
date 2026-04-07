@@ -34,6 +34,7 @@ export default function DetailPage(props: DetailPageProps) {
   const [heroScrolledPast, setHeroScrolledPast] = createSignal(false);
   const [reExtracting, setReExtracting] = createSignal(false);
   const [migrationDismissed, setMigrationDismissed] = createSignal(false);
+  const [updateSuccess, setUpdateSuccess] = createSignal(false);
 
   // Check for pending migrations
   const pendingActions = createMemo(() => {
@@ -191,6 +192,9 @@ export default function DetailPage(props: DetailPageProps) {
       if (response.type === "CONTENT" && response.content) {
         setMarkdownContent(response.content);
         setMigrationDismissed(true);
+        // Show success feedback
+        setUpdateSuccess(true);
+        setTimeout(() => setUpdateSuccess(false), 3000);
       } else if (response.type === "ERROR") {
         console.error("Re-extraction failed:", response.message);
       }
@@ -328,6 +332,14 @@ export default function DetailPage(props: DetailPageProps) {
           >
             <X size={14} />
           </button>
+        </div>
+      </Show>
+
+      {/* Success toast */}
+      <Show when={updateSuccess()}>
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5 bg-[#1e1e22]/95 backdrop-blur-sm px-4 py-2.5 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)] whitespace-nowrap animate-[fadeIn_0.2s_ease-out]">
+          <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-emerald-400" />
+          <span class="text-sm text-foreground/70">Content updated</span>
         </div>
       </Show>
     </div>
