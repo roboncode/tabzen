@@ -56,8 +56,9 @@ export function htmlToMarkdown(html: string): string {
       const el = node as Element;
       const codeEl = el.querySelector?.("code");
 
-      // Get the raw code text — prefer <code> textContent, fall back to <pre> textContent
-      let text = codeEl?.textContent || node.textContent || "";
+      // Extract code text, preserving line breaks from block-level children
+      // (some sites like typescriptlang.org wrap each line in <p> tags)
+      let text = extractCodeText(codeEl || node);
 
       // Try to find language from:
       // 1. class="language-xxx" on <code>
@@ -69,16 +70,21 @@ export function htmlToMarkdown(html: string): string {
       }
 
       // 2. A short text node or <p> before <code> (e.g. <pre><p>ts</p><code>...)
+      //    Also check parent <pre>'s children if codeEl is nested deeper
       if (!lang) {
-        const children = Array.from(node.childNodes || []);
-        for (const child of children) {
-          if (child === codeEl) break;
+        const preChildren = Array.from(node.childNodes || []);
+        for (const child of preChildren) {
+          // Stop if we've reached the code element or its parent
+          if (child === codeEl || (child as Element).querySelector?.("code")) break;
           const childText = (child.textContent || "").trim();
           // Short text (1-15 chars) before code is likely a language label
           if (childText && childText.length <= 15 && /^[a-zA-Z][\w+-]*$/.test(childText)) {
             lang = childText.toLowerCase();
-            // Remove this label from the code text if it got included
-            if (text.startsWith(childText)) {
+            // Remove this label from the code text if it leaked in
+            const firstLine = text.split("\n")[0];
+            if (firstLine.trim() === childText) {
+              text = text.split("\n").slice(1).join("\n");
+            } else if (text.startsWith(childText)) {
               text = text.slice(childText.length).replace(/^\s*\n?/, "");
             }
             break;
@@ -91,11 +97,56 @@ export function htmlToMarkdown(html: string): string {
         lang = detectLanguage(text);
       }
 
+      // Strip trailing "Try" links (TypeScript playground links)
+      text = text.replace(/\s*Try\s*$/, "");
+
       return `\n\n\`\`\`${lang}\n${text.replace(/\n$/, "")}\n\`\`\`\n\n`;
     },
   });
 
   return td.turndown(doc.body as any);
+}
+
+/**
+ * Extract text from a code element, preserving line breaks.
+ * Some sites wrap each line in <p>, <div>, or <br> — textContent
+ * collapses these into a single line. This function inserts newlines
+ * at block-element boundaries.
+ */
+function extractCodeText(node: Node): string {
+  const blockTags = new Set(["P", "DIV", "BR", "LI", "TR"]);
+  const lines: string[] = [];
+  let currentLine = "";
+
+  function walk(n: Node) {
+    if (n.nodeType === 3) {
+      // Text node
+      currentLine += n.textContent || "";
+    } else if (n.nodeType === 1) {
+      const el = n as Element;
+      // Skip anchor tags (e.g. "Try" playground links)
+      if (el.nodeName === "A") return;
+      if (blockTags.has(el.nodeName)) {
+        // Flush current line before block element
+        if (currentLine) {
+          lines.push(currentLine);
+          currentLine = "";
+        }
+      }
+      for (const child of Array.from(n.childNodes)) {
+        walk(child);
+      }
+      if (blockTags.has(el.nodeName) && currentLine) {
+        lines.push(currentLine);
+        currentLine = "";
+      }
+    }
+  }
+
+  walk(node);
+  if (currentLine) lines.push(currentLine);
+
+  return lines.join("\n");
 }
 
 /** Best-effort language detection from code content */
