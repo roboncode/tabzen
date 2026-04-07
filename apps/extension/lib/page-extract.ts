@@ -119,7 +119,9 @@ let readabilitySourceCache: string | null = null;
 
 async function getReadabilitySource(): Promise<string> {
   if (readabilitySourceCache) return readabilitySourceCache;
-  const url = browser.runtime.getURL("readability.js");
+  // Cast needed because WXT's PublicPath type is generated from the manifest
+  // and doesn't include readability.js yet — it will exist at runtime
+  const url = browser.runtime.getURL("readability.js" as any);
   const response = await fetch(url);
   readabilitySourceCache = await response.text();
   return readabilitySourceCache;
