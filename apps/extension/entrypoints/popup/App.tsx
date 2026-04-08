@@ -164,9 +164,11 @@ export default function App() {
         >
           {capturing()
             ? "Saving..."
-            : uncapturedCount() === 0
-              ? "All saved"
-              : `Save all (${uncapturedCount()})`}
+            : uncapturedCount.loading
+              ? ""
+              : uncapturedCount() === 0
+                ? "All saved"
+                : `Save all (${uncapturedCount()})`}
         </button>
       </div>
 
@@ -218,10 +220,10 @@ export default function App() {
       <Show when={!isBlocked() && activeTab()}>
         {(tab) => (
           <button
-            class={`group/card w-full text-left rounded-xl overflow-hidden mb-4 transition-all duration-200 ${
+            class={`group/card w-full text-left rounded-xl overflow-hidden mb-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${
               saved()
-                ? "bg-muted/30 hover:bg-muted/40 hover:-translate-y-0.5 hover:shadow-lg"
-                : "bg-muted/20 hover:bg-muted/30 hover:-translate-y-0.5 hover:shadow-lg"
+                ? "bg-muted/30 hover:bg-muted/40"
+                : "bg-muted/20 hover:bg-sky-950"
             }`}
             onClick={handleCardClick}
           >
@@ -314,16 +316,17 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Action label */}
-              <p
-                class={`text-center text-sm mt-3 transition-colors duration-200 ${
-                  saved()
-                    ? "text-muted-foreground"
-                    : "text-muted-foreground/60 group-hover/card:text-foreground"
-                }`}
-              >
-                {saved() ? "View Details \u2192" : "Save Tab"}
-              </p>
+            </div>
+
+            {/* Action footer */}
+            <div
+              class={`text-center text-sm py-2.5 transition-colors duration-200 ${
+                saved()
+                  ? "bg-muted/20 text-muted-foreground"
+                  : "bg-muted/30 text-muted-foreground/60 group-hover/card:text-foreground group-hover/card:bg-sky-900/40"
+              }`}
+            >
+              {saved() ? "View Details \u2192" : "Save Tab"}
             </div>
           </button>
         )}
