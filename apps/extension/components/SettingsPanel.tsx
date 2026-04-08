@@ -11,6 +11,7 @@ import {
 import { clearAllData, clearProfileData } from "@/lib/db";
 import SyncConfigPanel from "./settings/SyncConfigPanel";
 import BlockedDomainsManager from "./settings/BlockedDomainsManager";
+import TemplateManager from "./settings/TemplateManager";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -201,6 +202,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   <p class="text-xs text-muted-foreground mt-1.5">
                     Without an API key, tabs are grouped by domain
                   </p>
+                </div>
+                <div class="pt-2">
+                  <TemplateManager />
                 </div>
               </div>
             </Show>
