@@ -399,14 +399,19 @@ export default function DetailPage(props: DetailPageProps) {
               </div>
             </div>
 
-            {/* Sidebar — sticky, full height of scroll viewport */}
+            {/* Sidebar placeholder — reserves space in the flex layout */}
             <Show when={!isNarrow()}>
-              <DetailSidebar
-                tab={currentTab()}
-                tocEntries={tocEntries()}
-                scrollRef={scrollRef}
-                onEditNotes={handleEditNotes}
-              />
+              <div class="relative flex-shrink-0 w-[256px]">
+                {/* Fixed sidebar — positioned inside placeholder, full viewport height */}
+                <div class="fixed top-[42px] w-[224px] h-[calc(100vh-42px)] overflow-y-auto scrollbar-hide">
+                  <DetailSidebar
+                    tab={currentTab()}
+                    tocEntries={tocEntries()}
+                    scrollRef={scrollRef}
+                    onEditNotes={handleEditNotes}
+                  />
+                </div>
+              </div>
             </Show>
           </div>
         </div>
