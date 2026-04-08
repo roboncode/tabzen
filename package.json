@@ -10,7 +10,9 @@
     "test": "nx run-many --target=test",
     "deploy:api": "nx run api:deploy",
     "deploy:youtube": "nx run content-youtube:workers:deploy",
-    "deploy:tiktok": "nx run content-tiktok:workers:deploy"
+    "deploy:tiktok": "nx run content-tiktok:workers:deploy",
+    "dev:docs": "nx run docs:dev",
+    "build:docs": "nx run docs:build"
   },
   "devDependencies": {
     "nx": "^21.0.0"

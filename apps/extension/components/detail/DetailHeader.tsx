@@ -6,7 +6,6 @@ import {
   Archive,
   ArchiveRestore,
   Trash2,
-  StickyNote,
   Copy,
   Check,
 } from "lucide-solid";
@@ -56,7 +55,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
   // ── Hero Only mode: the scrollable card ──
   if (props.heroOnly) {
     return (
-      <div class="@container px-4 pt-24 pb-12">
+      <div class="@container px-4 pt-24 pb-6 md:pb-12">
         {/*
           Container query breakpoints:
           < 480px: stacked (thumbnail on top, info below) — like a card
@@ -65,7 +64,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
         */}
         <div class="flex flex-col @[480px]:flex-row gap-4 @[480px]:gap-5">
           {/* Thumbnail — full width when stacked, fixed width when side-by-side */}
-          <div class="w-full @[480px]:w-[40%] aspect-video rounded-xl overflow-hidden bg-muted/40 flex-shrink-0">
+          <div class="w-full @[480px]:w-[40%] aspect-video rounded-xl overflow-hidden bg-muted/40 flex-shrink-0 max-h-[200px]">
             {props.tab.ogImage ? (
               <img
                 src={props.tab.ogImage}
@@ -140,31 +139,6 @@ export default function DetailHeader(props: DetailHeaderProps) {
 
             {/* Tags */}
             <TagList tags={tags()} class="mt-2.5" />
-
-            {/* Notes */}
-            <div class="mt-3">
-              <Show
-                when={props.tab.notes}
-                fallback={
-                  <button
-                    onClick={props.onEditNotes}
-                    class="flex items-center gap-1.5 text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
-                  >
-                    <StickyNote size={14} />
-                    <span>Add note</span>
-                  </button>
-                }
-              >
-                <button
-                  onClick={props.onEditNotes}
-                  class="bg-muted/30 rounded-lg px-3 py-2 text-left hover:bg-muted/40 transition-colors w-full"
-                >
-                  <p class="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                    {props.tab.notes}
-                  </p>
-                </button>
-              </Show>
-            </div>
           </div>
         </div>
       </div>

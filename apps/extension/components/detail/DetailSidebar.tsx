@@ -81,7 +81,7 @@ export default function DetailSidebar(props: DetailSidebarProps) {
   };
 
   return (
-    <div class="pl-4 pr-4 pt-28 pb-8 border-l border-muted-foreground/10">
+    <div class="pl-4 pr-4 pt-24 pb-8 border-l border-muted-foreground/10">
       {/* Table of Contents */}
       <Show when={props.tocEntries.length > 0}>
         <div class="mb-5">
@@ -93,7 +93,7 @@ export default function DetailSidebar(props: DetailSidebarProps) {
               {(entry) => (
                 <button
                   onClick={() => handleTocClick(entry.id)}
-                  class={`relative block w-full text-left text-sm py-1 transition-colors ${
+                  class={`relative block w-full text-left text-xs py-1 transition-colors ${
                     entry.level >= 3 ? "pl-3" : ""
                   } ${
                     activeId() === entry.id
@@ -147,7 +147,7 @@ export default function DetailSidebar(props: DetailSidebarProps) {
           <div class="flex flex-wrap gap-x-2 gap-y-1">
             <For each={props.tab.tags}>
               {(tag) => (
-                <span class="text-sm text-sky-400 cursor-pointer hover:opacity-70 transition-opacity">
+                <span class="text-xs text-sky-400 cursor-pointer hover:opacity-70 transition-opacity">
                   #{tag}
                 </span>
               )}
@@ -167,7 +167,7 @@ export default function DetailSidebar(props: DetailSidebarProps) {
               <a
                 href={link.href}
                 target="_blank"
-                class="block text-sm text-sky-400 py-0.5 hover:opacity-70 transition-opacity truncate"
+                class="block text-xs text-sky-400 py-0.5 hover:opacity-70 transition-opacity truncate"
               >
                 {link.text}
               </a>

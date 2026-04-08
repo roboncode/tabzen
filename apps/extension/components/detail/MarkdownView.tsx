@@ -223,7 +223,15 @@ export default function MarkdownView(props: MarkdownViewProps) {
   const htmlContent = createMemo(() => {
     if (!props.content) return "";
     currentSourceUrl = props.sourceUrl;
-    return marked.parse(props.content, { async: false }) as string;
+    // Convert standalone $ prompt + bare command into a fenced bash code block
+    // Pattern: line with just "$", followed by a line that looks like a command
+    let cleaned = props.content.replace(
+      /^[ \t]*\$[ \t]*\n+(.+)$/gm,
+      "```bash\n$1\n```",
+    );
+    // Also strip any remaining lone $ lines that didn't match the pattern above
+    cleaned = cleaned.replace(/^[ \t]*\$[ \t]*$/gm, "");
+    return marked.parse(cleaned, { async: false }) as string;
   });
 
   let contentRef: HTMLDivElement | undefined;

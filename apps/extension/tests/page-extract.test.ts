@@ -194,6 +194,43 @@ describe("htmlToMarkdown", () => {
     expect(md).toContain("const x = 1;");
   });
 
+  // --- Shell prompt stripping ---
+
+  it("converts standalone $ prompt + command into bash code block (span before pre)", () => {
+    const html = '<div><span>$</span><pre><code>curl -fsSL https://example.com/install.sh | bash</code></pre></div>';
+    const md = htmlToMarkdown(html);
+    expect(md).toContain("curl -fsSL");
+    expect(md).not.toMatch(/^\$\s*$/m);
+  });
+
+  it("converts standalone $ prompt + command into bash code block (div before pre)", () => {
+    const html = '<div><div>$</div><pre><code>npm install express</code></pre></div>';
+    const md = htmlToMarkdown(html);
+    expect(md).toContain("npm install express");
+    expect(md).not.toMatch(/^\$\s*$/m);
+  });
+
+  it("strips $ prompt inside pre before code element", () => {
+    const html = '<pre><span>$</span><code>git clone https://example.com/repo.git</code></pre>';
+    const md = htmlToMarkdown(html);
+    expect(md).toContain("git clone");
+    expect(md).not.toMatch(/^\$\s*$/m);
+  });
+
+  it("wraps bare command after $ prompt in bash code fence", () => {
+    const html = '<p>$</p><p>curl -fsSL https://example.com/install.sh | bash</p>';
+    const md = htmlToMarkdown(html);
+    expect(md).toContain("```bash");
+    expect(md).toContain("curl -fsSL");
+    expect(md).not.toMatch(/^\$\s*$/m);
+  });
+
+  it("keeps $ when part of code content (like shell variable)", () => {
+    const html = '<pre><code>echo $HOME</code></pre>';
+    const md = htmlToMarkdown(html);
+    expect(md).toContain("$HOME");
+  });
+
   // --- Heading anchor links ---
 
   it("strips anchor tags wrapping headings", () => {

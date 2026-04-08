@@ -67,9 +67,11 @@ export default function DetailPage(props: DetailPageProps) {
 
   onMount(() => {
     // Auto-run silent migration actions
-    const silentActions = pendingMigrations().flatMap((m) =>
+    const pending = pendingMigrations();
+    const silentActions = pending.flatMap((m) =>
       m.actions.filter((a) => a.behavior === "silent"),
     );
+    console.log("[TabZen Migration] Tab contentVersion:", props.tab.contentVersion, "| pending migrations:", pending.length, "| silent re-extract:", silentActions.some((a) => a.type === "re-extract-content"));
     if (silentActions.some((a) => a.type === "re-extract-content")) {
       handleReExtract();
     }
@@ -370,26 +372,15 @@ export default function DetailPage(props: DetailPageProps) {
                 />
               </div>
 
-              {/* Narrow: inline tags + notes */}
-              <Show when={isNarrow()}>
-                <div class="flex flex-col gap-2 mb-2">
-                  <Show
-                    when={currentTab().tags && currentTab().tags.length > 0}
+              {/* Narrow: inline notes (only when sidebar is hidden) */}
+              <Show when={isNarrow() && currentTab().notes}>
+                <div class="mb-6">
+                  <button
+                    onClick={handleEditNotes}
+                    class="w-full text-left bg-muted/30 rounded-lg px-4 py-3 text-xs text-muted-foreground leading-relaxed hover:bg-muted/40 transition-colors"
                   >
-                    <div class="flex flex-wrap gap-x-2 gap-y-1">
-                      {currentTab().tags.map((tag) => (
-                        <span class="text-sm text-sky-400">#{tag}</span>
-                      ))}
-                    </div>
-                  </Show>
-                  <Show when={currentTab().notes}>
-                    <button
-                      onClick={handleEditNotes}
-                      class="text-left bg-muted/30 rounded-lg px-3 py-2 text-sm text-muted-foreground leading-relaxed hover:bg-muted/40 transition-colors line-clamp-2"
-                    >
-                      {currentTab().notes}
-                    </button>
-                  </Show>
+                    {currentTab().notes}
+                  </button>
                 </div>
               </Show>
 
@@ -403,7 +394,7 @@ export default function DetailPage(props: DetailPageProps) {
             <Show when={!isNarrow()}>
               <div class="relative flex-shrink-0 w-[256px]">
                 {/* Fixed sidebar — positioned inside placeholder, full viewport height */}
-                <div class="fixed top-[42px] w-[224px] h-[calc(100vh-42px)] overflow-y-auto scrollbar-hide z-10">
+                <div class="fixed top-14 max-w-96 h-[calc(100vh-42px)] overflow-y-auto scrollbar-hide z-10">
                   <DetailSidebar
                     tab={currentTab()}
                     tocEntries={tocEntries()}

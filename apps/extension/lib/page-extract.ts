@@ -5,7 +5,7 @@ import { parseHTML } from "linkedom";
 import type { Migration } from "@tab-zen/shared";
 
 /** Current content version — bump when extraction logic improves */
-export const CURRENT_CONTENT_VERSION = 6;
+export const CURRENT_CONTENT_VERSION = 9;
 
 /** Registry of migrations — each defines what actions to take when upgrading */
 export const MIGRATIONS: Migration[] = [
@@ -184,7 +184,17 @@ export function htmlToMarkdown(html: string, sourceUrl?: string): string {
     },
   });
 
-  return td.turndown(doc.body as any);
+  let markdown = td.turndown(doc.body as any);
+
+  // Convert standalone $ prompt + bare command into a fenced bash code block
+  markdown = markdown.replace(
+    /^[ \t]*\$[ \t]*\n+(.+)$/gm,
+    "```bash\n$1\n```",
+  );
+  // Strip any remaining lone $ lines
+  markdown = markdown.replace(/^[ \t]*\$[ \t]*$/gm, "");
+
+  return markdown;
 }
 
 /**
