@@ -90,10 +90,56 @@ export async function aiSearch(
   return parsed.matchingTabIds;
 }
 
+export async function generateDocument(
+  apiKey: string,
+  model: string,
+  templatePrompt: string,
+  content: string,
+  contentType: "transcript" | "markdown",
+): Promise<string> {
+  const contentLabel = contentType === "transcript" ? "video transcript" : "article";
+  const processedPrompt = templatePrompt.replace(/\{\{contentType\}\}/g, contentLabel);
+
+  const messages: OpenRouterMessage[] = [
+    {
+      role: "system",
+      content: processedPrompt,
+    },
+    {
+      role: "user",
+      content,
+    },
+  ];
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "chrome-extension://tab-zen",
+      "X-Title": "Tab Zen",
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature: 0.3,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
 export async function generateTags(
   apiKey: string,
   model: string,
   tabs: { id: string; title: string; url: string; description: string | null }[],
+  existingTags?: string[],
 ): Promise<{ id: string; tags: string[] }[]> {
   const tabList = tabs
     .map((t) => `- [${t.id}] "${t.title}" (${t.url})${t.description ? ` — ${t.description}` : ""}`)
@@ -108,6 +154,7 @@ Rules:
 - Use specific descriptive tags (e.g., "react", "server-components", "tutorial")
 - Avoid generic tags like "video", "website", "article"
 - Tags should help categorize content by topic, technology, or theme
+- ${existingTags && existingTags.length > 0 ? `Prefer reusing these existing tags when appropriate: ${existingTags.join(", ")}` : "Create descriptive, specific tags"}
 - Reuse the same tag across tabs when the content overlaps`,
     },
     { role: "user", content: `Tag these tabs:\n${tabList}` },

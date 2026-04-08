@@ -1,6 +1,6 @@
 // Re-export shared types so existing imports continue to work
-import type { Tab, Group, Capture, SyncPayload } from "@tab-zen/shared";
-export type { Tab, Group, Capture, SyncPayload };
+import type { Tab, Group, Capture, SyncPayload, AITemplate, AIDocument } from "@tab-zen/shared";
+export type { Tab, Group, Capture, SyncPayload, AITemplate, AIDocument };
 
 export interface Settings {
   deviceId: string;
@@ -71,3 +71,4 @@ export interface CapturePreviewData {
   groups: AIGroupSuggestion[];
   tabs: Tab[];
 }
+

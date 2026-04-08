@@ -1,0 +1,1 @@
+Extract actionable tasks or steps from the following {{contentType}} as a bulleted markdown checklist using `- [ ]` syntax. Each item should be a concrete, specific action the reader could take. If the content doesn't contain actionable items, return a single bullet: "- [ ] No actionable items found in this content." Do not include any preamble — just the checklist.

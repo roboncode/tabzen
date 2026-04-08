@@ -3,6 +3,7 @@ import {
   createMemo,
   createEffect,
   Show,
+  For,
   onMount,
   onCleanup,
 } from "solid-js";
@@ -11,14 +12,21 @@ import type { TranscriptSegment } from "@tab-zen/shared";
 import { formatTimestamp } from "./TranscriptView";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { sendMessage } from "@/lib/messages";
-import { updateTab, getTab, softDeleteTab } from "@/lib/db";
+import { updateTab, getTab, softDeleteTab, getAllTemplates, getDocumentsForTab, putDocument, putTemplate } from "@/lib/db";
 import { getPendingMigrations } from "@/lib/page-extract";
+import { generateDocument } from "@/lib/ai";
+import { getSettings } from "@/lib/settings";
+import { v4 as uuidv4 } from "uuid";
+import type { AITemplate, AIDocument } from "@/lib/types";
 import DetailHeader from "./DetailHeader";
 import TranscriptView from "./TranscriptView";
 import MarkdownView from "./MarkdownView";
 import DetailSidebar, { type TocEntry } from "./DetailSidebar";
 import ChatFab from "./ChatFab";
 import NotesDisplay from "@/components/NotesDisplay";
+import DocumentTabs from "./DocumentTabs";
+import DocumentView from "./DocumentView";
+import CustomPromptView from "./CustomPromptView";
 // import ReadingProgress from "@/components/ReadingProgress";
 import { X, ChevronDown, List } from "lucide-solid";
 
@@ -43,6 +51,14 @@ export default function DetailPage(props: DetailPageProps) {
   const [updateSuccess, setUpdateSuccess] = createSignal(false);
   const [tocEntries, setTocEntries] = createSignal<TocEntry[]>([]);
   const [tocDropdownOpen, setTocDropdownOpen] = createSignal(false);
+
+  const [templates, setTemplates] = createSignal<AITemplate[]>([]);
+  const [documents, setDocuments] = createSignal<AIDocument[]>([]);
+  const [activeDocTab, setActiveDocTab] = createSignal<string>("content");
+  const [generatingIds, setGeneratingIds] = createSignal<Set<string>>(new Set());
+  const [generatingAll, setGeneratingAll] = createSignal(false);
+  const [customGenerating, setCustomGenerating] = createSignal(false);
+  const [customResult, setCustomResult] = createSignal<string | null>(null);
 
   // Check for pending migrations
   const pendingMigrations = createMemo(() =>
@@ -110,6 +126,16 @@ export default function DetailPage(props: DetailPageProps) {
     };
     browser.runtime.onMessage.addListener(handleMessage);
     onCleanup(() => browser.runtime.onMessage.removeListener(handleMessage));
+
+    // Load AI templates and documents
+    (async () => {
+      const [tmpl, docs] = await Promise.all([
+        getAllTemplates(),
+        getDocumentsForTab(props.tab.id),
+      ]);
+      setTemplates(tmpl.filter((t) => t.isEnabled));
+      setDocuments(docs);
+    })();
   });
 
   // Extract TOC entries from rendered headings after content changes
@@ -117,6 +143,7 @@ export default function DetailPage(props: DetailPageProps) {
     // Track these signals so effect re-runs when content changes
     markdownContent();
     transcriptSegments();
+    activeDocTab();
 
     requestAnimationFrame(() => {
       if (!scrollRef) return;
@@ -224,6 +251,112 @@ export default function DetailPage(props: DetailPageProps) {
 
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleGenerate = async (template: AITemplate) => {
+    const settings = await getSettings();
+    if (!settings.openRouterApiKey) return;
+
+    setGeneratingIds((prev) => new Set([...prev, template.id]));
+    try {
+      const content = transcriptSegments().length > 0
+        ? transcriptSegments().map((s) => s.text).join(" ")
+        : markdownContent();
+      const contentType = transcriptSegments().length > 0 ? "transcript" : "markdown" as const;
+      const model = template.model || settings.aiModel;
+
+      const result = await generateDocument(
+        settings.openRouterApiKey,
+        model,
+        template.prompt,
+        content,
+        contentType,
+      );
+
+      const doc: AIDocument = {
+        id: uuidv4(),
+        tabId: props.tab.id,
+        templateId: template.id,
+        content: result,
+        generatedAt: new Date().toISOString(),
+        promptUsed: template.prompt,
+      };
+      await putDocument(doc);
+      setDocuments(await getDocumentsForTab(props.tab.id));
+    } catch (e) {
+      console.error(`Failed to generate ${template.name}:`, e);
+    } finally {
+      setGeneratingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(template.id);
+        return next;
+      });
+    }
+  };
+
+  const handleGenerateAll = async () => {
+    setGeneratingAll(true);
+    const ungeneratedTemplates = templates().filter(
+      (t) => !documents().some((d) => d.templateId === t.id),
+    );
+    await Promise.allSettled(ungeneratedTemplates.map((t) => handleGenerate(t)));
+    setGeneratingAll(false);
+  };
+
+  const handleCreateCustomTemplate = async (name: string, prompt: string) => {
+    const settings = await getSettings();
+    if (!settings.openRouterApiKey) return;
+
+    const template: AITemplate = {
+      id: uuidv4(),
+      name,
+      prompt,
+      isBuiltin: false,
+      defaultPrompt: null,
+      isEnabled: true,
+      sortOrder: templates().length + 1,
+      model: null,
+    };
+    await putTemplate(template);
+
+    setCustomGenerating(true);
+    try {
+      const content = transcriptSegments().length > 0
+        ? transcriptSegments().map((s) => s.text).join(" ")
+        : markdownContent();
+      const contentType = transcriptSegments().length > 0 ? "transcript" : "markdown" as const;
+
+      const result = await generateDocument(
+        settings.openRouterApiKey,
+        settings.aiModel,
+        prompt,
+        content,
+        contentType,
+      );
+
+      const doc: AIDocument = {
+        id: uuidv4(),
+        tabId: props.tab.id,
+        templateId: template.id,
+        content: result,
+        generatedAt: new Date().toISOString(),
+        promptUsed: prompt,
+      };
+      await putDocument(doc);
+      setCustomResult(result);
+
+      const [tmpl, docs] = await Promise.all([
+        getAllTemplates(),
+        getDocumentsForTab(props.tab.id),
+      ]);
+      setTemplates(tmpl.filter((t) => t.isEnabled));
+      setDocuments(docs);
+      setActiveDocTab(template.id);
+    } catch (e) {
+      console.error("Custom generation failed:", e);
+    } finally {
+      setCustomGenerating(false);
+    }
   };
 
   const handleReExtract = async () => {
@@ -349,6 +482,20 @@ export default function DetailPage(props: DetailPageProps) {
           </div>
         </Show>
 
+        {/* AI Document Tabs */}
+        <Show when={hasContent() && templates().length > 0}>
+          <DocumentTabs
+            templates={templates()}
+            documents={documents()}
+            activeTab={activeDocTab()}
+            onTabChange={setActiveDocTab}
+            onGenerateAll={handleGenerateAll}
+            onAddCustom={() => setActiveDocTab("custom")}
+            generatingAll={generatingAll()}
+            hasContent={hasContent()}
+          />
+        </Show>
+
         {/* Scrollable area containing content + sticky sidebar */}
         <div
           ref={scrollRef}
@@ -386,9 +533,31 @@ export default function DetailPage(props: DetailPageProps) {
                 </div>
               </Show>
 
-              {/* Article / Transcript content */}
+              {/* Article / Transcript / AI Document content */}
               <div class="pb-6">
-                <ContentView />
+                <Show when={activeDocTab() === "content"}>
+                  <ContentView />
+                </Show>
+                <Show when={activeDocTab() === "custom"}>
+                  <CustomPromptView
+                    onCreateTemplate={handleCreateCustomTemplate}
+                    generating={customGenerating()}
+                    result={customResult()}
+                  />
+                </Show>
+                <For each={templates()}>
+                  {(template) => (
+                    <Show when={activeDocTab() === template.id}>
+                      <DocumentView
+                        template={template}
+                        document={documents().find((d) => d.templateId === template.id)}
+                        generating={generatingIds().has(template.id)}
+                        onGenerate={() => handleGenerate(template)}
+                        onRegenerate={() => handleGenerate(template)}
+                      />
+                    </Show>
+                  )}
+                </For>
               </div>
             </div>
 

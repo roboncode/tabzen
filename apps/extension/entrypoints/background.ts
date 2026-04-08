@@ -11,6 +11,7 @@ import {
   searchTabs,
   importData,
   purgeDeletedTabs,
+  getAllTags,
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate, shouldSkipUrl } from "@/lib/duplicates";
@@ -28,6 +29,7 @@ import type {
   CapturePreviewData,
 } from "@/lib/types";
 import type { MessageRequest, MessageResponse } from "@/lib/messages";
+import { seedTemplatesIfNeeded } from "@/lib/templates";
 
 export default defineBackground(() => {
   // --- Notify UI views of data changes ---
@@ -60,6 +62,8 @@ export default defineBackground(() => {
         tabs: data.tabs,
         groups: data.groups,
         captures: data.captures,
+        aiTemplates: data.aiTemplates,
+        aiDocuments: data.aiDocuments,
         lastSyncedAt: new Date().toISOString(),
       });
       lastSyncedAt = new Date().toISOString();
@@ -118,6 +122,14 @@ export default defineBackground(() => {
         await importData({ tabs, groups: remote.groups, captures: remote.captures });
         lastSyncedAt = remote.lastSyncedAt;
         console.log("[TabZen] Sync pulled", tabs.length, "tabs");
+        if (remote.aiTemplates?.length) {
+          const { putTemplates } = await import("@/lib/db");
+          await putTemplates(remote.aiTemplates);
+        }
+        if (remote.aiDocuments?.length) {
+          const { putDocuments } = await import("@/lib/db");
+          await putDocuments(remote.aiDocuments);
+        }
         // Notify UI without triggering another push
         browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
         await updateBadge();
@@ -139,6 +151,7 @@ export default defineBackground(() => {
 
   // Auto-purge soft-deleted tabs older than 30 days on startup
   purgeDeletedTabs(30).catch((e) => console.warn("[TabZen] Auto-purge failed:", e));
+  seedTemplatesIfNeeded().catch((e) => console.warn("[TabZen] Template seed failed:", e));
 
   // Backfill creator field for existing tabs that don't have one
   (async () => {
@@ -878,6 +891,8 @@ export default defineBackground(() => {
             const enrichedTabs = await Promise.all(
               tabs.map(async (t) => (await getTab(t.id)) || t),
             );
+            const allTags = await getAllTags();
+            const existingTagNames = allTags.map((t) => t.tag);
             const tagResults = await generateTags(
               settings.openRouterApiKey,
               settings.aiModel,
@@ -887,6 +902,7 @@ export default defineBackground(() => {
                 url: t.url,
                 description: t.ogDescription || t.metaDescription,
               })),
+              existingTagNames,
             );
             let tagged = 0;
             for (const result of tagResults) {

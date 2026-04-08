@@ -1,0 +1,1 @@
+Explain the following {{contentType}} in simple terms that a non-expert would understand. Avoid jargon and technical terms — if you must use one, define it briefly. Use analogies where helpful. Keep it to 2-4 short paragraphs. Do not include any preamble like "Here is a simple explanation" — just explain.

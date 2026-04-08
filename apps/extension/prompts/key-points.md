@@ -1,0 +1,1 @@
+Extract the key points from the following {{contentType}} as a bulleted markdown list. Each bullet should be a complete, standalone statement — not a fragment. Focus on the most important ideas, arguments, or facts. Aim for 5-10 bullets. Do not include any preamble — just the list.

@@ -25,6 +25,7 @@ web-ext.config.ts
 *.sln
 *.sw?
 .superpowers/
+.worktrees/
 .wrangler/
 .env
 .dev.vars
