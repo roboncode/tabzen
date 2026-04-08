@@ -81,7 +81,7 @@ export default function DetailSidebar(props: DetailSidebarProps) {
   };
 
   return (
-    <div class="pl-4 pr-4 pt-20 pb-8 border-l border-muted-foreground/10">
+    <div class="pl-4 pr-4 pt-28 pb-8 border-l border-muted-foreground/10">
       {/* Table of Contents */}
       <Show when={props.tocEntries.length > 0}>
         <div class="mb-5">
