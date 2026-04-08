@@ -81,7 +81,7 @@ export default function DetailSidebar(props: DetailSidebarProps) {
   };
 
   return (
-    <div class="w-[256px] flex-shrink-0 pl-4 pr-4 py-4 sticky top-0 self-start overflow-y-auto scrollbar-hide border-l border-muted-foreground/10" style={{ "max-height": "calc(100vh - 60px)" }}>
+    <div class="w-[256px] flex-shrink-0 pl-4 pr-4 py-4 sticky top-0 self-start overflow-y-auto scrollbar-hide border-l border-muted-foreground/10" style={{ "max-height": "calc(100vh - 42px)" }}>
       {/* Table of Contents */}
       <Show when={props.tocEntries.length > 0}>
         <div class="mb-5">
