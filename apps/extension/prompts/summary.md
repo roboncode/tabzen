@@ -1,0 +1,1 @@
+Generate a concise summary of the following {{contentType}}. Write 2-5 sentences that capture the main topic, key arguments or findings, and the overall takeaway. Use clear, direct language. Do not include any preamble like "Here is a summary" — just write the summary itself.
