@@ -8,6 +8,7 @@ import {
   addCapture,
   updateTab,
   getTab,
+  getTabByUrl,
   searchTabs,
   importData,
   purgeDeletedTabs,
@@ -335,6 +336,8 @@ export default defineBackground(() => {
         return handleSyncNow();
       case "QUICK_CAPTURE":
         return handleQuickCapture();
+      case "IS_URL_SAVED":
+        return handleIsUrlSaved(message.url);
       default:
         return { type: "ERROR", message: "Unknown message type" };
     }
@@ -926,6 +929,16 @@ export default defineBackground(() => {
     } catch (e) {
       console.error("[TabZen] Quick capture error:", e);
       return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleIsUrlSaved(url: string): Promise<MessageResponse> {
+    try {
+      const normalized = normalizeUrl(url);
+      const tab = await getTabByUrl(normalized);
+      return { type: "URL_SAVED", saved: !!tab, tabId: tab?.id };
+    } catch {
+      return { type: "URL_SAVED", saved: false };
     }
   }
 
