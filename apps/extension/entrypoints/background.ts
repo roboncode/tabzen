@@ -127,10 +127,8 @@ export default defineBackground(() => {
           await putTemplates(remote.aiTemplates);
         }
         if (remote.aiDocuments?.length) {
-          const { putDocument } = await import("@/lib/db");
-          for (const doc of remote.aiDocuments) {
-            await putDocument(doc);
-          }
+          const { putDocuments } = await import("@/lib/db");
+          await putDocuments(remote.aiDocuments);
         }
         // Notify UI without triggering another push
         browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});

@@ -422,3 +422,12 @@ export async function getAllDocuments(): Promise<AIDocument[]> {
   const db = await getDB();
   return db.getAll("aiDocuments");
 }
+
+export async function putDocuments(docs: AIDocument[]): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction("aiDocuments", "readwrite");
+  for (const doc of docs) {
+    tx.store.put(doc);
+  }
+  await tx.done;
+}

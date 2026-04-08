@@ -1,4 +1,4 @@
-import type { TranscriptSegment } from "@tab-zen/shared";
+import type { TranscriptSegment, AITemplate, AIDocument } from "@tab-zen/shared";
 
 export class ContentService {
   constructor(private r2: R2Bucket) {}
@@ -23,28 +23,28 @@ export class ContentService {
     await this.r2.delete(key);
   }
 
-  async storeAIDocuments(syncToken: string, documents: any[]): Promise<void> {
+  async storeAIDocuments(syncToken: string, documents: AIDocument[]): Promise<void> {
     const key = `${syncToken}/ai-documents.json`;
     await this.r2.put(key, JSON.stringify(documents), {
       httpMetadata: { contentType: "application/json" },
     });
   }
 
-  async getAIDocuments(syncToken: string): Promise<any[] | null> {
+  async getAIDocuments(syncToken: string): Promise<AIDocument[] | null> {
     const key = `${syncToken}/ai-documents.json`;
     const object = await this.r2.get(key);
     if (!object) return null;
     return object.json();
   }
 
-  async storeAITemplates(syncToken: string, templates: any[]): Promise<void> {
+  async storeAITemplates(syncToken: string, templates: AITemplate[]): Promise<void> {
     const key = `${syncToken}/ai-templates.json`;
     await this.r2.put(key, JSON.stringify(templates), {
       httpMetadata: { contentType: "application/json" },
     });
   }
 
-  async getAITemplates(syncToken: string): Promise<any[] | null> {
+  async getAITemplates(syncToken: string): Promise<AITemplate[] | null> {
     const key = `${syncToken}/ai-templates.json`;
     const object = await this.r2.get(key);
     if (!object) return null;
