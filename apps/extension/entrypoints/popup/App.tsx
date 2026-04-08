@@ -1,4 +1,4 @@
-import { createSignal, createResource, Show, createEffect } from "solid-js";
+import { createSignal, createResource, Show } from "solid-js";
 import { ShieldBan, Settings as SettingsIcon } from "lucide-solid";
 import { sendMessage } from "@/lib/messages";
 import { shouldSkipUrl } from "@/lib/duplicates";
@@ -11,8 +11,7 @@ export default function App() {
     saved: number;
     skipped: number;
   } | null>(null);
-  const [saved, setSaved] = createSignal(false);
-  const [savedTabId, setSavedTabId] = createSignal<string | undefined>();
+  const [justSaved, setJustSaved] = createSignal(false);
 
   const [activeTab] = createResource(async () => {
     const [tab] = await browser.tabs.query({
@@ -70,6 +69,13 @@ export default function App() {
 
   const domain = () => getDomain(activeTab()?.url || "");
 
+  const faviconSrc = () => {
+    const fav = activeTab()?.favIconUrl;
+    if (fav && !fav.startsWith("chrome://")) return fav;
+    const d = domain();
+    return d ? `https://www.google.com/s2/favicons?domain=${d}&sz=32` : "";
+  };
+
   const [isBlocked] = createResource(async () => {
     const [tab] = await browser.tabs.query({
       active: true,
@@ -86,19 +92,22 @@ export default function App() {
   });
 
   // Check if this tab is already saved
-  createEffect(async () => {
-    const tab = activeTab();
-    if (!tab?.url) return;
-    const response = await sendMessage({ type: "IS_URL_SAVED", url: tab.url });
-    if (response.type === "URL_SAVED" && response.saved) {
-      setSaved(true);
-      setSavedTabId(response.tabId);
-    }
-  });
+  const [savedStatus, { mutate: mutateSavedStatus }] = createResource(
+    () => activeTab()?.url,
+    async (url) => {
+      const response = await sendMessage({ type: "IS_URL_SAVED", url });
+      if (response.type === "URL_SAVED" && response.saved) {
+        return { saved: true, tabId: response.tabId };
+      }
+      return { saved: false };
+    },
+  );
+
+  const saved = () => justSaved() || !!savedStatus()?.saved;
+  const savedTabId = () => savedStatus()?.tabId;
 
   const handleCardClick = async () => {
     if (saved()) {
-      // Navigate to detail page
       const tabId = savedTabId();
       if (tabId) {
         browser.tabs.create({
@@ -107,19 +116,16 @@ export default function App() {
         window.close();
       }
     } else {
-      // Save the tab
       const tab = activeTab();
       if (tab?.id) {
-        await sendMessage({ type: "CAPTURE_SINGLE_TAB", tabId: tab.id });
-        // Check for the saved tab ID so we can link to details
-        const response = await sendMessage({
-          type: "IS_URL_SAVED",
-          url: tab.url,
-        });
+        const saveResponse = await sendMessage({ type: "CAPTURE_SINGLE_TAB", tabId: tab.id });
+        if (saveResponse.type === "ERROR") return;
+        // Look up the saved tab ID so we can link to details
+        const response = await sendMessage({ type: "IS_URL_SAVED", url: tab.url });
         if (response.type === "URL_SAVED" && response.saved) {
-          setSavedTabId(response.tabId);
+          mutateSavedStatus({ saved: true, tabId: response.tabId });
         }
-        setSaved(true);
+        setJustSaved(true);
       }
     }
   };
@@ -240,30 +246,21 @@ export default function App() {
                     saved() ? "bg-muted/40" : "bg-muted/30"
                   }`}
                 >
-                  {(() => {
-                    const fav = tab().favIconUrl;
-                    const src =
-                      fav && !fav.startsWith("chrome://")
-                        ? fav
-                        : domain()
-                          ? `https://www.google.com/s2/favicons?domain=${domain()}&sz=32`
-                          : "";
-                    return src ? (
-                      <img
-                        src={src}
-                        alt=""
-                        class={`w-8 h-8 rounded transition-all duration-500 ${
-                          saved()
-                            ? ""
-                            : "grayscale brightness-75 group-hover/card:grayscale-[30%] group-hover/card:brightness-[0.85]"
-                        }`}
-                      />
-                    ) : (
-                      <span class="text-muted-foreground text-sm">
-                        {domain()}
-                      </span>
-                    );
-                  })()}
+                  {faviconSrc() ? (
+                    <img
+                      src={faviconSrc()}
+                      alt=""
+                      class={`w-8 h-8 rounded transition-all duration-500 ${
+                        saved()
+                          ? ""
+                          : "grayscale brightness-75 group-hover/card:grayscale-[30%] group-hover/card:brightness-[0.85]"
+                      }`}
+                    />
+                  ) : (
+                    <span class="text-muted-foreground text-sm">
+                      {domain()}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -271,28 +268,19 @@ export default function App() {
             {/* Metadata */}
             <div class="p-3">
               <div class="flex gap-2.5 items-start">
-                {(() => {
-                  const fav = tab().favIconUrl;
-                  const src =
-                    fav && !fav.startsWith("chrome://")
-                      ? fav
-                      : domain()
-                        ? `https://www.google.com/s2/favicons?domain=${domain()}&sz=32`
-                        : "";
-                  return src ? (
-                    <img
-                      src={src}
-                      alt=""
-                      class={`w-5 h-5 rounded-full mt-0.5 flex-shrink-0 transition-all duration-500 ${
-                        saved()
-                          ? ""
-                          : "grayscale brightness-75 group-hover/card:grayscale-[30%] group-hover/card:brightness-[0.85]"
-                      }`}
-                    />
-                  ) : (
-                    <div class="w-5 h-5 rounded-full bg-muted/50 mt-0.5 flex-shrink-0" />
-                  );
-                })()}
+                {faviconSrc() ? (
+                  <img
+                    src={faviconSrc()}
+                    alt=""
+                    class={`w-5 h-5 rounded-full mt-0.5 flex-shrink-0 transition-all duration-500 ${
+                      saved()
+                        ? ""
+                        : "grayscale brightness-75 group-hover/card:grayscale-[30%] group-hover/card:brightness-[0.85]"
+                    }`}
+                  />
+                ) : (
+                  <div class="w-5 h-5 rounded-full bg-muted/50 mt-0.5 flex-shrink-0" />
+                )}
                 <div class="flex-1 min-w-0">
                   <h3
                     class={`text-sm font-medium leading-snug line-clamp-2 transition-colors duration-300 ${
@@ -350,6 +338,9 @@ export default function App() {
               {result().skipped > 0 &&
                 ` (${result().skipped} duplicates skipped)`}
             </p>
+            <p class="text-xs text-muted-foreground mt-1">
+              Metadata and AI grouping updating in the background
+            </p>
           </div>
         )}
       </Show>
@@ -361,8 +352,9 @@ export default function App() {
       <div class="flex gap-2.5">
         {/* Fullscreen nav */}
         <button
-          class="flex-1 bg-muted/25 rounded-xl p-3 flex gap-1.5 h-[100px] transition-colors duration-200 hover:bg-[#141e30] group"
+          class="flex-1 bg-muted/25 rounded-xl p-3 flex gap-1.5 h-[100px] transition-colors duration-200 hover:bg-sky-950 group"
           onClick={openFullPage}
+          aria-label="Open full page"
         >
           <div class="w-[24%] bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
           <div class="flex-1 grid grid-cols-2 grid-rows-2 gap-1.5">
@@ -375,8 +367,9 @@ export default function App() {
 
         {/* Sidebar nav */}
         <button
-          class="w-[80px] bg-muted/25 rounded-xl p-3 flex flex-col gap-1.5 h-[100px] transition-colors duration-200 hover:bg-[#141e30] group"
+          class="w-[80px] bg-muted/25 rounded-xl p-3 flex flex-col gap-1.5 h-[100px] transition-colors duration-200 hover:bg-sky-950 group"
           onClick={openSidePanel}
+          aria-label="Open side panel"
         >
           <div class="flex-1 bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
           <div class="flex-1 bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
