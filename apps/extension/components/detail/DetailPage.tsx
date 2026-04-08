@@ -399,17 +399,14 @@ export default function DetailPage(props: DetailPageProps) {
               </div>
             </div>
 
-            {/* Sidebar column — spacer pushes TOC to content level, sidebar is sticky */}
+            {/* Sidebar — sticky, full height of scroll viewport */}
             <Show when={!isNarrow()}>
-              <div class="flex-shrink-0">
-                <div class="h-24" />
-                <DetailSidebar
-                  tab={currentTab()}
-                  tocEntries={tocEntries()}
-                  scrollRef={scrollRef}
-                  onEditNotes={handleEditNotes}
-                />
-              </div>
+              <DetailSidebar
+                tab={currentTab()}
+                tocEntries={tocEntries()}
+                scrollRef={scrollRef}
+                onEditNotes={handleEditNotes}
+              />
             </Show>
           </div>
         </div>

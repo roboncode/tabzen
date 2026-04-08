@@ -17,18 +17,6 @@ interface DetailSidebarProps {
 
 export default function DetailSidebar(props: DetailSidebarProps) {
   const [activeId, setActiveId] = createSignal<string>("");
-  const [sidebarHeight, setSidebarHeight] = createSignal<number>(0);
-
-  // Match sidebar max-height to the scroll container's visible area
-  createEffect(() => {
-    const scrollEl = props.scrollRef;
-    if (!scrollEl) return;
-    const update = () => setSidebarHeight(scrollEl.clientHeight);
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(scrollEl);
-    onCleanup(() => observer.disconnect());
-  });
 
   // Track which heading is in view using IntersectionObserver
   createEffect(() => {
@@ -89,14 +77,11 @@ export default function DetailSidebar(props: DetailSidebarProps) {
       seen.add(href);
       links.push({ text, href });
     }
-    return links.slice(0, 8); // Cap at 8 links
+    return links.slice(0, 8);
   };
 
   return (
-    <div
-      class="w-[256px] flex-shrink-0 pl-4 pr-4 py-4 sticky top-0 self-start overflow-y-auto scrollbar-hide border-l border-muted-foreground/10"
-      style={{ "max-height": sidebarHeight() ? `${sidebarHeight()}px` : "100vh" }}
-    >
+    <div class="w-[256px] flex-shrink-0 pl-4 pr-4 pt-24 pb-4 sticky top-0 h-screen overflow-y-auto scrollbar-hide border-l border-muted-foreground/10">
       {/* Table of Contents */}
       <Show when={props.tocEntries.length > 0}>
         <div class="mb-5">
@@ -116,7 +101,6 @@ export default function DetailSidebar(props: DetailSidebarProps) {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {/* Active indicator bar */}
                   <Show when={activeId() === entry.id}>
                     <div class="absolute left-[-17px] top-1 bottom-1 w-[2px] bg-sky-400 rounded-full" />
                   </Show>
