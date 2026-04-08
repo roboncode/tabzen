@@ -248,8 +248,10 @@ export default function DetailPage(props: DetailPageProps) {
 
   const handleScroll = () => {
     if (!heroRef || !scrollRef) return;
-    const heroBottom = heroRef.offsetTop + heroRef.offsetHeight;
-    setHeroScrolledPast(scrollRef.scrollTop > heroBottom - 10);
+    const scrollRect = scrollRef.getBoundingClientRect();
+    const heroRect = heroRef.getBoundingClientRect();
+    // Hero is scrolled past when its bottom edge goes above the scroll container's top
+    setHeroScrolledPast(heroRect.bottom < scrollRect.top);
   };
 
   const ContentView = () => (
