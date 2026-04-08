@@ -1,15 +1,18 @@
-import { createSignal, createResource, Show } from "solid-js";
-import { PanelRight, Maximize2, ShieldBan, Settings as SettingsIcon } from "lucide-solid";
+import { createSignal, createResource, Show, createEffect } from "solid-js";
+import { ShieldBan, Settings as SettingsIcon } from "lucide-solid";
 import { sendMessage } from "@/lib/messages";
 import { shouldSkipUrl } from "@/lib/duplicates";
 import { getSettings } from "@/lib/settings";
 import { getDomain } from "@/lib/domains";
-import { formatTimeAgo } from "@/lib/format";
-import Kbd from "@/components/Kbd";
 
 export default function App() {
   const [capturing, setCapturing] = createSignal(false);
-  const [captureResult, setCaptureResult] = createSignal<{ saved: number; skipped: number } | null>(null);
+  const [captureResult, setCaptureResult] = createSignal<{
+    saved: number;
+    skipped: number;
+  } | null>(null);
+  const [saved, setSaved] = createSignal(false);
+  const [savedTabId, setSavedTabId] = createSignal<string | undefined>();
 
   const [activeTab] = createResource(async () => {
     const [tab] = await browser.tabs.query({
@@ -18,12 +21,10 @@ export default function App() {
     });
     if (!tab) return null;
 
-    // Fetch full metadata from the tab
     let ogTitle: string | null = null;
     let ogDescription: string | null = null;
     let ogImage: string | null = null;
     let creator: string | null = null;
-    let publishedAt: string | null = null;
 
     try {
       const response = await browser.tabs.sendMessage(tab.id!, {
@@ -34,7 +35,6 @@ export default function App() {
         ogDescription = response.ogDescription || null;
         ogImage = response.ogImage || null;
         creator = response.creator || null;
-        publishedAt = response.publishedAt || null;
       }
     } catch {}
 
@@ -60,7 +60,6 @@ export default function App() {
       ogDescription,
       ogImage,
       creator,
-      publishedAt,
     };
   });
 
@@ -72,7 +71,10 @@ export default function App() {
   const domain = () => getDomain(activeTab()?.url || "");
 
   const [isBlocked] = createResource(async () => {
-    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
     if (!tab?.url) return true;
     const settings = await getSettings();
     return shouldSkipUrl(tab.url, settings.blockedDomains);
@@ -83,10 +85,44 @@ export default function App() {
     return settings.syncError || null;
   });
 
-  const [shortcuts] = createResource(async () => {
-    const commands = await browser.commands.getAll();
-    return commands.filter((c) => c.description);
+  // Check if this tab is already saved
+  createEffect(async () => {
+    const tab = activeTab();
+    if (!tab?.url) return;
+    const response = await sendMessage({ type: "IS_URL_SAVED", url: tab.url });
+    if (response.type === "URL_SAVED" && response.saved) {
+      setSaved(true);
+      setSavedTabId(response.tabId);
+    }
   });
+
+  const handleCardClick = async () => {
+    if (saved()) {
+      // Navigate to detail page
+      const tabId = savedTabId();
+      if (tabId) {
+        browser.tabs.create({
+          url: browser.runtime.getURL(`/detail.html?tabId=${tabId}`),
+        });
+        window.close();
+      }
+    } else {
+      // Save the tab
+      const tab = activeTab();
+      if (tab?.id) {
+        await sendMessage({ type: "CAPTURE_SINGLE_TAB", tabId: tab.id });
+        // Check for the saved tab ID so we can link to details
+        const response = await sendMessage({
+          type: "IS_URL_SAVED",
+          url: tab.url,
+        });
+        if (response.type === "URL_SAVED" && response.saved) {
+          setSavedTabId(response.tabId);
+        }
+        setSaved(true);
+      }
+    }
+  };
 
   const handleCaptureAll = async () => {
     setCapturing(true);
@@ -95,14 +131,6 @@ export default function App() {
       setCaptureResult(response);
     }
     setCapturing(false);
-  };
-
-  const handleSaveCurrentTab = async () => {
-    const tab = activeTab();
-    if (tab?.id) {
-      await sendMessage({ type: "CAPTURE_SINGLE_TAB", tabId: tab.id });
-      window.close();
-    }
   };
 
   const openSidePanel = async () => {
@@ -120,25 +148,20 @@ export default function App() {
 
   return (
     <div class="bg-background text-foreground p-4 w-[340px]">
-      {/* Header with open-in buttons */}
+      {/* Header */}
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-base font-semibold text-foreground">Tab Zen</h1>
-        <div class="flex bg-muted/40 rounded-lg p-1 gap-0.5">
-          <button
-            class="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-            onClick={openFullPage}
-            title="Open full page"
-          >
-            <Maximize2 size={16} />
-          </button>
-          <button
-            class="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-            onClick={openSidePanel}
-            title="Open side panel"
-          >
-            <PanelRight size={16} />
-          </button>
-        </div>
+        <button
+          class="text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 px-2.5 py-1 rounded-lg transition-colors"
+          onClick={handleCaptureAll}
+          disabled={capturing() || uncapturedCount() === 0}
+        >
+          {capturing()
+            ? "Saving..."
+            : uncapturedCount() === 0
+              ? "All saved"
+              : `Save all (${uncapturedCount()})`}
+        </button>
       </div>
 
       {/* Sync error banner */}
@@ -149,7 +172,9 @@ export default function App() {
           <button
             class="text-xs text-red-300 hover:text-red-200 transition-colors flex-shrink-0"
             onClick={() => {
-              browser.tabs.create({ url: browser.runtime.getURL("/tabs.html?settings=true") });
+              browser.tabs.create({
+                url: browser.runtime.getURL("/tabs.html?settings=true"),
+              });
               window.close();
             }}
           >
@@ -158,7 +183,7 @@ export default function App() {
         </div>
       </Show>
 
-      {/* Current tab - blocked state */}
+      {/* Blocked domain notice */}
       <Show when={isBlocked()}>
         <div class="mb-4 bg-muted/30 rounded-xl p-4">
           <div class="flex items-center gap-3 mb-2">
@@ -171,7 +196,9 @@ export default function App() {
           <button
             class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => {
-              browser.tabs.create({ url: browser.runtime.getURL("/tabs.html?settings=true") });
+              browser.tabs.create({
+                url: browser.runtime.getURL("/tabs.html?settings=true"),
+              });
               window.close();
             }}
           >
@@ -181,66 +208,136 @@ export default function App() {
         </div>
       </Show>
 
-      {/* Current tab card - only show if not blocked */}
+      {/* Unified tab card */}
       <Show when={!isBlocked() && activeTab()}>
         {(tab) => (
-          <div class="mb-4">
-            <div class="aspect-video rounded-xl overflow-hidden bg-muted/40 mb-3">
+          <button
+            class={`group/card w-full text-left rounded-xl overflow-hidden mb-4 transition-all duration-200 ${
+              saved()
+                ? "bg-muted/30 hover:bg-muted/40 hover:-translate-y-0.5 hover:shadow-lg"
+                : "bg-muted/20 hover:bg-muted/30 hover:-translate-y-0.5 hover:shadow-lg"
+            }`}
+            onClick={handleCardClick}
+          >
+            {/* Thumbnail */}
+            <div class="aspect-video overflow-hidden">
               {tab().ogImage ? (
                 <img
                   src={tab().ogImage!}
                   alt=""
-                  class="w-full h-full object-cover"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  class={`w-full h-full object-cover object-top transition-all duration-500 ${
+                    saved()
+                      ? ""
+                      : "grayscale brightness-75 group-hover/card:grayscale-[30%] group-hover/card:brightness-[0.85]"
+                  }`}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
                 />
               ) : (
-                <div class="w-full h-full flex items-center justify-center">
+                <div
+                  class={`w-full h-full flex items-center justify-center ${
+                    saved() ? "bg-muted/40" : "bg-muted/30"
+                  }`}
+                >
                   {(() => {
                     const fav = tab().favIconUrl;
-                    const src = fav && !fav.startsWith("chrome://")
-                      ? fav
-                      : domain() ? `https://www.google.com/s2/favicons?domain=${domain()}&sz=32` : "";
-                    return src
-                      ? <img src={src} alt="" class="w-8 h-8 rounded" />
-                      : <span class="text-muted-foreground text-sm">{domain()}</span>;
+                    const src =
+                      fav && !fav.startsWith("chrome://")
+                        ? fav
+                        : domain()
+                          ? `https://www.google.com/s2/favicons?domain=${domain()}&sz=32`
+                          : "";
+                    return src ? (
+                      <img
+                        src={src}
+                        alt=""
+                        class={`w-8 h-8 rounded transition-all duration-500 ${
+                          saved()
+                            ? ""
+                            : "grayscale brightness-75 group-hover/card:grayscale-[30%] group-hover/card:brightness-[0.85]"
+                        }`}
+                      />
+                    ) : (
+                      <span class="text-muted-foreground text-sm">
+                        {domain()}
+                      </span>
+                    );
                   })()}
                 </div>
               )}
             </div>
-            <div class="flex gap-3">
-              {(() => {
-                const fav = tab().favIconUrl;
-                const src = fav && !fav.startsWith("chrome://")
-                  ? fav
-                  : domain() ? `https://www.google.com/s2/favicons?domain=${domain()}&sz=32` : "";
-                return src
-                  ? <img src={src} alt="" class="w-6 h-6 rounded-full mt-0.5 flex-shrink-0" />
-                  : <div class="w-6 h-6 rounded-full bg-muted/50 mt-0.5 flex-shrink-0" />;
-              })()}
-              <div class="flex-1 min-w-0">
-                <h3 class="text-sm font-medium text-foreground leading-snug line-clamp-2">
-                  {tab().ogTitle || tab().title}
-                </h3>
-                <p class="text-xs text-muted-foreground mt-1">
-                  {tab().creator || domain()}
-                </p>
-                {tab().ogDescription && (
-                  <p class="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                    {tab().ogDescription}
+
+            {/* Metadata */}
+            <div class="p-3">
+              <div class="flex gap-2.5 items-start">
+                {(() => {
+                  const fav = tab().favIconUrl;
+                  const src =
+                    fav && !fav.startsWith("chrome://")
+                      ? fav
+                      : domain()
+                        ? `https://www.google.com/s2/favicons?domain=${domain()}&sz=32`
+                        : "";
+                  return src ? (
+                    <img
+                      src={src}
+                      alt=""
+                      class={`w-5 h-5 rounded-full mt-0.5 flex-shrink-0 transition-all duration-500 ${
+                        saved()
+                          ? ""
+                          : "grayscale brightness-75 group-hover/card:grayscale-[30%] group-hover/card:brightness-[0.85]"
+                      }`}
+                    />
+                  ) : (
+                    <div class="w-5 h-5 rounded-full bg-muted/50 mt-0.5 flex-shrink-0" />
+                  );
+                })()}
+                <div class="flex-1 min-w-0">
+                  <h3
+                    class={`text-sm font-medium leading-snug line-clamp-2 transition-colors duration-300 ${
+                      saved()
+                        ? "text-foreground"
+                        : "text-muted-foreground group-hover/card:text-foreground/80"
+                    }`}
+                  >
+                    {tab().ogTitle || tab().title}
+                  </h3>
+                  <p
+                    class={`text-xs mt-1 transition-colors duration-300 ${
+                      saved()
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground/50"
+                    }`}
+                  >
+                    {tab().creator || domain()}
                   </p>
-                )}
-                <div class="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground/60">
-                  {tab().publishedAt && (
-                    <>
-                      <span>{formatTimeAgo(tab().publishedAt!)}</span>
-                      <span>·</span>
-                    </>
-                  )}
-                  <span>{domain()}</span>
+                  <Show when={tab().ogDescription}>
+                    <p
+                      class={`text-xs mt-0.5 line-clamp-1 transition-colors duration-300 ${
+                        saved()
+                          ? "text-muted-foreground"
+                          : "text-muted-foreground/40"
+                      }`}
+                    >
+                      {tab().ogDescription}
+                    </p>
+                  </Show>
                 </div>
               </div>
+
+              {/* Action label */}
+              <p
+                class={`text-center text-sm mt-3 transition-colors duration-200 ${
+                  saved()
+                    ? "text-muted-foreground"
+                    : "text-muted-foreground/60 group-hover/card:text-foreground"
+                }`}
+              >
+                {saved() ? "View Details \u2192" : "Save Tab"}
+              </p>
             </div>
-          </div>
+          </button>
         )}
       </Show>
 
@@ -250,56 +347,42 @@ export default function App() {
           <div class="bg-muted/30 rounded-lg p-3 mb-3">
             <p class="text-sm text-foreground">
               Saved {result().saved} tabs
-              {result().skipped > 0 && ` (${result().skipped} duplicates skipped)`}
-            </p>
-            <p class="text-xs text-muted-foreground mt-1">
-              Metadata and AI grouping updating in the background
+              {result().skipped > 0 &&
+                ` (${result().skipped} duplicates skipped)`}
             </p>
           </div>
         )}
       </Show>
 
-      {/* Action buttons */}
-      <div class="space-y-2">
+      {/* Visual navigation */}
+      <p class="text-xs text-muted-foreground/50 mb-2.5">
+        Browse your collection
+      </p>
+      <div class="flex gap-2.5">
+        {/* Fullscreen nav */}
         <button
-          class="w-full px-3 py-2.5 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-          onClick={handleCaptureAll}
-          disabled={capturing() || uncapturedCount() === 0}
+          class="flex-1 bg-muted/25 rounded-xl p-3 flex gap-1.5 h-[100px] transition-colors duration-200 hover:bg-[#141e30] group"
+          onClick={openFullPage}
         >
-          {capturing()
-            ? "Saving..."
-            : uncapturedCount() === 0
-              ? "All tabs saved"
-              : `Save All Tabs (${uncapturedCount()} new)`}
+          <div class="w-[24%] bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
+          <div class="flex-1 grid grid-cols-2 grid-rows-2 gap-1.5">
+            <div class="bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
+            <div class="bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
+            <div class="bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
+            <div class="bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
+          </div>
         </button>
+
+        {/* Sidebar nav */}
         <button
-          class="w-full px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={handleSaveCurrentTab}
-          disabled={isBlocked()}
+          class="w-[80px] bg-muted/25 rounded-xl p-3 flex flex-col gap-1.5 h-[100px] transition-colors duration-200 hover:bg-[#141e30] group"
+          onClick={openSidePanel}
         >
-          Save This Tab
+          <div class="flex-1 bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
+          <div class="flex-1 bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
+          <div class="flex-1 bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
         </button>
       </div>
-
-      {/* Keyboard shortcuts */}
-      <Show when={shortcuts()?.length}>
-        <div class="mt-3 pt-3 space-y-1.5" style={{ "border-top": "1px solid var(--muted)" }}>
-          {shortcuts()!.map((cmd) => (
-            <Show when={cmd.shortcut}>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-muted-foreground">{cmd.description}</span>
-                <Kbd shortcut={cmd.shortcut!} />
-              </div>
-            </Show>
-          ))}
-          <button
-            class="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors mt-1"
-            onClick={() => browser.tabs.create({ url: "chrome://extensions/shortcuts" })}
-          >
-            Customize shortcuts
-          </button>
-        </div>
-      </Show>
     </div>
   );
 }
