@@ -71,3 +71,23 @@ export interface CapturePreviewData {
   groups: AIGroupSuggestion[];
   tabs: Tab[];
 }
+
+export interface AITemplate {
+  id: string;
+  name: string;
+  prompt: string;
+  isBuiltin: boolean;
+  defaultPrompt: string | null;
+  isEnabled: boolean;
+  sortOrder: number;
+  model: string | null;
+}
+
+export interface AIDocument {
+  id: string;
+  tabId: string;
+  templateId: string;
+  content: string;
+  generatedAt: string;
+  promptUsed: string;
+}
