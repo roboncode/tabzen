@@ -158,7 +158,7 @@ export default function App() {
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-base font-semibold text-foreground">Tab Zen</h1>
         <button
-          class="text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 px-2.5 py-1 rounded-lg transition-colors"
+          class="text-sm text-muted-foreground hover:text-sky-400 px-2.5 py-1 rounded-lg transition-colors"
           onClick={handleCaptureAll}
           disabled={capturing() || uncapturedCount() === 0}
         >
@@ -323,7 +323,7 @@ export default function App() {
               class={`text-center text-sm py-2.5 transition-colors duration-200 ${
                 saved()
                   ? "bg-muted/20 text-muted-foreground"
-                  : "bg-muted/30 text-muted-foreground/60 group-hover/card:text-foreground group-hover/card:bg-sky-900/40"
+                  : "bg-muted/30 text-muted-foreground/60 group-hover/card:text-foreground group-hover/card:bg-sky-400 group-hover/card:text-sky-950"
               }`}
             >
               {saved() ? "View Details \u2192" : "Save Tab"}
