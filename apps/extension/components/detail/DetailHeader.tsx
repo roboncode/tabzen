@@ -173,7 +173,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
 
   // ── Action bar mode (default) ──
   return (
-    <div class="flex items-center gap-1 px-4 py-2.5 bg-muted/30 flex-shrink-0">
+    <div class="flex items-center gap-1 px-4 py-2.5 bg-muted/30 flex-shrink-0 relative z-20">
       <button
         onClick={props.onBack}
         class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"

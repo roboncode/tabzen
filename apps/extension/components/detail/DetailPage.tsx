@@ -403,7 +403,7 @@ export default function DetailPage(props: DetailPageProps) {
             <Show when={!isNarrow()}>
               <div class="relative flex-shrink-0 w-[256px]">
                 {/* Fixed sidebar — positioned inside placeholder, full viewport height */}
-                <div class="fixed top-[42px] w-[224px] h-[calc(100vh-42px)] overflow-y-auto scrollbar-hide">
+                <div class="fixed top-[42px] w-[224px] h-[calc(100vh-42px)] overflow-y-auto scrollbar-hide z-10">
                   <DetailSidebar
                     tab={currentTab()}
                     tocEntries={tocEntries()}
