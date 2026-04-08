@@ -1,4 +1,11 @@
-import { createSignal, createMemo, createEffect, Show, onMount, onCleanup } from "solid-js";
+import {
+  createSignal,
+  createMemo,
+  createEffect,
+  Show,
+  onMount,
+  onCleanup,
+} from "solid-js";
 import type { Tab } from "@/lib/types";
 import type { TranscriptSegment } from "@tab-zen/shared";
 import { formatTimestamp } from "./TranscriptView";
@@ -20,9 +27,9 @@ interface DetailPageProps {
 }
 
 export default function DetailPage(props: DetailPageProps) {
-  const [transcriptSegments, setTranscriptSegments] = createSignal<TranscriptSegment[]>(
-    props.tab.transcript || [],
-  );
+  const [transcriptSegments, setTranscriptSegments] = createSignal<
+    TranscriptSegment[]
+  >(props.tab.transcript || []);
   const [markdownContent, setMarkdownContent] = createSignal<string>(
     props.tab.content || "",
   );
@@ -39,7 +46,9 @@ export default function DetailPage(props: DetailPageProps) {
   const [tocDropdownOpen, setTocDropdownOpen] = createSignal(false);
 
   // Check for pending migrations
-  const pendingMigrations = createMemo(() => getPendingMigrations(props.tab.contentVersion));
+  const pendingMigrations = createMemo(() =>
+    getPendingMigrations(props.tab.contentVersion),
+  );
 
   const promptedActions = createMemo(() => {
     if (migrationDismissed()) return [];
@@ -117,16 +126,17 @@ export default function DetailPage(props: DetailPageProps) {
 
   const isYouTube = createMemo(() => isYouTubeWatchUrl(props.tab.url));
 
-  const hasContent = createMemo(() =>
-    transcriptSegments().length > 0 || markdownContent().length > 0,
+  const hasContent = createMemo(
+    () => transcriptSegments().length > 0 || markdownContent().length > 0,
   );
-
 
   const notifyChanged = () => {
     browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
   };
 
-  const handleBack = () => { window.close(); };
+  const handleBack = () => {
+    window.close();
+  };
 
   const handleToggleStar = async () => {
     const tab = currentTab();
@@ -136,7 +146,9 @@ export default function DetailPage(props: DetailPageProps) {
     notifyChanged();
   };
 
-  const handleOpenSource = () => { window.open(props.tab.url, "_blank"); };
+  const handleOpenSource = () => {
+    window.open(props.tab.url, "_blank");
+  };
 
   const handleArchive = async () => {
     const tab = currentTab();
@@ -168,12 +180,18 @@ export default function DetailPage(props: DetailPageProps) {
     setFetchingContent(true);
     try {
       if (isYouTube()) {
-        const response = await sendMessage({ type: "GET_TRANSCRIPT", tabId: props.tab.id });
+        const response = await sendMessage({
+          type: "GET_TRANSCRIPT",
+          tabId: props.tab.id,
+        });
         if (response.type === "TRANSCRIPT" && response.transcript) {
           setTranscriptSegments(response.transcript);
         }
       } else {
-        const response = await sendMessage({ type: "GET_CONTENT", tabId: props.tab.id });
+        const response = await sendMessage({
+          type: "GET_CONTENT",
+          tabId: props.tab.id,
+        });
         if (response.type === "CONTENT" && response.content) {
           setMarkdownContent(response.content);
         }
@@ -190,7 +208,9 @@ export default function DetailPage(props: DetailPageProps) {
     const content = markdownContent();
 
     if (segments.length > 0) {
-      const text = segments.map((s) => `[${formatTimestamp(s.startMs)}] ${s.text}`).join("\n");
+      const text = segments
+        .map((s) => `[${formatTimestamp(s.startMs)}] ${s.text}`)
+        .join("\n");
       navigator.clipboard.writeText(text);
     } else if (content) {
       navigator.clipboard.writeText(content);
@@ -205,7 +225,10 @@ export default function DetailPage(props: DetailPageProps) {
   const handleReExtract = async () => {
     setReExtracting(true);
     try {
-      const response = await sendMessage({ type: "RE_EXTRACT_CONTENT", tabId: props.tab.id });
+      const response = await sendMessage({
+        type: "RE_EXTRACT_CONTENT",
+        tabId: props.tab.id,
+      });
       if (response.type === "CONTENT" && response.content) {
         setMarkdownContent(response.content);
         setMigrationDismissed(true);
@@ -233,7 +256,9 @@ export default function DetailPage(props: DetailPageProps) {
         <TranscriptView
           segments={transcriptSegments()}
           videoUrl={props.tab.url}
-          onFetchTranscript={transcriptSegments().length === 0 ? handleFetchContent : undefined}
+          onFetchTranscript={
+            transcriptSegments().length === 0 ? handleFetchContent : undefined
+          }
           loading={fetchingContent()}
         />
       </Show>
@@ -252,7 +277,10 @@ export default function DetailPage(props: DetailPageProps) {
   );
 
   return (
-    <div ref={containerRef} class="@container flex h-screen bg-background relative">
+    <div
+      ref={containerRef}
+      class="@container flex h-screen bg-background relative"
+    >
       {/* Main content + sidebar */}
       <div class="flex-1 min-w-0 flex flex-col">
         {/* Fixed action bar */}
@@ -278,11 +306,17 @@ export default function DetailPage(props: DetailPageProps) {
             >
               <List size={14} />
               <span>On this page</span>
-              <ChevronDown size={14} class={`ml-auto transition-transform ${tocDropdownOpen() ? "rotate-180" : ""}`} />
+              <ChevronDown
+                size={14}
+                class={`ml-auto transition-transform ${tocDropdownOpen() ? "rotate-180" : ""}`}
+              />
             </button>
             <Show when={tocDropdownOpen()}>
               {/* Backdrop to close on outside click */}
-              <div class="fixed inset-0 z-10" onClick={() => setTocDropdownOpen(false)} />
+              <div
+                class="fixed inset-0 z-10"
+                onClick={() => setTocDropdownOpen(false)}
+              />
               <div class="absolute top-full left-0 right-0 z-20 bg-background/95 backdrop-blur-sm shadow-lg animate-[fadeIn_0.15s_ease-out]">
                 {tocEntries().map((entry) => (
                   <button
@@ -290,8 +324,14 @@ export default function DetailPage(props: DetailPageProps) {
                       entry.level >= 3 ? "pl-8" : ""
                     } text-muted-foreground hover:text-foreground`}
                     onClick={() => {
-                      const el = scrollRef?.querySelector(`#${CSS.escape(entry.id)}`);
-                      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                      const el = scrollRef?.querySelector(
+                        `#${CSS.escape(entry.id)}`,
+                      );
+                      if (el)
+                        el.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
                       setTocDropdownOpen(false);
                     }}
                   >
@@ -310,9 +350,12 @@ export default function DetailPage(props: DetailPageProps) {
           onScroll={handleScroll}
         >
           {/* Content + sidebar row */}
-          <div class="flex gap-16 mx-auto" style={{ "max-width": "calc(688px + 220px + 64px + 32px)" }}>
+          <div
+            class="flex gap-16 mx-auto"
+            style={{ "max-width": "calc(768px + 256px + 64px + 32px)" }}
+          >
             {/* Content column — max 688px like VitePress */}
-            <div class="flex-1 min-w-0 max-w-[688px] px-4">
+            <div class="flex-1 min-w-0 max-w-[768px] px-4">
               {/* Hero card */}
               <div ref={heroRef}>
                 <DetailHeader
@@ -330,7 +373,9 @@ export default function DetailPage(props: DetailPageProps) {
               {/* Narrow: inline tags + notes */}
               <Show when={isNarrow()}>
                 <div class="flex flex-col gap-2 mb-2">
-                  <Show when={currentTab().tags && currentTab().tags.length > 0}>
+                  <Show
+                    when={currentTab().tags && currentTab().tags.length > 0}
+                  >
                     <div class="flex flex-wrap gap-x-2 gap-y-1">
                       {currentTab().tags.map((tag) => (
                         <span class="text-sm text-sky-400">#{tag}</span>
@@ -354,21 +399,9 @@ export default function DetailPage(props: DetailPageProps) {
               </div>
             </div>
 
-            {/* Sidebar — full height, padding pushes TOC to content level (VitePress pattern) */}
+            {/* Sidebar — same top padding as content, sticky, scrollable */}
             <Show when={!isNarrow()}>
-              <div ref={(el) => {
-                // Dynamically set padding-top to match hero height
-                const updatePadding = () => {
-                  if (heroRef && el) {
-                    el.style.paddingTop = `${heroRef.offsetHeight}px`;
-                  }
-                };
-                requestAnimationFrame(updatePadding);
-                // Re-measure if window resizes
-                const observer = new ResizeObserver(updatePadding);
-                if (heroRef) observer.observe(heroRef);
-                onCleanup(() => observer.disconnect());
-              }}>
+              <div class="pt-24">
                 <DetailSidebar
                   tab={currentTab()}
                   tocEntries={tocEntries()}
@@ -396,7 +429,9 @@ export default function DetailPage(props: DetailPageProps) {
       {/* Update available toast */}
       <Show when={hasPromptedReExtract() && hasContent()}>
         <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5 bg-[#1e1e22]/95 backdrop-blur-sm px-4 py-2.5 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)] whitespace-nowrap">
-          <span class={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${reExtracting() ? "bg-amber-400 animate-pulse" : "bg-emerald-400 animate-[pulse_2s_ease-in-out_infinite]"}`} />
+          <span
+            class={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${reExtracting() ? "bg-amber-400 animate-pulse" : "bg-emerald-400 animate-[pulse_2s_ease-in-out_infinite]"}`}
+          />
           <span class="text-sm text-foreground/70">
             {reExtracting() ? "Updating..." : "Content update available"}
           </span>
