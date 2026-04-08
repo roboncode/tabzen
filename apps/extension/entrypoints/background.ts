@@ -11,6 +11,7 @@ import {
   searchTabs,
   importData,
   purgeDeletedTabs,
+  getAllTags,
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate, shouldSkipUrl } from "@/lib/duplicates";
@@ -880,6 +881,8 @@ export default defineBackground(() => {
             const enrichedTabs = await Promise.all(
               tabs.map(async (t) => (await getTab(t.id)) || t),
             );
+            const allTags = await getAllTags();
+            const existingTagNames = allTags.map((t) => t.tag);
             const tagResults = await generateTags(
               settings.openRouterApiKey,
               settings.aiModel,
@@ -889,6 +892,7 @@ export default defineBackground(() => {
                 url: t.url,
                 description: t.ogDescription || t.metaDescription,
               })),
+              existingTagNames,
             );
             let tagged = 0;
             for (const result of tagResults) {
