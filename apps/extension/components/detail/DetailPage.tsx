@@ -399,9 +399,10 @@ export default function DetailPage(props: DetailPageProps) {
               </div>
             </div>
 
-            {/* Sidebar — same top padding as content, sticky, scrollable */}
+            {/* Sidebar column — spacer pushes TOC to content level, sidebar is sticky */}
             <Show when={!isNarrow()}>
-              <div class="pt-24">
+              <div class="flex-shrink-0">
+                <div class="h-24" />
                 <DetailSidebar
                   tab={currentTab()}
                   tocEntries={tocEntries()}
