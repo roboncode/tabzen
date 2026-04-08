@@ -934,8 +934,11 @@ export default defineBackground(() => {
 
   async function handleIsUrlSaved(url: string): Promise<MessageResponse> {
     try {
-      const normalized = normalizeUrl(url);
-      const tab = await getTabByUrl(normalized);
+      // Try original URL first (DB stores original), then normalized
+      let tab = await getTabByUrl(url);
+      if (!tab) {
+        tab = await getTabByUrl(normalizeUrl(url));
+      }
       return { type: "URL_SAVED", saved: !!tab, tabId: tab?.id };
     } catch {
       return { type: "URL_SAVED", saved: false };
