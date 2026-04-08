@@ -62,6 +62,8 @@ export default defineBackground(() => {
         tabs: data.tabs,
         groups: data.groups,
         captures: data.captures,
+        aiTemplates: data.aiTemplates,
+        aiDocuments: data.aiDocuments,
         lastSyncedAt: new Date().toISOString(),
       });
       lastSyncedAt = new Date().toISOString();
@@ -120,6 +122,16 @@ export default defineBackground(() => {
         await importData({ tabs, groups: remote.groups, captures: remote.captures });
         lastSyncedAt = remote.lastSyncedAt;
         console.log("[TabZen] Sync pulled", tabs.length, "tabs");
+        if (remote.aiTemplates?.length) {
+          const { putTemplates } = await import("@/lib/db");
+          await putTemplates(remote.aiTemplates);
+        }
+        if (remote.aiDocuments?.length) {
+          const { putDocument } = await import("@/lib/db");
+          for (const doc of remote.aiDocuments) {
+            await putDocument(doc);
+          }
+        }
         // Notify UI without triggering another push
         browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
         await updateBadge();

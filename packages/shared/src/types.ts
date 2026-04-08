@@ -60,6 +60,8 @@ export interface SyncPayload {
   tabs: Tab[];
   groups: Group[];
   captures: Capture[];
+  aiTemplates?: AITemplate[];
+  aiDocuments?: AIDocument[];
   settings?: {
     aiModel: string;
     encryptedApiKey: string | null;
@@ -71,4 +73,24 @@ export interface TranscriptSegment {
   text: string;
   startMs: number;
   durationMs: number;
+}
+
+export interface AITemplate {
+  id: string;
+  name: string;
+  prompt: string;
+  isBuiltin: boolean;
+  defaultPrompt: string | null;
+  isEnabled: boolean;
+  sortOrder: number;
+  model: string | null;
+}
+
+export interface AIDocument {
+  id: string;
+  tabId: string;
+  templateId: string;
+  content: string;
+  generatedAt: string;
+  promptUsed: string;
 }
