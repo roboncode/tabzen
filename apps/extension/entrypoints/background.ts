@@ -28,6 +28,7 @@ import type {
   CapturePreviewData,
 } from "@/lib/types";
 import type { MessageRequest, MessageResponse } from "@/lib/messages";
+import { seedTemplatesIfNeeded } from "@/lib/templates";
 
 export default defineBackground(() => {
   // --- Notify UI views of data changes ---
@@ -139,6 +140,7 @@ export default defineBackground(() => {
 
   // Auto-purge soft-deleted tabs older than 30 days on startup
   purgeDeletedTabs(30).catch((e) => console.warn("[TabZen] Auto-purge failed:", e));
+  seedTemplatesIfNeeded().catch((e) => console.warn("[TabZen] Template seed failed:", e));
 
   // Backfill creator field for existing tabs that don't have one
   (async () => {
