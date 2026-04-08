@@ -1,5 +1,5 @@
 import { createSignal, Show } from "solid-js";
-import { ArrowLeft, User, Sparkles, Database, AlertTriangle } from "lucide-solid";
+import { ArrowLeft } from "lucide-solid";
 import ConfirmDialog from "./ConfirmDialog";
 import { useSettings } from "@/lib/hooks/useSettings";
 import {
@@ -16,6 +16,8 @@ interface SettingsPanelProps {
   onClose: () => void;
 }
 
+type SettingsTab = "general" | "ai" | "sync" | "domains" | "data";
+
 export default function SettingsPanel(props: SettingsPanelProps) {
   const { settings, save: rawSave } = useSettings();
   const [saving, setSaving] = createSignal(false);
@@ -23,6 +25,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [showClearConfirm, setShowClearConfirm] = createSignal(false);
   const [aiTestResult, setAiTestResult] = createSignal<{ ok: boolean; message: string } | null>(null);
   const [aiTesting, setAiTesting] = createSignal(false);
+  const [activeSettingsTab, setActiveSettingsTab] = createSignal<SettingsTab>("general");
 
   const notifyChanged = () => {
     browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
@@ -81,166 +84,186 @@ export default function SettingsPanel(props: SettingsPanelProps) {
         </div>
       </div>
 
+      <div class="flex gap-1.5 px-4 py-2.5 overflow-x-auto scrollbar-hide max-w-2xl mx-auto">
+        {(
+          [
+            ["general", "General"],
+            ["ai", "AI"],
+            ["sync", "Sync"],
+            ["domains", "Blocked Domains"],
+            ["data", "Data"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            class={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap ${
+              activeSettingsTab() === key
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+            onClick={() => setActiveSettingsTab(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <Show when={settings()}>
         {(s) => (
           <div class="p-4 space-y-2 max-w-2xl mx-auto">
 
-            {/* ═══ General ═══ */}
-            <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
-              <User size={14} /> General
-            </p>
-            <div class="space-y-4 px-1 py-3">
-              <div>
-                <label class="block text-sm text-muted-foreground mb-1.5">
-                  Browser / Profile Name
-                </label>
-                <input
-                  class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors"
-                  value={s().sourceLabel}
-                  onChange={(e) => save({ sourceLabel: e.currentTarget.value })}
-                />
-                <p class="text-xs text-muted-foreground mt-1.5">
-                  Tags your captures so you know where they came from
-                </p>
-              </div>
-            </div>
-
-            {/* ═══ AI ═══ */}
-            <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
-              <Sparkles size={14} /> AI
-            </p>
-            <div class="space-y-4 px-1 py-3">
-              <div>
-                <label class="block text-sm text-muted-foreground mb-1.5">
-                  OpenRouter API Key
-                </label>
-                <div class="flex gap-2">
+            {/* General tab */}
+            <Show when={activeSettingsTab() === "general"}>
+              <div class="space-y-4 px-1 py-3">
+                <div>
+                  <label class="block text-sm text-muted-foreground mb-1.5">
+                    Browser / Profile Name
+                  </label>
                   <input
-                    class="flex-1 bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors"
-                    type="password"
-                    value={s().openRouterApiKey}
-                    onChange={(e) => save({ openRouterApiKey: e.currentTarget.value })}
-                    placeholder="sk-or-..."
+                    class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors"
+                    value={s().sourceLabel}
+                    onChange={(e) => save({ sourceLabel: e.currentTarget.value })}
                   />
-                  <button
-                    class="px-3 py-2 text-sm bg-muted/50 text-foreground rounded-lg hover:bg-muted transition-colors disabled:opacity-50 flex-shrink-0"
-                    disabled={aiTesting() || !s().openRouterApiKey}
-                    onClick={async () => {
-                      setAiTesting(true);
-                      setAiTestResult(null);
-                      try {
-                        const response = await fetch("https://openrouter.ai/api/v1/models", {
-                          headers: { Authorization: `Bearer ${s().openRouterApiKey}` },
-                          signal: AbortSignal.timeout(5000),
-                        });
-                        if (response.ok) {
-                          setAiTestResult({ ok: true, message: "API key is valid" });
-                        } else {
-                          setAiTestResult({ ok: false, message: `Invalid key (${response.status})` });
+                  <p class="text-xs text-muted-foreground mt-1.5">
+                    Tags your captures so you know where they came from
+                  </p>
+                </div>
+              </div>
+            </Show>
+
+            {/* AI tab */}
+            <Show when={activeSettingsTab() === "ai"}>
+              <div class="space-y-4 px-1 py-3">
+                <div>
+                  <label class="block text-sm text-muted-foreground mb-1.5">
+                    OpenRouter API Key
+                  </label>
+                  <div class="flex gap-2">
+                    <input
+                      class="flex-1 bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors"
+                      type="password"
+                      value={s().openRouterApiKey}
+                      onChange={(e) => save({ openRouterApiKey: e.currentTarget.value })}
+                      placeholder="sk-or-..."
+                    />
+                    <button
+                      class="px-3 py-2 text-sm bg-muted/50 text-foreground rounded-lg hover:bg-muted transition-colors disabled:opacity-50 flex-shrink-0"
+                      disabled={aiTesting() || !s().openRouterApiKey}
+                      onClick={async () => {
+                        setAiTesting(true);
+                        setAiTestResult(null);
+                        try {
+                          const response = await fetch("https://openrouter.ai/api/v1/models", {
+                            headers: { Authorization: `Bearer ${s().openRouterApiKey}` },
+                            signal: AbortSignal.timeout(5000),
+                          });
+                          if (response.ok) {
+                            setAiTestResult({ ok: true, message: "API key is valid" });
+                          } else {
+                            setAiTestResult({ ok: false, message: `Invalid key (${response.status})` });
+                          }
+                        } catch (e) {
+                          setAiTestResult({ ok: false, message: "Could not reach OpenRouter" });
                         }
-                      } catch (e) {
-                        setAiTestResult({ ok: false, message: "Could not reach OpenRouter" });
-                      }
-                      setAiTesting(false);
-                    }}
+                        setAiTesting(false);
+                      }}
+                    >
+                      {aiTesting() ? "Testing..." : "Test"}
+                    </button>
+                  </div>
+                  <Show when={aiTestResult()}>
+                    {(result) => (
+                      <div class="flex items-center gap-2 mt-2">
+                        <div class={`w-2 h-2 rounded-full ${result().ok ? "bg-green-500" : "bg-red-500"}`} />
+                        <span class={`text-xs ${result().ok ? "text-green-400" : "text-muted-foreground"}`}>
+                          {result().message}
+                        </span>
+                      </div>
+                    )}
+                  </Show>
+                </div>
+                <div>
+                  <label class="block text-sm text-muted-foreground mb-1.5">
+                    Model
+                  </label>
+                  <select
+                    class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors"
+                    value={s().aiModel}
+                    onChange={(e) => save({ aiModel: e.currentTarget.value })}
                   >
-                    {aiTesting() ? "Testing..." : "Test"}
+                    <option value="openai/gpt-4o-mini">GPT-4o Mini (default)</option>
+                    <option value="openai/gpt-4o">GPT-4o</option>
+                    <option value="anthropic/claude-haiku-4-5-20251001">Claude Haiku</option>
+                    <option value="anthropic/claude-sonnet-4-6">Claude Sonnet</option>
+                    <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
+                    <option value="google/gemma-4-26b-a4b-it">Gemma 4 26B</option>
+                    <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
+                  </select>
+                  <p class="text-xs text-muted-foreground mt-1.5">
+                    Without an API key, tabs are grouped by domain
+                  </p>
+                </div>
+              </div>
+            </Show>
+
+            {/* Sync tab */}
+            <Show when={activeSettingsTab() === "sync"}>
+              <SyncConfigPanel settings={s()} save={save} />
+            </Show>
+
+            {/* Blocked Domains tab */}
+            <Show when={activeSettingsTab() === "domains"}>
+              <BlockedDomainsManager settings={s()} save={save} />
+            </Show>
+
+            {/* Data tab */}
+            <Show when={activeSettingsTab() === "data"}>
+              <div class="px-1 py-3 space-y-4">
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    class="px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors"
+                    onClick={handleExportJson}
+                  >
+                    Export JSON
+                  </button>
+                  <button
+                    class="px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors"
+                    onClick={handleExportBookmarks}
+                  >
+                    Export Bookmarks
+                  </button>
+                  <button
+                    class="px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors"
+                    onClick={handleImport}
+                  >
+                    Import JSON
                   </button>
                 </div>
-                <Show when={aiTestResult()}>
-                  {(result) => (
-                    <div class="flex items-center gap-2 mt-2">
-                      <div class={`w-2 h-2 rounded-full ${result().ok ? "bg-green-500" : "bg-red-500"}`} />
-                      <span class={`text-xs ${result().ok ? "text-green-400" : "text-muted-foreground"}`}>
-                        {result().message}
-                      </span>
-                    </div>
-                  )}
+                <Show when={importResult()}>
+                  <p class="text-xs text-muted-foreground">{importResult()}</p>
                 </Show>
+                <div>
+                  <button
+                    class="px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors"
+                    onClick={() =>
+                      browser.tabs.create({ url: "chrome://extensions/shortcuts" })
+                    }
+                  >
+                    Configure Keyboard Shortcuts
+                  </button>
+                </div>
+                <div class="pt-2">
+                  <button
+                    class="px-3 py-2 text-sm bg-red-900/30 text-red-300 rounded-lg hover:bg-red-900/50 transition-colors"
+                    onClick={() => setShowClearConfirm(true)}
+                  >
+                    Clear Data
+                  </button>
+                  <p class="text-xs text-muted-foreground mt-1.5">
+                    Clear tabs from this profile or all data
+                  </p>
+                </div>
               </div>
-              <div>
-                <label class="block text-sm text-muted-foreground mb-1.5">
-                  Model
-                </label>
-                <select
-                  class="w-full bg-muted/40 text-sm text-foreground rounded-lg px-3 py-2 outline-none focus:bg-muted/60 transition-colors"
-                  value={s().aiModel}
-                  onChange={(e) => save({ aiModel: e.currentTarget.value })}
-                >
-                  <option value="openai/gpt-4o-mini">GPT-4o Mini (default)</option>
-                  <option value="openai/gpt-4o">GPT-4o</option>
-                  <option value="anthropic/claude-haiku-4-5-20251001">Claude Haiku</option>
-                  <option value="anthropic/claude-sonnet-4-6">Claude Sonnet</option>
-                  <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
-                  <option value="google/gemma-4-26b-a4b-it">Gemma 4 26B</option>
-                  <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
-                </select>
-                <p class="text-xs text-muted-foreground mt-1.5">
-                  Without an API key, tabs are grouped by domain
-                </p>
-              </div>
-            </div>
-
-            {/* ═══ Sync ═══ */}
-            <SyncConfigPanel settings={s()} save={save} />
-
-            {/* ═══ Blocked Domains ═══ */}
-            <BlockedDomainsManager settings={s()} save={save} />
-
-            <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
-              <Database size={14} /> Data
-            </p>
-            <div class="px-1 py-3 space-y-4">
-              <div class="flex flex-wrap gap-2">
-                <button
-                  class="px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors"
-                  onClick={handleExportJson}
-                >
-                  Export JSON
-                </button>
-                <button
-                  class="px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors"
-                  onClick={handleExportBookmarks}
-                >
-                  Export Bookmarks
-                </button>
-                <button
-                  class="px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors"
-                  onClick={handleImport}
-                >
-                  Import JSON
-                </button>
-              </div>
-              <Show when={importResult()}>
-                <p class="text-xs text-muted-foreground">{importResult()}</p>
-              </Show>
-              <div>
-                <button
-                  class="px-3 py-2 text-sm bg-muted/40 text-foreground rounded-lg hover:bg-muted/60 transition-colors"
-                  onClick={() =>
-                    browser.tabs.create({ url: "chrome://extensions/shortcuts" })
-                  }
-                >
-                  Configure Keyboard Shortcuts
-                </button>
-              </div>
-            </div>
-
-            {/* ═══ Danger Zone ═══ */}
-            <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-red-400/70 bg-red-500/10 -mx-4 px-4 py-2.5 mt-2">
-              <AlertTriangle size={14} /> Danger Zone
-            </p>
-            <div class="px-1 py-3">
-              <button
-                class="px-3 py-2 text-sm bg-red-900/30 text-red-300 rounded-lg hover:bg-red-900/50 transition-colors"
-                onClick={() => setShowClearConfirm(true)}
-              >
-                Clear Data
-              </button>
-              <p class="text-xs text-muted-foreground mt-1.5">
-                Clear tabs from this profile or all data
-              </p>
-            </div>
+            </Show>
 
             {/* Version */}
             <div class="pt-4 pb-2 text-center">
