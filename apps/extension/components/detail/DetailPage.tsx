@@ -18,7 +18,7 @@ import TranscriptView from "./TranscriptView";
 import MarkdownView from "./MarkdownView";
 import DetailSidebar, { type TocEntry } from "./DetailSidebar";
 import ChatFab from "./ChatFab";
-import NotesEditor from "@/components/NotesEditor";
+import NotesDisplay from "@/components/NotesDisplay";
 // import ReadingProgress from "@/components/ReadingProgress";
 import { X, ChevronDown, List } from "lucide-solid";
 
@@ -36,7 +36,6 @@ export default function DetailPage(props: DetailPageProps) {
   const [fetchingContent, setFetchingContent] = createSignal(false);
   const [currentTab, setCurrentTab] = createSignal(props.tab);
   const [isNarrow, setIsNarrow] = createSignal(false);
-  const [editingNotes, setEditingNotes] = createSignal(false);
   const [copied, setCopied] = createSignal(false);
   const [heroScrolledPast, setHeroScrolledPast] = createSignal(false);
   const [reExtracting, setReExtracting] = createSignal(false);
@@ -71,7 +70,14 @@ export default function DetailPage(props: DetailPageProps) {
     const silentActions = pending.flatMap((m) =>
       m.actions.filter((a) => a.behavior === "silent"),
     );
-    console.log("[TabZen Migration] Tab contentVersion:", props.tab.contentVersion, "| pending migrations:", pending.length, "| silent re-extract:", silentActions.some((a) => a.type === "re-extract-content"));
+    console.log(
+      "[TabZen Migration] Tab contentVersion:",
+      props.tab.contentVersion,
+      "| pending migrations:",
+      pending.length,
+      "| silent re-extract:",
+      silentActions.some((a) => a.type === "re-extract-content"),
+    );
     if (silentActions.some((a) => a.type === "re-extract-content")) {
       handleReExtract();
     }
@@ -166,15 +172,11 @@ export default function DetailPage(props: DetailPageProps) {
     window.close();
   };
 
-  const handleEditNotes = () => {
-    setEditingNotes(true);
-  };
 
   const handleSaveNotes = async (tabId: string, notes: string) => {
     await updateTab(tabId, { notes: notes || null });
     const updated = await getTab(tabId);
     if (updated) setCurrentTab(updated);
-    setEditingNotes(false);
     notifyChanged();
   };
 
@@ -252,7 +254,7 @@ export default function DetailPage(props: DetailPageProps) {
     const scrollRect = scrollRef.getBoundingClientRect();
     // Hero is scrolled past when its bottom goes above the scroll container's top edge
     // (which is right below the action bar)
-    setHeroScrolledPast(heroRect.bottom < scrollRect.top + 10);
+    setHeroScrolledPast(heroRect.bottom < scrollRect.top + 52);
   };
 
   const ContentView = () => (
@@ -296,7 +298,6 @@ export default function DetailPage(props: DetailPageProps) {
           onOpenSource={handleOpenSource}
           onArchive={handleArchive}
           onDelete={handleDelete}
-          onEditNotes={handleEditNotes}
           onCopy={hasContent() ? handleCopy : undefined}
           copied={copied()}
           compact={heroScrolledPast()}
@@ -370,20 +371,18 @@ export default function DetailPage(props: DetailPageProps) {
                   onOpenSource={handleOpenSource}
                   onArchive={handleArchive}
                   onDelete={handleDelete}
-                  onEditNotes={handleEditNotes}
-                  heroOnly
+                          heroOnly
                 />
               </div>
 
               {/* Narrow: inline notes (only when sidebar is hidden) */}
-              <Show when={isNarrow() && currentTab().notes}>
+              <Show when={isNarrow()}>
                 <div class="mb-6">
-                  <button
-                    onClick={handleEditNotes}
-                    class="w-full text-left bg-muted/30 rounded-lg px-4 py-3 text-xs text-muted-foreground leading-relaxed hover:bg-muted/40 transition-colors"
-                  >
-                    {currentTab().notes}
-                  </button>
+                  <NotesDisplay
+                    tab={currentTab()}
+                    onSave={handleSaveNotes}
+                    clampLines={3}
+                  />
                 </div>
               </Show>
 
@@ -402,7 +401,7 @@ export default function DetailPage(props: DetailPageProps) {
                     tab={currentTab()}
                     tocEntries={tocEntries()}
                     scrollRef={scrollRef}
-                    onEditNotes={handleEditNotes}
+                    onSaveNotes={handleSaveNotes}
                   />
                 </div>
               </div>
@@ -413,15 +412,6 @@ export default function DetailPage(props: DetailPageProps) {
 
       {/* Chat FAB */}
       <ChatFab />
-
-      {/* Notes editor */}
-      <Show when={editingNotes()}>
-        <NotesEditor
-          tab={currentTab()}
-          onSave={handleSaveNotes}
-          onClose={() => setEditingNotes(false)}
-        />
-      </Show>
 
       {/* Update available toast */}
       <Show when={hasPromptedReExtract() && hasContent()}>

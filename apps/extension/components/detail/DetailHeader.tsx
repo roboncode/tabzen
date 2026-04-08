@@ -24,7 +24,6 @@ interface DetailHeaderProps {
   onOpenSource: () => void;
   onArchive: () => void;
   onDelete: () => void;
-  onEditNotes: () => void;
   onCopy?: () => void;
   copied?: boolean;
   /** Render only the hero card (no action bar) */
@@ -69,7 +68,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
               <img
                 src={props.tab.ogImage}
                 alt=""
-                class="w-full h-full object-cover"
+                class="w-full h-full object-cover object-top-left"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
                 }}

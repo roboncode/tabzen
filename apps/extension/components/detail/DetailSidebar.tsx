@@ -1,6 +1,6 @@
 import { createSignal, createEffect, onCleanup, For, Show } from "solid-js";
-import { StickyNote } from "lucide-solid";
 import type { Tab } from "@/lib/types";
+import NotesDisplay from "@/components/NotesDisplay";
 
 export interface TocEntry {
   id: string;
@@ -12,7 +12,7 @@ interface DetailSidebarProps {
   tab: Tab;
   tocEntries: TocEntry[];
   scrollRef: HTMLElement | undefined;
-  onEditNotes: () => void;
+  onSaveNotes: (tabId: string, notes: string) => void;
 }
 
 export default function DetailSidebar(props: DetailSidebarProps) {
@@ -117,25 +117,11 @@ export default function DetailSidebar(props: DetailSidebarProps) {
         <div class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
           Notes
         </div>
-        <Show
-          when={props.tab.notes}
-          fallback={
-            <button
-              onClick={props.onEditNotes}
-              class="flex items-center gap-1.5 text-sm text-muted-foreground/40 hover:text-muted-foreground transition-colors"
-            >
-              <StickyNote size={13} />
-              <span>Add a note...</span>
-            </button>
-          }
-        >
-          <button
-            onClick={props.onEditNotes}
-            class="w-full text-left bg-muted/30 rounded-lg px-3 py-2.5 text-sm text-muted-foreground leading-relaxed hover:bg-muted/40 transition-colors line-clamp-4"
-          >
-            {props.tab.notes}
-          </button>
-        </Show>
+        <NotesDisplay
+          tab={props.tab}
+          onSave={props.onSaveNotes}
+          clampLines={3}
+        />
       </div>
 
       {/* Tags */}
