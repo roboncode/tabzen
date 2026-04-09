@@ -62,7 +62,7 @@ export default function App() {
     };
   });
 
-  const [uncapturedCount] = createResource(async () => {
+  const [uncapturedCount, { refetch: refetchCount }] = createResource(async () => {
     const response = await sendMessage({ type: "GET_UNCAPTURED_COUNT" });
     return response.type === "UNCAPTURED_COUNT" ? response.count : 0;
   });
@@ -126,6 +126,7 @@ export default function App() {
           mutateSavedStatus({ saved: true, tabId: response.tabId });
         }
         setJustSaved(true);
+        refetchCount();
       }
     }
   };
@@ -137,6 +138,7 @@ export default function App() {
       setCaptureResult(response);
     }
     setCapturing(false);
+    refetchCount();
   };
 
   const openSidePanel = async () => {
