@@ -54,8 +54,8 @@ export class SyncService {
       for (const page of body.pages) {
         await this.db
           .prepare(
-            `INSERT OR REPLACE INTO tabs (id, url, title, favicon, og_title, og_description, og_image, meta_description, notes, view_count, last_viewed_at, captured_at, source_label, device_id, archived, starred, group_id, content_key, content_type, content_fetched_at, updated_at, sync_token)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT OR REPLACE INTO tabs (id, url, title, favicon, og_title, og_description, og_image, meta_description, notes, view_count, last_viewed_at, captured_at, source_label, device_id, archived, starred, deleted_at, creator, creator_avatar, creator_url, published_at, tags, group_id, content_key, content_type, content_fetched_at, updated_at, sync_token)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .bind(
             page.id,
@@ -74,6 +74,12 @@ export class SyncService {
             page.deviceId || "",
             page.archived ? 1 : 0,
             page.starred ? 1 : 0,
+            page.deletedAt || null,
+            page.creator || null,
+            page.creatorAvatar || null,
+            page.creatorUrl || null,
+            page.publishedAt || null,
+            JSON.stringify(page.tags || []),
             page.groupId,
             page.contentKey,
             page.contentType,
@@ -183,7 +189,7 @@ export class SyncService {
       creatorAvatar: row.creator_avatar as string | null,
       creatorUrl: row.creator_url as string | null,
       publishedAt: row.published_at as string | null,
-      tags: row.tags ? JSON.parse(row.tags as string) : [],
+      tags: row.tags ? (() => { try { return JSON.parse(row.tags as string); } catch { return []; } })() : [],
       notes: row.notes as string | null,
       viewCount: row.view_count as number,
       lastViewedAt: row.last_viewed_at as string | null,

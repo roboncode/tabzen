@@ -15,7 +15,16 @@ CREATE TABLE IF NOT EXISTS tabs (
   device_id TEXT NOT NULL DEFAULT '',
   archived INTEGER NOT NULL DEFAULT 0,
   starred INTEGER NOT NULL DEFAULT 0,
+  deleted_at TEXT,
+  creator TEXT,
+  creator_avatar TEXT,
+  creator_url TEXT,
+  published_at TEXT,
+  tags TEXT,
   group_id TEXT NOT NULL,
+  content_key TEXT,
+  content_type TEXT,
+  content_fetched_at TEXT,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   sync_token TEXT NOT NULL
 );
