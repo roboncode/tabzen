@@ -58,13 +58,13 @@ export default function DetailHeader(props: DetailHeaderProps) {
   // ── Hero Only mode: the scrollable card ──
   if (props.heroOnly) {
     return (
-      <div class="@container px-4 pt-3 @[480px]:pt-24 pb-6 md:pb-12">
-        <div class="flex flex-col @[480px]:flex-row gap-4 @[480px]:gap-5">
+      <div class="@container px-4 pt-8 pb-6 md:pb-12">
+        <div class="flex flex-col @[520px]:flex-row gap-4 @[520px]:gap-5">
           {/* Thumbnail — clickable, opens source URL */}
           <a
             href={props.page.url}
             target="_blank"
-            class="w-full @[480px]:w-[40%] aspect-video rounded-xl overflow-hidden bg-muted/40 flex-shrink-0 max-h-[200px] cursor-pointer hover:opacity-90 transition-opacity"
+            class="w-full @[520px]:w-[40%] aspect-video rounded-xl overflow-hidden bg-muted/40 flex-shrink-0 max-h-[200px] cursor-pointer hover:opacity-90 transition-opacity"
           >
             {props.page.ogImage ? (
               <img
@@ -91,7 +91,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
             <a
               href={props.page.url}
               target="_blank"
-              class="text-xl @[480px]:text-2xl font-bold text-foreground leading-snug hover:text-sky-400 transition-colors cursor-pointer"
+              class="text-xl @[520px]:text-2xl font-bold text-foreground leading-snug hover:text-sky-400 transition-colors cursor-pointer"
             >
               {title()}
             </a>
@@ -138,7 +138,8 @@ export default function DetailHeader(props: DetailHeaderProps) {
                   ref={(el) => {
                     descRef = el;
                     requestAnimationFrame(() => {
-                      if (el) setDescOverflows(el.scrollHeight > el.clientHeight);
+                      if (el)
+                        setDescOverflows(el.scrollHeight > el.clientHeight);
                     });
                   }}
                   class={`text-sm text-muted-foreground leading-relaxed ${descExpanded() ? "" : "line-clamp-2"}`}
@@ -222,7 +223,10 @@ export default function DetailHeader(props: DetailHeaderProps) {
             <Show when={props.onCopy}>
               <button
                 class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
-                onClick={() => { props.onCopy?.(); setMenuOpen(false); }}
+                onClick={() => {
+                  props.onCopy?.();
+                  setMenuOpen(false);
+                }}
               >
                 <Show when={props.copied} fallback={<Copy size={14} />}>
                   <Check size={14} class="text-green-400" />
@@ -232,7 +236,10 @@ export default function DetailHeader(props: DetailHeaderProps) {
             </Show>
             <button
               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
-              onClick={() => { props.onArchive(); setMenuOpen(false); }}
+              onClick={() => {
+                props.onArchive();
+                setMenuOpen(false);
+              }}
             >
               <Show when={props.page.archived} fallback={<Archive size={14} />}>
                 <ArchiveRestore size={14} />
@@ -241,7 +248,10 @@ export default function DetailHeader(props: DetailHeaderProps) {
             </button>
             <button
               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400/80 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-              onClick={() => { props.onDelete(); setMenuOpen(false); }}
+              onClick={() => {
+                props.onDelete();
+                setMenuOpen(false);
+              }}
             >
               <Trash2 size={14} />
               <span>Delete</span>

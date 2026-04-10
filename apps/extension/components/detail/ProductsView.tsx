@@ -254,20 +254,24 @@ export default function ProductsView(props: ProductsViewProps) {
           <div class="flex flex-col gap-2">
             <For each={unlinked()}>
               {(product) => (
-                <div class="flex items-start gap-3 p-3 bg-muted/10 rounded-lg">
+                <a
+                  href={`https://www.google.com/search?q=${encodeURIComponent(product.name)}`}
+                  target="_blank"
+                  class="flex items-start gap-3 p-3 bg-muted/10 rounded-lg no-underline hover:bg-muted/20 transition-colors group/mention cursor-pointer"
+                >
                   <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center text-xs font-semibold text-muted-foreground/60">
                     {product.name.charAt(0)}
                   </div>
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
-                      <span class="text-sm font-medium text-foreground/80">{product.name}</span>
+                      <span class="text-sm font-medium text-foreground/80 group-hover/mention:text-sky-400 transition-colors">{product.name}</span>
                       <span class="text-[11px] text-muted-foreground/40">{product.type}</span>
                     </div>
                     <Show when={product.description}>
                       <p class="text-xs text-muted-foreground/60 mt-0.5 leading-relaxed">{product.description}</p>
                     </Show>
                   </div>
-                </div>
+                </a>
               )}
             </For>
           </div>
