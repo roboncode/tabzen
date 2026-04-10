@@ -1,22 +1,93 @@
-import { splitProps } from 'solid-js';
+import { type JSX, Show, splitProps } from 'solid-js';
 import { cn } from '../utils/cn';
+import { Button } from '../ui/button';
 
-export interface PromptSuggestionProps { text: string; highlight?: string; onClick?: () => void; class?: string; }
+export interface PromptSuggestionProps extends JSX.ButtonHTMLAttributes<HTMLButtonElement> {
+  children: JSX.Element | string;
+  variant?: 'outline' | 'ghost' | 'default';
+  size?: 'sm' | 'md' | 'lg' | 'icon' | 'icon-sm';
+  highlight?: string;
+}
 
-export function PromptSuggestion(props: PromptSuggestionProps) {
-  const [local] = splitProps(props, ['text', 'highlight', 'onClick', 'class']);
-  function renderText() {
-    if (!local.highlight) return local.text;
-    const idx = local.text.toLowerCase().indexOf(local.highlight.toLowerCase());
-    if (idx === -1) return local.text;
-    const before = local.text.slice(0, idx);
-    const match = local.text.slice(idx, idx + local.highlight.length);
-    const after = local.text.slice(idx + local.highlight.length);
-    return <>{before}<span class="text-foreground font-medium">{match}</span>{after}</>;
-  }
+function PromptSuggestion(props: PromptSuggestionProps) {
+  const [local, rest] = splitProps(props, ['children', 'variant', 'size', 'class', 'highlight']);
+
+  const isHighlightMode = () => local.highlight !== undefined && local.highlight.trim() !== '';
+  const content = () => typeof local.children === 'string' ? local.children : '';
+
   return (
-    <button onClick={local.onClick} class={cn('rounded-full bg-muted/30 px-3 py-1 text-xs text-muted-foreground hover:bg-muted/50 transition-colors cursor-pointer whitespace-nowrap', local.class)}>
-      {renderText()}
-    </button>
+    <Show
+      when={isHighlightMode()}
+      fallback={
+        <Button
+          variant={local.variant ?? 'outline'}
+          size={local.size ?? 'lg'}
+          class={cn('rounded-full', local.class)}
+          {...rest}
+        >
+          {local.children}
+        </Button>
+      }
+    >
+      <Show
+        when={content()}
+        fallback={
+          <Button
+            variant={local.variant ?? 'ghost'}
+            size={local.size ?? 'sm'}
+            class={cn(
+              'w-full cursor-pointer justify-start rounded-xl py-2',
+              'hover:bg-accent',
+              local.class
+            )}
+            {...rest}
+          >
+            {local.children}
+          </Button>
+        }
+      >
+        <Button
+          variant={local.variant ?? 'ghost'}
+          size={local.size ?? 'sm'}
+          class={cn(
+            'w-full cursor-pointer justify-start gap-0 rounded-xl py-2',
+            'hover:bg-accent',
+            local.class
+          )}
+          {...rest}
+        >
+          {renderHighlighted(content(), local.highlight!)}
+        </Button>
+      </Show>
+    </Show>
   );
 }
+
+function renderHighlighted(text: string, highlight: string) {
+  const trimmed = highlight.trim();
+  const textLower = text.toLowerCase();
+  const highlightLower = trimmed.toLowerCase();
+  const index = textLower.indexOf(highlightLower);
+
+  if (index === -1) {
+    return <span class="text-muted-foreground whitespace-pre-wrap">{text}</span>;
+  }
+
+  const before = text.substring(0, index);
+  const matched = text.substring(index, index + highlightLower.length);
+  const after = text.substring(index + matched.length);
+
+  return (
+    <>
+      <Show when={before}>
+        <span class="text-muted-foreground whitespace-pre-wrap">{before}</span>
+      </Show>
+      <span class="text-primary font-medium whitespace-pre-wrap">{matched}</span>
+      <Show when={after}>
+        <span class="text-muted-foreground whitespace-pre-wrap">{after}</span>
+      </Show>
+    </>
+  );
+}
+
+export { PromptSuggestion };

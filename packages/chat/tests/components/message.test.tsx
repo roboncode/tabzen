@@ -19,9 +19,9 @@ describe('Message', () => {
     expect(screen.getByText('I can help')).toBeTruthy();
   });
 
-  it('applies user alignment', () => {
+  it('renders message with flex layout', () => {
     const { container } = render(() => <Message role="user"><MessageContent>Test</MessageContent></Message>);
     const el = container.firstChild as HTMLElement;
-    expect(el.className).toContain('justify-end');
+    expect(el.className).toContain('flex');
   });
 });

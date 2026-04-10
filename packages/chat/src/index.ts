@@ -40,7 +40,28 @@ export { Source, SourceTrigger, SourceList } from './components/source';
 export { PromptSuggestion } from './components/prompt-suggestion';
 export { ScrollButton } from './components/scroll-button';
 export { Checkpoint, CheckpointIcon, CheckpointTrigger } from './components/checkpoint';
-export { Context } from './components/context';
+export type { CheckpointProps, CheckpointIconProps, CheckpointTriggerProps } from './components/checkpoint';
+export {
+  Context,
+  ContextTrigger,
+  ContextContent,
+  ContextContentHeader,
+  ContextContentBody,
+  ContextContentFooter,
+  ContextInputUsage,
+  ContextOutputUsage,
+  ContextReasoningUsage,
+  ContextCacheUsage,
+} from './components/context';
+export type {
+  ContextProps,
+  ContextTriggerProps,
+  ContextContentProps,
+  ContextContentHeaderProps,
+  ContextContentBodyProps,
+  ContextContentFooterProps,
+  ContextUsageRowProps,
+} from './components/context';
 export { VoiceInput } from './components/voice-input';
 export { ConversationList } from './components/conversation-list';
 export { ConversationItem } from './components/conversation-item';

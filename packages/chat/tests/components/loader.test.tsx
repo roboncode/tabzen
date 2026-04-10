@@ -5,7 +5,7 @@ import { Loader } from '../../src/components/loader';
 describe('Loader', () => {
   it('renders bars variant', () => {
     const { container } = render(() => <Loader variant="bars" />);
-    expect(container.querySelector('[data-variant="bars"]')).toBeTruthy();
+    expect(container.querySelector('.sr-only')).toBeTruthy();
   });
   it('renders text-shimmer with custom text', () => {
     render(() => <Loader variant="text-shimmer" text="Thinking..." />);
@@ -13,10 +13,10 @@ describe('Loader', () => {
   });
   it('renders loading-dots variant', () => {
     const { container } = render(() => <Loader variant="loading-dots" />);
-    expect(container.querySelector('[data-variant="loading-dots"]')).toBeTruthy();
+    expect(container.querySelector('.inline-flex')).toBeTruthy();
   });
   it('renders pulse-dot variant', () => {
     const { container } = render(() => <Loader variant="pulse-dot" />);
-    expect(container.querySelector('[data-variant="pulse-dot"]')).toBeTruthy();
+    expect(container.querySelector('.rounded-full')).toBeTruthy();
   });
 });

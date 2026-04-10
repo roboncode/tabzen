@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@source "../../../packages/chat/src/";
+
 @theme inline {
   --color-background: #1b1b1f;
   --color-foreground: #dfdfd6;
@@ -19,6 +21,148 @@
   --radius-md: 0.375rem;
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
+
+  /* Loader keyframes from prompt-kit */
+  @keyframes typing {
+    0%, 100% {
+      transform: translateY(0);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateY(-2px);
+      opacity: 1;
+    }
+  }
+
+  @keyframes loading-dots {
+    0%, 100% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes wave {
+    0%, 100% {
+      transform: scaleY(1);
+    }
+    50% {
+      transform: scaleY(0.6);
+    }
+  }
+
+  @keyframes blink {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes text-blink {
+    0%, 100% {
+      color: var(--color-primary);
+    }
+    50% {
+      color: var(--color-muted-foreground);
+    }
+  }
+
+  @keyframes bounce-dots {
+    0%, 100% {
+      transform: scale(0.8);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 1;
+    }
+  }
+
+  @keyframes thin-pulse {
+    0%, 100% {
+      transform: scale(0.95);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.4;
+    }
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.5);
+      opacity: 1;
+    }
+  }
+
+  @keyframes shimmer-text {
+    0% {
+      background-position: 150% center;
+    }
+    100% {
+      background-position: -150% center;
+    }
+  }
+
+  @keyframes wave-bars {
+    0%, 100% {
+      transform: scaleY(1);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scaleY(0.6);
+      opacity: 1;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 50%;
+    }
+    100% {
+      background-position: -200% 50%;
+    }
+  }
+
+  @keyframes spinner-fade {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  /* Collapsible keyframes for Kobalte */
+  @keyframes collapsible-down {
+    from {
+      height: 0;
+      opacity: 0;
+    }
+    to {
+      height: var(--kb-collapsible-content-height);
+      opacity: 1;
+    }
+  }
+
+  @keyframes collapsible-up {
+    from {
+      height: var(--kb-collapsible-content-height);
+      opacity: 1;
+    }
+    to {
+      height: 0;
+      opacity: 0;
+    }
+  }
 }
 
 body {
@@ -26,4 +170,67 @@ body {
   color: var(--color-foreground);
   font-family: system-ui, -apple-system, sans-serif;
   margin: 0;
+}
+
+/* Custom scrollbar for sidebar and scroll areas */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-muted) transparent;
+}
+
+/* Animation utility classes */
+.animate-typing {
+  animation: typing 1s ease-in-out infinite;
+}
+
+.animate-loading-dots {
+  animation: loading-dots 1.4s ease-in-out infinite;
+}
+
+.animate-wave {
+  animation: wave 1.2s ease-in-out infinite;
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+.animate-text-blink {
+  animation: text-blink 1s step-end infinite;
+}
+
+.animate-bounce-dots {
+  animation: bounce-dots 1.4s ease-in-out infinite;
+}
+
+.animate-thin-pulse {
+  animation: thin-pulse 2s ease-in-out infinite;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+.animate-shimmer-text {
+  animation: shimmer-text 3s ease-in-out infinite;
+}
+
+.animate-wave-bars {
+  animation: wave-bars 1.2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+}
+
+.animate-spinner-fade {
+  animation: spinner-fade 1s linear infinite;
+}
+
+.animate-collapsible-down {
+  animation: collapsible-down 200ms ease-out;
+}
+
+.animate-collapsible-up {
+  animation: collapsible-up 200ms ease-out;
 }
