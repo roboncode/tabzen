@@ -54,30 +54,52 @@ export default defineContentScript({
         ${side}: 2px;
         top: ${positionY}%;
         transform: translateY(-50%);
-        width: 12px;
+        width: 16px;
         height: 40px;
-        background: linear-gradient(135deg, rgba(14, 165, 233, 0.5), rgba(99, 102, 241, 0.5));
+        background: rgba(255, 255, 255, 0.85);
         ${side === "right" ? "border-radius: 8px 0 0 8px;" : "border-radius: 0 8px 8px 0;"}
         cursor: pointer;
         transition: width 0.2s ease, background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
-        opacity: 0.7;
+        opacity: 0.8;
         pointer-events: auto;
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        box-shadow: -2px 0 8px rgba(14, 165, 233, 0.15);
+        box-shadow: -1px 0 6px rgba(0, 0, 0, 0.15);
       }
 
       .notch.saved {
         background: linear-gradient(135deg, #0ea5e9, #6366f1);
-        opacity: 0.85;
       }
 
       .notch:hover {
-        width: 36px;
+        width: 40px;
         opacity: 1;
-        box-shadow: -2px 0 12px rgba(14, 165, 233, 0.3);
+        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .notch:not(.saved) {
+          background: rgba(255, 255, 255, 0.8);
+          box-shadow: -1px 0 6px rgba(255, 255, 255, 0.1);
+        }
+        .notch:not(.saved):hover {
+          box-shadow: -2px 0 10px rgba(255, 255, 255, 0.15);
+        }
+      }
+
+      @media (prefers-color-scheme: light) {
+        .notch:not(.saved) {
+          background: rgba(30, 30, 34, 0.8);
+          box-shadow: -1px 0 6px rgba(0, 0, 0, 0.1);
+        }
+        .notch:not(.saved):hover {
+          box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+        }
+        .notch .notch-icon {
+          color: white;
+        }
       }
 
       .notch-icon {
@@ -86,6 +108,10 @@ export default defineContentScript({
         opacity: 0;
         transition: opacity 0.2s ease;
         flex-shrink: 0;
+        color: #1e1e22;
+      }
+
+      .notch.saved .notch-icon {
         color: white;
       }
 
@@ -94,7 +120,7 @@ export default defineContentScript({
       }
 
       .notch.saving {
-        width: 32px;
+        width: 40px;
         opacity: 1;
       }
 
