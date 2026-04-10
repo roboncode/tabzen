@@ -17,6 +17,13 @@ interface Paragraph {
   startsWithSentence: boolean;
 }
 
+interface ChapterSection {
+  title: string;
+  startMs: number;
+  index: number;
+  paragraphs: Paragraph[];
+}
+
 export function formatTimestamp(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
   const hours = Math.floor(totalSeconds / 3600);
@@ -77,6 +84,34 @@ function mergeIntoParagraphs(segments: TranscriptSegment[], gapMs: number = 4000
   }
 
   return paragraphs;
+}
+
+function buildChapterSections(
+  segments: TranscriptSegment[],
+  chapters: { title: string; startMs: number }[],
+): ChapterSection[] {
+  if (segments.length === 0 || chapters.length === 0) return [];
+
+  const sorted = [...chapters].sort((a, b) => a.startMs - b.startMs);
+  const sections: ChapterSection[] = [];
+
+  for (let ci = 0; ci < sorted.length; ci++) {
+    const chapterStart = sorted[ci].startMs;
+    const chapterEnd = ci < sorted.length - 1 ? sorted[ci + 1].startMs : Infinity;
+
+    const chapterSegments = segments.filter(
+      (s) => s.startMs >= chapterStart && s.startMs < chapterEnd,
+    );
+
+    sections.push({
+      title: sorted[ci].title,
+      startMs: chapterStart,
+      index: ci,
+      paragraphs: mergeIntoParagraphs(chapterSegments),
+    });
+  }
+
+  return sections;
 }
 
 function startsWithCapital(text: string): boolean {
@@ -151,26 +186,9 @@ const ParagraphText = (p: { segments: TranscriptSegment[]; videoUrl: string; dro
 export default function TranscriptView(props: TranscriptViewProps) {
   const [hoveredSeg, setHoveredSeg] = createSignal<{ seg: TranscriptSegment; top: number } | null>(null);
   const paragraphs = createMemo(() => mergeIntoParagraphs(props.segments));
-
-  const chapterAtParagraph = createMemo(() => {
-    const chapters = props.chapters;
-    if (!chapters?.length) return new Map<number, { title: string; startMs: number; index: number }>();
-
-    const paras = paragraphs();
-    const map = new Map<number, { title: string; startMs: number; index: number }>();
-
-    for (let ci = 0; ci < chapters.length; ci++) {
-      const chapter = chapters[ci];
-      for (let pi = 0; pi < paras.length; pi++) {
-        if (paras[pi].startMs >= chapter.startMs && !map.has(pi)) {
-          map.set(pi, { ...chapter, index: ci });
-          break;
-        }
-      }
-    }
-
-    return map;
-  });
+  const chapterSections = createMemo(() =>
+    props.chapters?.length ? buildChapterSections(props.segments, props.chapters) : null,
+  );
 
   let contentRef: HTMLDivElement | undefined;
 
@@ -222,31 +240,11 @@ export default function TranscriptView(props: TranscriptViewProps) {
           </Show>
 
           <div class="space-y-10 pr-16">
-            <For each={paragraphs()}>
-              {(para, pi) => {
-                const chapter = () => chapterAtParagraph().get(pi());
-                return (
-                  <>
-                    <Show when={chapter()}>
-                      {(ch) => (
-                        <div class="flex items-baseline gap-3 mt-4 mb-2">
-                          <h2
-                            id={`chapter-${ch().index}`}
-                            class="text-lg font-semibold text-foreground"
-                          >
-                            {ch().title}
-                          </h2>
-                          <a
-                            href={getTimestampUrl(props.videoUrl, ch().startMs)}
-                            target="_blank"
-                            class="text-xs text-muted-foreground/40 hover:text-sky-400 transition-colors"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {formatTimestamp(ch().startMs)}
-                          </a>
-                        </div>
-                      )}
-                    </Show>
+            <Show
+              when={chapterSections()}
+              fallback={
+                <For each={paragraphs()}>
+                  {(para) => (
                     <div class="group/para">
                       <a
                         href={getTimestampUrl(props.videoUrl, para.startMs)}
@@ -259,12 +257,57 @@ export default function TranscriptView(props: TranscriptViewProps) {
                         </span>
                         <div class="h-px flex-1 bg-current" />
                       </a>
-                      <ParagraphText segments={para.segments} videoUrl={props.videoUrl} dropCap={para.startsWithSentence && !chapter()} onSegmentHover={handleSegmentHover} />
+                      <ParagraphText segments={para.segments} videoUrl={props.videoUrl} dropCap={para.startsWithSentence} onSegmentHover={handleSegmentHover} />
                     </div>
-                  </>
-                );
-              }}
-            </For>
+                  )}
+                </For>
+              }
+            >
+              {(sections) => (
+                <For each={sections()}>
+                  {(section) => (
+                    <div>
+                      <div class="flex items-baseline gap-3 mt-2 mb-4">
+                        <h2
+                          id={`chapter-${section.index}`}
+                          class="text-lg font-semibold text-foreground"
+                        >
+                          {section.title}
+                        </h2>
+                        <a
+                          href={getTimestampUrl(props.videoUrl, section.startMs)}
+                          target="_blank"
+                          class="text-xs text-muted-foreground/40 hover:text-sky-400 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {formatTimestamp(section.startMs)}
+                        </a>
+                      </div>
+                      <div class="space-y-10">
+                        <For each={section.paragraphs}>
+                          {(para, pi) => (
+                            <div class="group/para">
+                              <a
+                                href={getTimestampUrl(props.videoUrl, para.startMs)}
+                                target="_blank"
+                                class="flex items-center gap-3 mb-3 text-muted-foreground/25 hover:text-sky-500 group-hover/para:text-muted-foreground/40 transition-all"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span class="text-xl font-extralight tracking-tight">
+                                  {formatTimestamp(para.startMs)}
+                                </span>
+                                <div class="h-px flex-1 bg-current" />
+                              </a>
+                              <ParagraphText segments={para.segments} videoUrl={props.videoUrl} dropCap={pi() === 0 && para.startsWithSentence} onSegmentHover={handleSegmentHover} />
+                            </div>
+                          )}
+                        </For>
+                      </div>
+                    </div>
+                  )}
+                </For>
+              )}
+            </Show>
           </div>
         </div>
       </Show>
