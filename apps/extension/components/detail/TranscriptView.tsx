@@ -229,20 +229,22 @@ export default function TranscriptView(props: TranscriptViewProps) {
                   <>
                     <Show when={chapter()}>
                       {(ch) => (
-                        <h2
-                          id={`chapter-${ch().index}`}
-                          class="text-lg font-semibold text-foreground mt-4 mb-2 flex items-baseline gap-3"
-                        >
-                          <span>{ch().title}</span>
+                        <div class="flex items-baseline gap-3 mt-4 mb-2">
+                          <h2
+                            id={`chapter-${ch().index}`}
+                            class="text-lg font-semibold text-foreground"
+                          >
+                            {ch().title}
+                          </h2>
                           <a
                             href={getTimestampUrl(props.videoUrl, ch().startMs)}
                             target="_blank"
-                            class="text-xs font-normal text-muted-foreground/40 hover:text-sky-400 transition-colors"
+                            class="text-xs text-muted-foreground/40 hover:text-sky-400 transition-colors"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {formatTimestamp(ch().startMs)}
                           </a>
-                        </h2>
+                        </div>
                       )}
                     </Show>
                     <div class="group/para">

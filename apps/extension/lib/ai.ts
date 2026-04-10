@@ -177,20 +177,20 @@ export async function generateChapters(
     const m = Math.floor(totalSec / 60);
     const s = totalSec % 60;
     const ts = `${m}:${s.toString().padStart(2, "0")}`;
-    lines.push(`[${ts}] ${seg.text}`);
+    lines.push(`[${ts} ms=${seg.startMs}] ${seg.text}`);
   }
   const transcriptText = lines.join("\n");
 
   const messages: OpenRouterMessage[] = [
     {
       role: "system",
-      content: `You are a video chapter generator. Given a timestamped transcript, identify 4-10 topic shifts and assign a short chapter title to each. Return JSON: {"chapters": [{"title": "Chapter Title", "startMs": 0}, ...]}
+      content: `You are a video chapter generator. Given a timestamped transcript, identify 4-10 topic shifts and assign a short chapter title to each. Each line has a display timestamp and an ms= value in milliseconds. Use the ms= value for startMs in your response. Return JSON: {"chapters": [{"title": "Chapter Title", "startMs": 0}, ...]}
 Rules:
 - The first chapter must start at startMs: 0
 - Chapter titles should be 2-5 words, descriptive of the topic
 - Chapters mark genuine topic shifts, not arbitrary time splits
 - Fewer chapters for short videos, more for long ones
-- startMs values must match actual timestamps from the transcript
+- startMs must use the exact ms= values from the transcript lines
 - Sort chapters by startMs ascending`,
     },
     { role: "user", content: transcriptText },
