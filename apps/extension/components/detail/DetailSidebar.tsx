@@ -172,21 +172,21 @@ export default function DetailSidebar(props: DetailSidebarProps) {
           <div class="text-xs font-semibold text-foreground/90 mb-3">
             Related
           </div>
-          <div class="flex flex-col gap-2.5">
+          <div class="flex flex-col gap-3">
             <For each={props.relatedPages}>
               {(related) => {
                 const creator = () => extractCreator(related);
                 const domain = () => getDomain(related.url);
                 return (
                   <button
-                    class="flex gap-2.5 text-left rounded-lg hover:bg-muted/30 transition-colors cursor-pointer p-1 -mx-1 group/related"
+                    class="flex gap-3 text-left rounded-lg hover:bg-muted/30 transition-colors cursor-pointer p-1.5 -mx-1.5 group/related"
                     onClick={() => navigate(`/page/${related.id}`)}
                   >
-                    <div class="w-16 h-10 rounded-md overflow-hidden bg-muted/40 flex-shrink-0">
+                    <div class="w-24 h-16 rounded-md overflow-hidden bg-muted/40 flex-shrink-0">
                       <Show
                         when={related.ogImage}
                         fallback={
-                          <div class="w-full h-full flex items-center justify-center text-muted-foreground/30 text-[8px]">
+                          <div class="w-full h-full flex items-center justify-center text-muted-foreground/30 text-xs">
                             {domain()}
                           </div>
                         }
@@ -200,10 +200,10 @@ export default function DetailSidebar(props: DetailSidebarProps) {
                       </Show>
                     </div>
                     <div class="flex-1 min-w-0">
-                      <p class="text-xs font-medium text-muted-foreground group-hover/related:text-foreground transition-colors line-clamp-2 leading-snug">
+                      <p class="text-sm font-medium text-muted-foreground group-hover/related:text-foreground transition-colors line-clamp-2 leading-snug">
                         {related.ogTitle || related.title}
                       </p>
-                      <p class="text-[10px] text-muted-foreground/50 mt-0.5 truncate">
+                      <p class="text-xs text-muted-foreground/50 mt-1 truncate">
                         {creator() || domain()}
                       </p>
                     </div>
