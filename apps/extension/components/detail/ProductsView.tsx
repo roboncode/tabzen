@@ -252,7 +252,7 @@ export default function ProductsView(props: ProductsViewProps) {
           <For each={sections()}>
             {(section) => (
               <div>
-                <div class="text-xs font-semibold text-foreground/90 mb-3">{section.context}</div>
+                <h2 class="text-base font-semibold text-foreground mb-4">{section.context}</h2>
                 <div class="grid grid-cols-2 gap-x-4 gap-y-6">
                   <For each={section.items}>
                     {(product, i) => ProductCard(product, i())}
