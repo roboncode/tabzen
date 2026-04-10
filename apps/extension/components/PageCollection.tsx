@@ -340,7 +340,7 @@ export default function PageCollection(props: PageCollectionProps) {
   return (
     <div class="flex h-full bg-background text-foreground @container">
       {/* Sidebar - persistent when container is wide enough */}
-      <div class="hidden @[768px]:block w-72 flex-shrink-0 h-full">
+      <div class="hidden @[768px]:block w-72 flex-shrink-0 h-full bg-[#161618]">
         <AppSidebar
           domains={domainIndex()}
           activeDomain={domainFilter()}
@@ -354,7 +354,7 @@ export default function PageCollection(props: PageCollectionProps) {
       {/* Sidebar drawer overlay for narrow views */}
       <Show when={sidebarOpen()}>
         <div class="fixed inset-0 z-40 flex @[768px]:hidden">
-          <div class="w-64 h-full bg-background overflow-y-auto">
+          <div class="w-64 h-full bg-[#161618] overflow-y-auto">
             <AppSidebar
               domains={domainIndex()}
               activeDomain={domainFilter()}
