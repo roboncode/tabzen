@@ -1,5 +1,5 @@
 import { createSignal, createEffect, onCleanup, For, Show } from "solid-js";
-import type { Tab } from "@/lib/types";
+import type { Page } from "@/lib/types";
 import NotesDisplay from "@/components/NotesDisplay";
 
 export interface TocEntry {
@@ -9,10 +9,10 @@ export interface TocEntry {
 }
 
 interface DetailSidebarProps {
-  tab: Tab;
+  page: Page;
   tocEntries: TocEntry[];
   scrollRef: HTMLElement | undefined;
-  onSaveNotes: (tabId: string, notes: string) => void;
+  onSaveNotes: (pageId: string, notes: string) => void;
 }
 
 export default function DetailSidebar(props: DetailSidebarProps) {
@@ -56,7 +56,7 @@ export default function DetailSidebar(props: DetailSidebarProps) {
 
   // Extract external links from markdown content
   const externalLinks = () => {
-    const content = props.tab.content || "";
+    const content = props.page.content || "";
     const links: { text: string; href: string }[] = [];
     const seen = new Set<string>();
     // Match [text](url) but not ![image](url)
@@ -70,7 +70,7 @@ export default function DetailSidebar(props: DetailSidebarProps) {
       // Skip links to the same domain as the source
       try {
         const linkDomain = new URL(href).hostname;
-        const sourceDomain = new URL(props.tab.url).hostname;
+        const sourceDomain = new URL(props.page.url).hostname;
         if (linkDomain === sourceDomain) continue;
       } catch {}
       if (seen.has(href)) continue;
@@ -118,20 +118,20 @@ export default function DetailSidebar(props: DetailSidebarProps) {
           Notes
         </div>
         <NotesDisplay
-          tab={props.tab}
+          tab={props.page}
           onSave={props.onSaveNotes}
           clampLines={3}
         />
       </div>
 
       {/* Tags */}
-      <Show when={props.tab.tags && props.tab.tags.length > 0}>
+      <Show when={props.page.tags && props.page.tags.length > 0}>
         <div class="mb-5">
           <div class="text-xs font-semibold text-foreground/90 mb-3">
             Tags
           </div>
           <div class="flex flex-wrap gap-x-2 gap-y-1">
-            <For each={props.tab.tags}>
+            <For each={props.page.tags}>
               {(tag) => (
                 <span class="text-xs text-sky-400 cursor-pointer hover:opacity-70 transition-opacity">
                   #{tag}

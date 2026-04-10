@@ -1,6 +1,6 @@
 import { createResource, Show } from "solid-js";
 import { Toaster } from "solid-sonner";
-import { getTab } from "@/lib/db";
+import { getPage } from "@/lib/db";
 import DetailPage from "@/components/detail/DetailPage";
 
 export default function App() {
@@ -9,7 +9,7 @@ export default function App() {
 
   const [tab] = createResource(
     () => tabId,
-    async (id) => (id ? getTab(id) : undefined),
+    async (id) => (id ? getPage(id) : undefined),
   );
 
   return (
@@ -24,7 +24,7 @@ export default function App() {
           </div>
         }
       >
-        {(t) => <DetailPage tab={t()} />}
+        {(t) => <DetailPage page={t()} />}
       </Show>
       <Toaster
         theme="dark"

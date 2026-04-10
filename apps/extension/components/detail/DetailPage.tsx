@@ -7,12 +7,12 @@ import {
   onMount,
   onCleanup,
 } from "solid-js";
-import type { Tab } from "@/lib/types";
+import type { Page } from "@/lib/types";
 import type { TranscriptSegment } from "@tab-zen/shared";
 import { formatTimestamp } from "./TranscriptView";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { sendMessage } from "@/lib/messages";
-import { updateTab, getTab, softDeleteTab, getAllTemplates, getDocumentsForTab, putDocument, putTemplate, deleteDocument, deleteTemplate } from "@/lib/db";
+import { updatePage, getPage, softDeletePage, getAllTemplates, getDocumentsForPage, putDocument, putTemplate, deleteDocument, deleteTemplate } from "@/lib/db";
 import { getPendingMigrations } from "@/lib/page-extract";
 import { generateDocument } from "@/lib/ai";
 import { getSettings } from "@/lib/settings";
@@ -51,18 +51,18 @@ const SELF_MANAGED_TEMPLATES = new Set(["builtin-social-posts"]);
 import { X, ChevronDown, List } from "lucide-solid";
 
 interface DetailPageProps {
-  tab: Tab;
+  page: Page;
 }
 
 export default function DetailPage(props: DetailPageProps) {
   const [transcriptSegments, setTranscriptSegments] = createSignal<
     TranscriptSegment[]
-  >(props.tab.transcript || []);
+  >(props.page.transcript || []);
   const [markdownContent, setMarkdownContent] = createSignal<string>(
-    props.tab.content || "",
+    props.page.content || "",
   );
   const [fetchingContent, setFetchingContent] = createSignal(false);
-  const [currentTab, setCurrentTab] = createSignal(props.tab);
+  const [currentPage, setCurrentPage] = createSignal(props.page);
   const [isNarrow, setIsNarrow] = createSignal(window.innerWidth < 768);
   const [hideRightNav, setHideRightNav] = createSignal(window.innerWidth < 1024);
   const [hideLeftNav, setHideLeftNav] = createSignal(window.innerWidth < 1100);
@@ -76,7 +76,7 @@ export default function DetailPage(props: DetailPageProps) {
 
   const [templates, setTemplates] = createSignal<AITemplate[]>([]);
   const [documents, setDocuments] = createSignal<AIDocument[]>([]);
-  const [activeDocTab, setActiveDocTab] = createSignal<string>("content");
+  const [activeSection, setActiveSection] = createSignal<string>("content");
   const [generatingIds, setGeneratingIds] = createSignal<Set<string>>(new Set());
   const [customGenerating, setCustomGenerating] = createSignal(false);
   const [customResult, setCustomResult] = createSignal<string | null>(null);
@@ -90,7 +90,7 @@ export default function DetailPage(props: DetailPageProps) {
 
   // Check for pending migrations
   const pendingMigrations = createMemo(() =>
-    getPendingMigrations(props.tab.contentVersion),
+    getPendingMigrations(props.page.contentVersion),
   );
 
   const promptedActions = createMemo(() => {
@@ -116,7 +116,7 @@ export default function DetailPage(props: DetailPageProps) {
     );
     console.log(
       "[TabZen Migration] Tab contentVersion:",
-      props.tab.contentVersion,
+      props.page.contentVersion,
       "| pending migrations:",
       pending.length,
       "| silent re-extract:",
@@ -147,9 +147,9 @@ export default function DetailPage(props: DetailPageProps) {
     // Listen for data changes from other views
     const handleMessage = async (message: any) => {
       if (message.type === "DATA_CHANGED") {
-        const updated = await getTab(props.tab.id);
+        const updated = await getPage(props.page.id);
         if (updated) {
-          setCurrentTab(updated);
+          setCurrentPage(updated);
           if (updated.transcript) {
             setTranscriptSegments(updated.transcript);
           }
@@ -166,10 +166,10 @@ export default function DetailPage(props: DetailPageProps) {
     (async () => {
       const [tmpl, docs] = await Promise.all([
         getAllTemplates(),
-        getDocumentsForTab(props.tab.id),
+        getDocumentsForPage(props.page.id),
       ]);
       console.log("[TabZen AI] Loaded templates:", tmpl.length, "enabled:", tmpl.filter((t) => t.isEnabled).length);
-      console.log("[TabZen AI] Loaded docs for tab:", docs.length);
+      console.log("[TabZen AI] Loaded docs for page:", docs.length);
       setTemplates(tmpl.filter((t) => t.isEnabled));
       setDocuments(docs);
     })();
@@ -177,15 +177,15 @@ export default function DetailPage(props: DetailPageProps) {
 
   // Auto-generate when navigating to a section with no document
   createEffect(() => {
-    const tab = activeDocTab();
-    if (tab === "content" || tab === "custom") return;
-    if (SELF_MANAGED_TEMPLATES.has(tab)) return;
+    const section = activeSection();
+    if (section === "content" || section === "custom") return;
+    if (SELF_MANAGED_TEMPLATES.has(section)) return;
 
-    const tmpl = templates().find((t) => t.id === tab);
+    const tmpl = templates().find((t) => t.id === section);
     if (!tmpl) return;
 
-    const hasDoc = documents().some((d) => d.templateId === tab);
-    const isGen = generatingIds().has(tab);
+    const hasDoc = documents().some((d) => d.templateId === section);
+    const isGen = generatingIds().has(section);
     const hasSource = transcriptSegments().length > 0 || markdownContent().length > 0;
 
     if (!hasDoc && !isGen && hasSource) {
@@ -198,7 +198,7 @@ export default function DetailPage(props: DetailPageProps) {
     // Track these signals so effect re-runs when content changes
     markdownContent();
     transcriptSegments();
-    activeDocTab();
+    activeSection();
 
     requestAnimationFrame(() => {
       if (!scrollRef) return;
@@ -214,7 +214,7 @@ export default function DetailPage(props: DetailPageProps) {
     });
   });
 
-  const isYouTube = createMemo(() => isYouTubeWatchUrl(props.tab.url));
+  const isYouTube = createMemo(() => isYouTubeWatchUrl(props.page.url));
 
   const hasContent = createMemo(
     () => transcriptSegments().length > 0 || markdownContent().length > 0,
@@ -229,36 +229,36 @@ export default function DetailPage(props: DetailPageProps) {
   };
 
   const handleToggleStar = async () => {
-    const tab = currentTab();
-    await updateTab(tab.id, { starred: !tab.starred });
-    const updated = await getTab(tab.id);
-    if (updated) setCurrentTab(updated);
+    const page = currentPage();
+    await updatePage(page.id, { starred: !page.starred });
+    const updated = await getPage(page.id);
+    if (updated) setCurrentPage(updated);
     notifyChanged();
   };
 
   const handleOpenSource = () => {
-    window.open(props.tab.url, "_blank");
+    window.open(props.page.url, "_blank");
   };
 
   const handleArchive = async () => {
-    const tab = currentTab();
-    await updateTab(tab.id, { archived: !tab.archived });
-    const updated = await getTab(tab.id);
-    if (updated) setCurrentTab(updated);
+    const page = currentPage();
+    await updatePage(page.id, { archived: !page.archived });
+    const updated = await getPage(page.id);
+    if (updated) setCurrentPage(updated);
     notifyChanged();
   };
 
   const handleDelete = async () => {
-    await softDeleteTab(currentTab().id);
+    await softDeletePage(currentPage().id);
     notifyChanged();
     window.close();
   };
 
 
-  const handleSaveNotes = async (tabId: string, notes: string) => {
-    await updateTab(tabId, { notes: notes || null });
-    const updated = await getTab(tabId);
-    if (updated) setCurrentTab(updated);
+  const handleSaveNotes = async (pageId: string, notes: string) => {
+    await updatePage(pageId, { notes: notes || null });
+    const updated = await getPage(pageId);
+    if (updated) setCurrentPage(updated);
     notifyChanged();
   };
 
@@ -268,7 +268,7 @@ export default function DetailPage(props: DetailPageProps) {
       if (isYouTube()) {
         const response = await sendMessage({
           type: "GET_TRANSCRIPT",
-          tabId: props.tab.id,
+          pageId: props.page.id,
         });
         if (response.type === "TRANSCRIPT" && response.transcript) {
           setTranscriptSegments(response.transcript);
@@ -276,7 +276,7 @@ export default function DetailPage(props: DetailPageProps) {
       } else {
         const response = await sendMessage({
           type: "GET_CONTENT",
-          tabId: props.tab.id,
+          pageId: props.page.id,
         });
         if (response.type === "CONTENT" && response.content) {
           setMarkdownContent(response.content);
@@ -355,7 +355,7 @@ export default function DetailPage(props: DetailPageProps) {
 
       const newDoc: AIDocument = {
         id: uuidv4(),
-        tabId: props.tab.id,
+        pageId: props.page.id,
         templateId: template.id,
         content: result,
         generatedAt: new Date().toISOString(),
@@ -372,7 +372,7 @@ export default function DetailPage(props: DetailPageProps) {
       } else {
         // First generation — save directly
         await putDocument(newDoc);
-        setDocuments(await getDocumentsForTab(props.tab.id));
+        setDocuments(await getDocumentsForPage(props.page.id));
       }
     } catch (e) {
       console.error(`[TabZen AI] Failed to generate ${template.name}:`, e);
@@ -389,7 +389,7 @@ export default function DetailPage(props: DetailPageProps) {
     const pending = pendingRegen()[templateId];
     if (!pending) return;
     await putDocument(pending.newDoc);
-    setDocuments(await getDocumentsForTab(props.tab.id));
+    setDocuments(await getDocumentsForPage(props.page.id));
     setPendingRegen((prev) => {
       const next = { ...prev };
       delete next[templateId];
@@ -411,11 +411,11 @@ export default function DetailPage(props: DetailPageProps) {
     await deleteTemplate(template.id);
     const [tmpl, docs] = await Promise.all([
       getAllTemplates(),
-      getDocumentsForTab(props.tab.id),
+      getDocumentsForPage(props.page.id),
     ]);
     setTemplates(tmpl.filter((t) => t.isEnabled));
     setDocuments(docs);
-    setActiveDocTab("content");
+    setActiveSection("content");
   };
 
   const handleUpdatePrompt = async (template: AITemplate, prompt: string) => {
@@ -430,7 +430,7 @@ export default function DetailPage(props: DetailPageProps) {
     await putTemplate(updated);
     const tmpl = await getAllTemplates();
     setTemplates(tmpl.filter((t) => t.isEnabled));
-    if (activeDocTab() === template.id) setActiveDocTab("content");
+    if (activeSection() === template.id) setActiveSection("content");
     toast(template.name + " hidden", {
       description: "You can bring it back from Settings anytime",
       duration: 8000,
@@ -482,7 +482,7 @@ export default function DetailPage(props: DetailPageProps) {
 
       const doc: AIDocument = {
         id: uuidv4(),
-        tabId: props.tab.id,
+        pageId: props.page.id,
         templateId: template.id,
         content: result,
         generatedAt: new Date().toISOString(),
@@ -512,11 +512,11 @@ export default function DetailPage(props: DetailPageProps) {
 
       const [tmpl, docs] = await Promise.all([
         getAllTemplates(),
-        getDocumentsForTab(props.tab.id),
+        getDocumentsForPage(props.page.id),
       ]);
       setTemplates(tmpl.filter((t) => t.isEnabled));
       setDocuments(docs);
-      setActiveDocTab(template.id);
+      setActiveSection(template.id);
     } catch (e) {
       console.error("Custom generation failed:", e);
     } finally {
@@ -529,7 +529,7 @@ export default function DetailPage(props: DetailPageProps) {
     try {
       const response = await sendMessage({
         type: "RE_EXTRACT_CONTENT",
-        tabId: props.tab.id,
+        pageId: props.page.id,
       });
       if (response.type === "CONTENT" && response.content) {
         setMarkdownContent(response.content);
@@ -560,7 +560,7 @@ export default function DetailPage(props: DetailPageProps) {
       <Show when={isYouTube()}>
         <TranscriptView
           segments={transcriptSegments()}
-          videoUrl={props.tab.url}
+          videoUrl={props.page.url}
           onFetchTranscript={
             transcriptSegments().length === 0 ? handleFetchContent : undefined
           }
@@ -568,12 +568,12 @@ export default function DetailPage(props: DetailPageProps) {
         />
       </Show>
       <Show when={!isYouTube() && markdownContent()}>
-        <MarkdownView content={markdownContent()} sourceUrl={props.tab.url} />
+        <MarkdownView content={markdownContent()} sourceUrl={props.page.url} />
       </Show>
       <Show when={!isYouTube() && !markdownContent()}>
         <MarkdownView
           content=""
-          sourceUrl={props.tab.url}
+          sourceUrl={props.page.url}
           onFetchContent={handleFetchContent}
           loading={fetchingContent()}
         />
@@ -609,13 +609,13 @@ export default function DetailPage(props: DetailPageProps) {
           <DocumentNav
             templates={templates()}
             documents={documents()}
-            activeTab={activeDocTab()}
-            onTabChange={(tab) => {
-              setActiveDocTab(tab);
+            activeSection={activeSection()}
+            onSectionChange={(section) => {
+              setActiveSection(section);
               if (hideLeftNav()) setSidebarOpen(false);
             }}
             onAddCustom={() => {
-              setActiveDocTab("custom");
+              setActiveSection("custom");
               if (hideLeftNav()) setSidebarOpen(false);
             }}
             onHideTemplate={handleHideTemplate}
@@ -627,7 +627,7 @@ export default function DetailPage(props: DetailPageProps) {
       <div class="flex-1 min-w-0 flex flex-col">
         {/* Fixed action bar */}
         <DetailHeader
-          tab={currentTab()}
+          page={currentPage()}
           onBack={handleBack}
           onToggleStar={handleToggleStar}
           onOpenSource={handleOpenSource}
@@ -700,7 +700,7 @@ export default function DetailPage(props: DetailPageProps) {
               {/* Hero card */}
               <div ref={heroRef}>
                 <DetailHeader
-                  tab={currentTab()}
+                  page={currentPage()}
                   onBack={handleBack}
                   onToggleStar={handleToggleStar}
                   onOpenSource={handleOpenSource}
@@ -714,7 +714,7 @@ export default function DetailPage(props: DetailPageProps) {
               <Show when={hideRightNav()}>
                 <div class="mb-6">
                   <NotesDisplay
-                    tab={currentTab()}
+                    tab={currentPage()}
                     onSave={handleSaveNotes}
                     clampLines={3}
                   />
@@ -723,10 +723,10 @@ export default function DetailPage(props: DetailPageProps) {
 
               {/* Article / Transcript / AI Document content */}
               <div class="pb-6">
-                <Show when={activeDocTab() === "content"}>
+                <Show when={activeSection() === "content"}>
                   <ContentView />
                 </Show>
-                <Show when={activeDocTab() === "custom"}>
+                <Show when={activeSection() === "custom"}>
                   <CustomPromptView
                     onCreateTemplate={handleCreateCustomTemplate}
                     generating={customGenerating()}
@@ -734,7 +734,7 @@ export default function DetailPage(props: DetailPageProps) {
                   />
                 </Show>
                 {/* Social Posts — self-managed, handles its own generation */}
-                <Show when={activeDocTab() === "builtin-social-posts"}>
+                <Show when={activeSection() === "builtin-social-posts"}>
                   <SocialPostsView
                     content={
                       transcriptSegments().length > 0
@@ -742,7 +742,7 @@ export default function DetailPage(props: DetailPageProps) {
                         : markdownContent()
                     }
                     contentType={transcriptSegments().length > 0 ? "transcript" : "markdown"}
-                    tabId={props.tab.id}
+                    pageId={props.page.id}
                   />
                 </Show>
 
@@ -765,7 +765,7 @@ export default function DetailPage(props: DetailPageProps) {
                     });
 
                     return (
-                    <Show when={activeDocTab() === template.id}>
+                    <Show when={activeSection() === template.id}>
                       {/* Generating state — always show skeleton */}
                       <Show when={isGenerating()}>
                         <div class="px-2 mb-4">
@@ -849,7 +849,7 @@ export default function DetailPage(props: DetailPageProps) {
                 {/* Fixed sidebar — positioned inside placeholder, full viewport height */}
                 <div class="fixed top-14 max-w-96 h-[calc(100vh-42px)] overflow-y-auto scrollbar-hide z-10">
                   <DetailSidebar
-                    tab={currentTab()}
+                    page={currentPage()}
                     tocEntries={tocEntries()}
                     scrollRef={scrollRef}
                     onSaveNotes={handleSaveNotes}

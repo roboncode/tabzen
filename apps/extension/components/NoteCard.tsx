@@ -1,12 +1,12 @@
 import { createMemo } from "solid-js";
-import type { Tab } from "@/lib/types";
+import type { Page } from "@/lib/types";
 import { getDomain, getFaviconUrl } from "@/lib/domains";
 import Avatar from "./Avatar";
 
 interface NoteCardProps {
-  tab: Tab;
-  onOpen: (tab: Tab) => void;
-  onEditNotes: (tab: Tab) => void;
+  tab: Page;
+  onOpen: (tab: Page) => void;
+  onEditNotes: (tab: Page) => void;
 }
 
 export default function NoteCard(props: NoteCardProps) {

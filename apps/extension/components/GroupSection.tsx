@@ -1,26 +1,26 @@
 import { createSignal, For, Show } from "solid-js";
 import { ChevronRight, ChevronDown } from "lucide-solid";
-import type { Tab, Group } from "@/lib/types";
-import TabCard from "./TabCard";
-import TabRow from "./TabRow";
+import type { Page, Group } from "@/lib/types";
+import PageCard from "./PageCard";
+import PageRow from "./PageRow";
 
 interface GroupSectionProps {
   group: Group;
-  tabs: Tab[];
+  pages: Page[];
   viewMode: "cards" | "rows";
   searchQuery?: string;
-  onOpenTab: (tab: Tab) => void;
-  onEditNotes: (tab: Tab) => void;
+  onOpenPage: (page: Page) => void;
+  onEditNotes: (page: Page) => void;
   onRenameGroup: (group: Group, newName: string) => void;
-  onToggleStar: (tab: Tab) => void;
-  onArchive: (tab: Tab) => void;
-  onDelete: (tab: Tab) => void;
-  onBlockDomain?: (tab: Tab) => void;
-  onRestore?: (tab: Tab) => void;
-  onHardDelete?: (tab: Tab) => void;
+  onToggleStar: (page: Page) => void;
+  onArchive: (page: Page) => void;
+  onDelete: (page: Page) => void;
+  onBlockDomain?: (page: Page) => void;
+  onRestore?: (page: Page) => void;
+  onHardDelete?: (page: Page) => void;
   onSelectCreator?: (domain: string, creator: string) => void;
   onTagClick?: (tag: string) => void;
-  onExpandTab?: (tab: Tab) => void;
+  onExpandPage?: (page: Page) => void;
   isTrash?: boolean;
 }
 
@@ -30,9 +30,9 @@ export default function GroupSection(props: GroupSectionProps) {
   let inputRef: HTMLInputElement | undefined;
 
   const captureDate = () => {
-    const tab = props.tabs[0];
-    if (!tab) return "";
-    return new Date(tab.capturedAt).toLocaleDateString("en-US", {
+    const page = props.pages[0];
+    if (!page) return "";
+    return new Date(page.capturedAt).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -81,7 +81,7 @@ export default function GroupSection(props: GroupSectionProps) {
             </h3>
           </Show>
           <span class="text-xs text-muted-foreground bg-muted/50 rounded-full px-2 py-0.5">
-            {props.tabs.length}
+            {props.pages.length}
           </span>
         </div>
         <span class="text-xs text-muted-foreground">{captureDate()}</span>
@@ -92,12 +92,12 @@ export default function GroupSection(props: GroupSectionProps) {
           when={props.viewMode === "cards"}
           fallback={
             <div class="space-y-0.5 px-2">
-              <For each={props.tabs}>
-                {(tab) => (
-                  <TabRow
-                    tab={tab}
+              <For each={props.pages}>
+                {(page) => (
+                  <PageRow
+                    page={page}
                     searchQuery={props.searchQuery}
-                    onOpen={props.onOpenTab}
+                    onOpen={props.onOpenPage}
                     onEditNotes={props.onEditNotes}
                     onToggleStar={props.onToggleStar}
                     onArchive={props.onArchive}
@@ -116,13 +116,13 @@ export default function GroupSection(props: GroupSectionProps) {
         >
           {/* Responsive grid using container queries */}
           <div class="grid grid-cols-1 @[480px]:grid-cols-2 @[768px]:grid-cols-3 @[1024px]:grid-cols-4 @[1400px]:grid-cols-5 gap-x-4 gap-y-6 px-4">
-            <For each={props.tabs}>
-              {(tab) => (
+            <For each={props.pages}>
+              {(page) => (
                 <div>
-                  <TabCard
-                    tab={tab}
+                  <PageCard
+                    page={page}
                     searchQuery={props.searchQuery}
-                    onOpen={props.onOpenTab}
+                    onOpen={props.onOpenPage}
                     onEditNotes={props.onEditNotes}
                     onToggleStar={props.onToggleStar}
                     onArchive={props.onArchive}
@@ -130,7 +130,7 @@ export default function GroupSection(props: GroupSectionProps) {
                     onBlockDomain={props.onBlockDomain}
                     onRestore={props.onRestore}
                     onHardDelete={props.onHardDelete}
-                    onExpand={props.onExpandTab}
+                    onExpand={props.onExpandPage}
                     isTrash={props.isTrash}
                   />
                 </div>

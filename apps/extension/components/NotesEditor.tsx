@@ -1,10 +1,10 @@
 import { createSignal, onMount, onCleanup, Show } from "solid-js";
-import type { Tab } from "@/lib/types";
+import type { Page } from "@/lib/types";
 import Dialog from "./Dialog";
 
 interface NotesEditorProps {
-  tab: Tab;
-  onSave: (tabId: string, notes: string) => void;
+  tab: Page;
+  onSave: (pageId: string, notes: string) => void;
   onClose: () => void;
 }
 

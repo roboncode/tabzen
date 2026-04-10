@@ -15,23 +15,23 @@ export default function CapturePreview(props: CapturePreviewProps) {
           Capture Preview
         </h2>
         <p class="text-sm text-muted-foreground mb-4">
-          {props.data.tabs.length} new tabs in {props.data.groups.length} groups
+          {props.data.pages.length} new tabs in {props.data.groups.length} groups
         </p>
         <div class="space-y-3 mb-5">
           <For each={props.data.groups}>
             {(group) => {
-              const groupTabs = () =>
-                props.data.tabs.filter((t) => group.tabIds.includes(t.id));
+              const groupPages = () =>
+                props.data.pages.filter((t) => group.pageIds.includes(t.id));
               return (
                 <div class="bg-muted/30 rounded-lg p-3">
                   <h3 class="text-sm font-medium text-foreground mb-2">
                     {group.groupName}
                     <span class="text-muted-foreground ml-2 text-xs">
-                      ({groupTabs().length})
+                      ({groupPages().length})
                     </span>
                   </h3>
                   <ul class="space-y-1.5">
-                    <For each={groupTabs()}>
+                    <For each={groupPages()}>
                       {(tab) => (
                         <li class="text-xs text-muted-foreground truncate flex items-center gap-2">
                           {tab.favicon && (
@@ -58,7 +58,7 @@ export default function CapturePreview(props: CapturePreviewProps) {
             class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
             onClick={props.onConfirm}
           >
-            Save {props.data.tabs.length} Tabs
+            Save {props.data.pages.length} Tabs
           </button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { createSignal, Show } from "solid-js";
 import { getSettings, updateSettings } from "@/lib/settings";
-import TabCollection from "@/components/TabCollection";
+import PageCollection from "@/components/PageCollection";
 import SettingsPanel from "@/components/SettingsPanel";
 import type { Settings } from "@/lib/types";
 
@@ -21,7 +21,7 @@ export default function App() {
         when={!showSettings()}
         fallback={<SettingsPanel onClose={() => setShowSettings(false)} />}
       >
-        <TabCollection
+        <PageCollection
           viewMode={viewMode()}
           onViewModeChange={handleViewModeChange}
           showExpandButton={true}

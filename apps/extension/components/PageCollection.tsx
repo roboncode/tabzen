@@ -4,21 +4,21 @@ import EmptyBlock from "./EmptyBlock";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
 import AppSidebar from "./AppSidebar";
 import type {
-  Tab,
+  Page,
   Group,
   Capture,
   Settings,
   CapturePreviewData,
 } from "@/lib/types";
 import {
-  getAllTabs,
+  getAllPages,
   getAllGroups,
   getAllCaptures,
-  updateTab,
+  updatePage,
   updateGroup,
-  softDeleteTab,
-  hardDeleteTab,
-  restoreTab,
+  softDeletePage,
+  hardDeletePage,
+  restorePage,
 } from "@/lib/db";
 import { sendMessage } from "@/lib/messages";
 import { getSettings, updateSettings } from "@/lib/settings";
@@ -32,14 +32,14 @@ import EmptyState from "./EmptyState";
 import NoteCard from "./NoteCard";
 import ConfirmDialog from "./ConfirmDialog";
 
-interface TabCollectionProps {
+interface PageCollectionProps {
   viewMode: Settings["viewMode"];
   onViewModeChange: (mode: "cards" | "rows") => void;
   showExpandButton?: boolean;
   onOpenSettings?: () => void;
 }
 
-export default function TabCollection(props: TabCollectionProps) {
+export default function PageCollection(props: PageCollectionProps) {
   const [filter, setFilter] = createSignal<Settings["activeFilter"]>("all");
   const [deviceFilter, setDeviceFilter] = createSignal<string>("all");
   const [domainFilter, setDomainFilter] = createSignal<string | null>(null);
@@ -49,38 +49,38 @@ export default function TabCollection(props: TabCollectionProps) {
   const [syncError, setSyncError] = createSignal<string | null>(null);
   let searchBarApi: { setSearch: (q: string) => void } | undefined;
   const [searchQuery, setSearchQuery] = createSignal<string>("");
-  const [searchResults, setSearchResults] = createSignal<Tab[] | null>(null);
-  const [editingTab, setEditingTab] = createSignal<Tab | null>(null);
-  const [deletingTab, setDeletingTab] = createSignal<Tab | null>(null);
+  const [searchResults, setSearchResults] = createSignal<Page[] | null>(null);
+  const [editingPage, setEditingPage] = createSignal<Page | null>(null);
+  const [deletingPage, setDeletingPage] = createSignal<Page | null>(null);
   const [emptyingTrash, setEmptyingTrash] = createSignal(false);
   const [capturePreview, setCapturePreview] =
     createSignal<CapturePreviewData | null>(null);
 
-  const [allTabs, setAllTabs] = createSignal<Tab[]>([]);
+  const [allPages, setAllPages] = createSignal<Page[]>([]);
   const [allGroups, setAllGroups] = createSignal<Group[]>([]);
   const [allCaptures, setAllCaptures] = createSignal<Capture[]>([]);
 
   const loadData = async () => {
-    const [tabs, groups, captures] = await Promise.all([
-      getAllTabs(),
+    const [pages, groups, captures] = await Promise.all([
+      getAllPages(),
       getAllGroups(),
       getAllCaptures(),
     ]);
-    setAllTabs(tabs);
+    setAllPages(pages);
     setAllGroups(groups);
     setAllCaptures(captures);
   };
 
-  // Update a single tab in place without refetching everything
-  const patchTab = (id: string, updates: Partial<Tab>) => {
-    setAllTabs((prev) =>
+  // Update a single page in place without refetching everything
+  const patchPage = (id: string, updates: Partial<Page>) => {
+    setAllPages((prev) =>
       prev.map((t) => (t.id === id ? { ...t, ...updates } : t)),
     );
   };
 
-  // Remove a tab from the local list
-  const removeTab = (id: string) => {
-    setAllTabs((prev) => prev.filter((t) => t.id !== id));
+  // Remove a page from the local list
+  const removePage = (id: string) => {
+    setAllPages((prev) => prev.filter((t) => t.id !== id));
   };
 
   // Full refresh (for captures, syncs, bulk changes)
@@ -115,7 +115,7 @@ export default function TabCollection(props: TabCollectionProps) {
 
     let filtered: Group[];
     if (f === "archived") {
-      // Show all groups -- archived tabs can live in any group
+      // Show all groups -- archived pages can live in any group
       filtered = [...groups];
     } else {
       filtered = groups.filter((g) => !g.archived);
@@ -136,14 +136,14 @@ export default function TabCollection(props: TabCollectionProps) {
     return filtered;
   });
 
-  const domainIndex = createMemo(() => buildDomainIndex(allTabs() || []));
+  const domainIndex = createMemo(() => buildDomainIndex(allPages() || []));
 
   const tagIndex = createMemo(() => {
-    const tabs = allTabs() || [];
+    const pages = allPages() || [];
     const counts = new Map<string, number>();
-    for (const tab of tabs) {
-      if (tab.deletedAt || !tab.tags) continue;
-      for (const tag of tab.tags) {
+    for (const page of pages) {
+      if (page.deletedAt || !page.tags) continue;
+      for (const tag of page.tags) {
         counts.set(tag, (counts.get(tag) || 0) + 1);
       }
     }
@@ -153,9 +153,9 @@ export default function TabCollection(props: TabCollectionProps) {
   });
 
   const uniqueDevices = createMemo(() => {
-    const tabs = allTabs() || [];
+    const pages = allPages() || [];
     const deviceMap = new Map<string, string>();
-    for (const t of tabs) {
+    for (const t of pages) {
       const id = t.deviceId || t.sourceLabel;
       if (id && !deviceMap.has(id)) {
         deviceMap.set(id, t.sourceLabel);
@@ -166,37 +166,37 @@ export default function TabCollection(props: TabCollectionProps) {
       .sort((a, b) => a.label.localeCompare(b.label));
   });
 
-  const filteredTabs = createMemo(() => {
-    let tabs = searchResults() || allTabs() || [];
+  const filteredPages = createMemo(() => {
+    let pages = searchResults() || allPages() || [];
     const f = filter();
     const device = deviceFilter();
 
     // Apply device filter
     if (device !== "all") {
-      tabs = tabs.filter((t) => (t.deviceId || t.sourceLabel) === device);
+      pages = pages.filter((t) => (t.deviceId || t.sourceLabel) === device);
     }
 
-    if (f === "trash") return tabs.filter((t) => t.deletedAt !== null && t.deletedAt !== undefined);
+    if (f === "trash") return pages.filter((t) => t.deletedAt !== null && t.deletedAt !== undefined);
 
-    // All non-trash views exclude soft-deleted tabs
-    tabs = tabs.filter((t) => !t.deletedAt);
+    // All non-trash views exclude soft-deleted pages
+    pages = pages.filter((t) => !t.deletedAt);
 
     // Apply domain filter
     const domain = domainFilter();
     if (domain) {
-      tabs = tabs.filter((t) => getDomain(t.url) === domain);
+      pages = pages.filter((t) => getDomain(t.url) === domain);
       // Apply creator filter within domain
       const creator = creatorFilter();
       if (creator) {
-        tabs = tabs.filter((t) => extractCreator(t) === creator);
+        pages = pages.filter((t) => extractCreator(t) === creator);
       }
     }
 
-    if (f === "archived") return tabs.filter((t) => t.archived);
-    if (f === "starred") return tabs.filter((t) => t.starred && !t.archived);
-    if (f === "notes") return tabs.filter((t) => t.notes && !t.archived);
+    if (f === "archived") return pages.filter((t) => t.archived);
+    if (f === "starred") return pages.filter((t) => t.starred && !t.archived);
+    if (f === "notes") return pages.filter((t) => t.notes && !t.archived);
     if (f === "duplicates") {
-      const live = tabs.filter((t) => !t.archived);
+      const live = pages.filter((t) => !t.archived);
       const urlCount = new Map<string, number>();
       for (const t of live) {
         const normalized = t.url.replace(/\/$/, "").replace(/^https?:\/\/www\./, "https://");
@@ -207,11 +207,11 @@ export default function TabCollection(props: TabCollectionProps) {
         return urlCount.get(normalized)! > 1;
       });
     }
-    return tabs.filter((t) => !t.archived);
+    return pages.filter((t) => !t.archived);
   });
 
-  const tabsForGroup = (groupId: string) => {
-    return filteredTabs().filter((t) => t.groupId === groupId);
+  const pagesForGroup = (groupId: string) => {
+    return filteredPages().filter((t) => t.groupId === groupId);
   };
 
   const formatDateLabel = (dateStr: string): string => {
@@ -219,10 +219,10 @@ export default function TabCollection(props: TabCollectionProps) {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today.getTime() - 86400000);
-    const tabDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const pageDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-    if (tabDay.getTime() === today.getTime()) return "Today";
-    if (tabDay.getTime() === yesterday.getTime()) return "Yesterday";
+    if (pageDay.getTime() === today.getTime()) return "Today";
+    if (pageDay.getTime() === yesterday.getTime()) return "Yesterday";
     return date.toLocaleDateString("en-US", {
       weekday: "long",
       month: "long",
@@ -231,21 +231,21 @@ export default function TabCollection(props: TabCollectionProps) {
     });
   };
 
-  const tabsByDate = createMemo(() => {
-    const tabs = filteredTabs();
-    const groups = new Map<string, { label: string; tabs: Tab[] }>();
+  const pagesByDate = createMemo(() => {
+    const pages = filteredPages();
+    const groups = new Map<string, { label: string; pages: Page[] }>();
 
     // Sort by capturedAt descending
-    const sorted = [...tabs].sort((a, b) =>
+    const sorted = [...pages].sort((a, b) =>
       b.capturedAt.localeCompare(a.capturedAt),
     );
 
-    for (const tab of sorted) {
-      const dayKey = tab.capturedAt.slice(0, 10); // YYYY-MM-DD
+    for (const page of sorted) {
+      const dayKey = page.capturedAt.slice(0, 10); // YYYY-MM-DD
       if (!groups.has(dayKey)) {
-        groups.set(dayKey, { label: formatDateLabel(tab.capturedAt), tabs: [] });
+        groups.set(dayKey, { label: formatDateLabel(page.capturedAt), pages: [] });
       }
-      groups.get(dayKey)!.tabs.push(tab);
+      groups.get(dayKey)!.pages.push(page);
     }
 
     return Array.from(groups.values());
@@ -261,9 +261,9 @@ export default function TabCollection(props: TabCollectionProps) {
       setSearchResults(null);
       return;
     }
-    const response = await sendMessage({ type: "SEARCH_TABS", query });
+    const response = await sendMessage({ type: "SEARCH_PAGES", query });
     if (response.type === "SEARCH_RESULTS") {
-      setSearchResults(response.tabs);
+      setSearchResults(response.pages);
       setSearchQuery(query);
     }
   };
@@ -271,7 +271,7 @@ export default function TabCollection(props: TabCollectionProps) {
   const handleAISearch = async (query: string) => {
     const response = await sendMessage({ type: "AI_SEARCH", query });
     if (response.type === "SEARCH_RESULTS") {
-      setSearchResults(response.tabs);
+      setSearchResults(response.pages);
     }
   };
 
@@ -280,58 +280,58 @@ export default function TabCollection(props: TabCollectionProps) {
     browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
   };
 
-  const handleOpenTab = async (tab: Tab) => {
-    await sendMessage({ type: "OPEN_TAB", tabId: tab.id });
-    patchTab(tab.id, { viewCount: tab.viewCount + 1, lastViewedAt: new Date().toISOString() });
+  const handleOpenPage = async (page: Page) => {
+    await sendMessage({ type: "OPEN_PAGE", pageId: page.id });
+    patchPage(page.id, { viewCount: page.viewCount + 1, lastViewedAt: new Date().toISOString() });
   };
 
-  const handleSaveNotes = async (tabId: string, notes: string) => {
-    await updateTab(tabId, { notes: notes || null });
-    patchTab(tabId, { notes: notes || null });
+  const handleSaveNotes = async (pageId: string, notes: string) => {
+    await updatePage(pageId, { notes: notes || null });
+    patchPage(pageId, { notes: notes || null });
     notifyChanged();
   };
 
-  const handleToggleStar = async (tab: Tab) => {
-    const starred = !tab.starred;
-    await updateTab(tab.id, { starred });
-    patchTab(tab.id, { starred });
+  const handleToggleStar = async (page: Page) => {
+    const starred = !page.starred;
+    await updatePage(page.id, { starred });
+    patchPage(page.id, { starred });
     notifyChanged();
   };
 
-  const handleArchive = async (tab: Tab) => {
-    const archived = !tab.archived;
-    await updateTab(tab.id, { archived });
-    patchTab(tab.id, { archived });
+  const handleArchive = async (page: Page) => {
+    const archived = !page.archived;
+    await updatePage(page.id, { archived });
+    patchPage(page.id, { archived });
     notifyChanged();
   };
 
-  const handleDelete = async (tab: Tab) => {
-    await softDeleteTab(tab.id);
-    patchTab(tab.id, { deletedAt: new Date().toISOString() });
+  const handleDelete = async (page: Page) => {
+    await softDeletePage(page.id);
+    patchPage(page.id, { deletedAt: new Date().toISOString() });
     notifyChanged();
   };
 
-  const handleRestore = async (tab: Tab) => {
-    await restoreTab(tab.id);
-    patchTab(tab.id, { deletedAt: null });
+  const handleRestore = async (page: Page) => {
+    await restorePage(page.id);
+    patchPage(page.id, { deletedAt: null });
     notifyChanged();
   };
 
-  const handleHardDelete = (tab: Tab) => {
-    setDeletingTab(tab);
+  const handleHardDelete = (page: Page) => {
+    setDeletingPage(page);
   };
 
-  const [blockingTab, setBlockingTab] = createSignal<Tab | null>(null);
+  const [blockingPage, setBlockingPage] = createSignal<Page | null>(null);
 
-  const handleBlockDomain = (tab: Tab) => {
-    setBlockingTab(tab);
+  const handleBlockDomain = (page: Page) => {
+    setBlockingPage(page);
   };
 
   const confirmBlockDomain = async () => {
-    const tab = blockingTab();
-    if (tab) {
+    const page = blockingPage();
+    if (page) {
       const domain = (() => {
-        try { return new URL(tab.url).hostname.replace("www.", ""); }
+        try { return new URL(page.url).hostname.replace("www.", ""); }
         catch { return ""; }
       })();
       if (domain) {
@@ -343,16 +343,16 @@ export default function TabCollection(props: TabCollectionProps) {
           notifyChanged();
         }
       }
-      setBlockingTab(null);
+      setBlockingPage(null);
     }
   };
 
   const confirmDelete = async () => {
-    const tab = deletingTab();
-    if (tab) {
-      await hardDeleteTab(tab.id);
-      setDeletingTab(null);
-      removeTab(tab.id);
+    const page = deletingPage();
+    if (page) {
+      await hardDeletePage(page.id);
+      setDeletingPage(null);
+      removePage(page.id);
       notifyChanged();
     }
   };
@@ -399,7 +399,7 @@ export default function TabCollection(props: TabCollectionProps) {
           activeCreator={creatorFilter()}
           onSelectDomain={(d) => { setDomainFilter(d); setCreatorFilter(null); }}
           onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
-          totalCount={(allTabs() || []).filter((t) => !t.deletedAt && !t.archived).length}
+          totalCount={(allPages() || []).filter((t) => !t.deletedAt && !t.archived).length}
         />
       </div>
 
@@ -413,7 +413,7 @@ export default function TabCollection(props: TabCollectionProps) {
               activeCreator={creatorFilter()}
               onSelectDomain={(d) => { setDomainFilter(d); setCreatorFilter(null); }}
               onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); if (c) setSidebarOpen(false); }}
-              totalCount={(allTabs() || []).filter((t) => !t.deletedAt && !t.archived).length}
+              totalCount={(allPages() || []).filter((t) => !t.deletedAt && !t.archived).length}
             />
           </div>
           <div class="flex-1 bg-black/60" onClick={() => setSidebarOpen(false)} />
@@ -540,22 +540,22 @@ export default function TabCollection(props: TabCollectionProps) {
 
       {/* Collection - @container for responsive card grid */}
       <div class="flex-1 overflow-y-auto @container">
-        <Show when={(allTabs() || []).filter((t) => !t.deletedAt).length > 0} fallback={<EmptyState />}>
+        <Show when={(allPages() || []).filter((t) => !t.deletedAt).length > 0} fallback={<EmptyState />}>
           {/* Notes view */}
           <Show when={filter() === "notes"}>
             <Show
-              when={filteredTabs().length > 0}
+              when={filteredPages().length > 0}
               fallback={
                 <EmptyBlock icon={<StickyNote size={52} />} title="No notes yet" description="Add notes to any tab to see them here." />
               }
             >
               <div class="grid grid-cols-1 @[600px]:grid-cols-2 @[900px]:grid-cols-3 gap-4 p-4">
-                <For each={filteredTabs()}>
-                  {(tab) => (
+                <For each={filteredPages()}>
+                  {(page) => (
                     <NoteCard
-                      tab={tab}
-                      onOpen={handleOpenTab}
-                      onEditNotes={setEditingTab}
+                      tab={page}
+                      onOpen={handleOpenPage}
+                      onEditNotes={setEditingPage}
                     />
                   )}
                 </For>
@@ -566,12 +566,12 @@ export default function TabCollection(props: TabCollectionProps) {
           {/* By Date view */}
           <Show when={filter() === "byDate"}>
             <Show
-              when={filteredTabs().length > 0}
+              when={filteredPages().length > 0}
               fallback={
                 <EmptyBlock icon={<Calendar size={52} />} title="No tabs saved yet" description="Capture some tabs to see them organized by date." />
               }
             >
-              <For each={tabsByDate()}>
+              <For each={pagesByDate()}>
                 {(dateGroup) => (
                   <GroupSection
                     group={{
@@ -581,11 +581,11 @@ export default function TabCollection(props: TabCollectionProps) {
                       position: 0,
                       archived: false,
                     }}
-                    tabs={dateGroup.tabs}
+                    pages={dateGroup.pages}
                     viewMode={props.viewMode}
                     searchQuery={searchQuery()}
-                    onOpenTab={handleOpenTab}
-                    onEditNotes={setEditingTab}
+                    onOpenPage={handleOpenPage}
+                    onEditNotes={setEditingPage}
                     onRenameGroup={() => {}}
                     onToggleStar={handleToggleStar}
                     onArchive={handleArchive}
@@ -593,8 +593,8 @@ export default function TabCollection(props: TabCollectionProps) {
                     onBlockDomain={handleBlockDomain}
                     onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
                     onTagClick={handleTagClick}
-                    onExpandTab={(tab) => {
-                      const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${tab.id}`);
+                    onExpandPage={(page) => {
+                      const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${page.id}`);
                       window.open(detailUrl, "_blank");
                     }}
                   />
@@ -612,7 +612,7 @@ export default function TabCollection(props: TabCollectionProps) {
                   Items are automatically deleted after 30 days
                 </span>
               </div>
-              <Show when={filteredTabs().length > 0}>
+              <Show when={filteredPages().length > 0}>
                 <button
                   class="text-sm font-medium text-red-400/80 hover:text-red-400 transition-colors flex-shrink-0 px-3 py-1 rounded-full hover:bg-red-400/10"
                   onClick={() => setEmptyingTrash(true)}
@@ -622,7 +622,7 @@ export default function TabCollection(props: TabCollectionProps) {
               </Show>
             </div>
             <Show
-              when={filteredTabs().length > 0}
+              when={filteredPages().length > 0}
               fallback={
                 <EmptyBlock icon={<Trash2 size={52} />} title="Trash is empty" description="Deleted tabs will appear here." />
               }
@@ -635,18 +635,18 @@ export default function TabCollection(props: TabCollectionProps) {
                 position: 0,
                 archived: false,
               }}
-              tabs={filteredTabs()}
+              pages={filteredPages()}
               viewMode={props.viewMode}
-              onOpenTab={handleOpenTab}
-              onEditNotes={setEditingTab}
+              onOpenPage={handleOpenPage}
+              onEditNotes={setEditingPage}
               onRenameGroup={() => {}}
               onToggleStar={handleToggleStar}
               onArchive={handleArchive}
               onDelete={handleDelete}
               onRestore={handleRestore}
               onHardDelete={handleHardDelete}
-              onExpandTab={(tab) => {
-                const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${tab.id}`);
+              onExpandPage={(page) => {
+                const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${page.id}`);
                 window.open(detailUrl, "_blank");
               }}
               isTrash
@@ -657,7 +657,7 @@ export default function TabCollection(props: TabCollectionProps) {
           {/* Default group view (All, Starred, Archived, Duplicates) */}
           <Show when={filter() !== "notes" && filter() !== "byDate" && filter() !== "trash"}>
             <Show
-              when={filteredTabs().length > 0}
+              when={filteredPages().length > 0}
               fallback={
                 filter() === "starred" ? (
                   <EmptyBlock icon={<Star size={52} />} title="No starred tabs" description="Star tabs to quickly find them later." />
@@ -670,23 +670,23 @@ export default function TabCollection(props: TabCollectionProps) {
             >
               <For each={filteredGroups()}>
                 {(group) => {
-                  const tabs = () => tabsForGroup(group.id);
+                  const pages = () => pagesForGroup(group.id);
                   return (
-                    <Show when={tabs().length > 0}>
+                    <Show when={pages().length > 0}>
                       <GroupSection
                         group={group}
-                        tabs={tabs()}
+                        pages={pages()}
                         viewMode={props.viewMode}
                         searchQuery={searchQuery()}
-                        onOpenTab={handleOpenTab}
-                        onEditNotes={setEditingTab}
+                        onOpenPage={handleOpenPage}
+                        onEditNotes={setEditingPage}
                         onRenameGroup={handleRenameGroup}
                         onToggleStar={handleToggleStar}
                         onArchive={handleArchive}
                         onDelete={handleDelete}
                         onBlockDomain={handleBlockDomain}
-                        onExpandTab={(tab) => {
-                          const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${tab.id}`);
+                        onExpandPage={(page) => {
+                          const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${page.id}`);
                           window.open(detailUrl, "_blank");
                         }}
                       />
@@ -700,12 +700,12 @@ export default function TabCollection(props: TabCollectionProps) {
       </div>
 
       {/* Notes Editor Modal */}
-      <Show when={editingTab()}>
-        {(tab) => (
+      <Show when={editingPage()}>
+        {(page) => (
           <NotesEditor
-            tab={tab()}
+            tab={page()}
             onSave={handleSaveNotes}
-            onClose={() => setEditingTab(null)}
+            onClose={() => setEditingPage(null)}
           />
         )}
       </Show>
@@ -722,25 +722,25 @@ export default function TabCollection(props: TabCollectionProps) {
       </Show>
 
       {/* Delete Forever Confirmation */}
-      <Show when={deletingTab()}>
-        {(tab) => (
+      <Show when={deletingPage()}>
+        {(page) => (
           <ConfirmDialog
             title="Delete forever"
-            message={`Permanently delete "${tab().title}"? This cannot be undone.`}
+            message={`Permanently delete "${page().title}"? This cannot be undone.`}
             confirmLabel="Delete Forever"
             destructive
             onConfirm={confirmDelete}
-            onCancel={() => setDeletingTab(null)}
+            onCancel={() => setDeletingPage(null)}
           />
         )}
       </Show>
 
       {/* Block Domain Confirmation */}
-      <Show when={blockingTab()}>
-        {(tab) => {
+      <Show when={blockingPage()}>
+        {(page) => {
           const domain = () => {
-            try { return new URL(tab().url).hostname.replace("www.", ""); }
-            catch { return tab().url; }
+            try { return new URL(page().url).hostname.replace("www.", ""); }
+            catch { return page().url; }
           };
           return (
             <ConfirmDialog
@@ -748,7 +748,7 @@ export default function TabCollection(props: TabCollectionProps) {
               message={`Block "${domain()}"? Future captures will skip all tabs from this domain. You can unblock it in Settings.`}
               confirmLabel="Block"
               onConfirm={confirmBlockDomain}
-              onCancel={() => setBlockingTab(null)}
+              onCancel={() => setBlockingPage(null)}
             />
           );
         }}
@@ -758,13 +758,13 @@ export default function TabCollection(props: TabCollectionProps) {
       <Show when={emptyingTrash()}>
         <ConfirmDialog
           title="Empty trash"
-          message={`Permanently delete all ${filteredTabs().length} items in trash? This cannot be undone.`}
+          message={`Permanently delete all ${filteredPages().length} items in trash? This cannot be undone.`}
           confirmLabel="Empty Trash"
           destructive
           onConfirm={async () => {
-            const trashTabs = (allTabs() || []).filter((t) => t.deletedAt);
-            for (const tab of trashTabs) {
-              await hardDeleteTab(tab.id);
+            const trashPages = (allPages() || []).filter((t) => t.deletedAt);
+            for (const page of trashPages) {
+              await hardDeletePage(page.id);
             }
             setEmptyingTrash(false);
             loadData();

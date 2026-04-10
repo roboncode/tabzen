@@ -10,7 +10,7 @@ import {
   Check,
   Menu,
 } from "lucide-solid";
-import type { Tab } from "@/lib/types";
+import type { Page } from "@/lib/types";
 import { extractCreator, getDomain, getFaviconUrl } from "@/lib/domains";
 import { formatTimeAgo } from "@/lib/format";
 import { stripEmojis } from "@/lib/youtube";
@@ -19,7 +19,7 @@ import Avatar from "@/components/Avatar";
 import TagList from "@/components/TagList";
 
 interface DetailHeaderProps {
-  tab: Tab;
+  page: Page;
   onBack: () => void;
   onToggleStar: () => void;
   onOpenSource: () => void;
@@ -36,23 +36,23 @@ interface DetailHeaderProps {
 }
 
 export default function DetailHeader(props: DetailHeaderProps) {
-  const domain = createMemo(() => getDomain(props.tab.url) || props.tab.url);
+  const domain = createMemo(() => getDomain(props.page.url) || props.page.url);
 
-  const creator = createMemo(() => extractCreator(props.tab));
-  const faviconSrc = createMemo(() => getFaviconUrl(props.tab));
+  const creator = createMemo(() => extractCreator(props.page));
+  const faviconSrc = createMemo(() => getFaviconUrl(props.page));
 
   const avatarSrc = createMemo(() => {
-    if (props.tab.creatorAvatar && creator()) return props.tab.creatorAvatar;
+    if (props.page.creatorAvatar && creator()) return props.page.creatorAvatar;
     return faviconSrc();
   });
 
   const description = createMemo(() => {
-    const raw = props.tab.ogDescription || props.tab.metaDescription || null;
+    const raw = props.page.ogDescription || props.page.metaDescription || null;
     return raw ? stripEmojis(raw) : null;
   });
 
-  const tags = createMemo(() => props.tab.tags || []);
-  const title = createMemo(() => props.tab.ogTitle || props.tab.title);
+  const tags = createMemo(() => props.page.tags || []);
+  const title = createMemo(() => props.page.ogTitle || props.page.title);
 
   const [descExpanded, setDescExpanded] = createSignal(false);
   const [descOverflows, setDescOverflows] = createSignal(false);
@@ -71,9 +71,9 @@ export default function DetailHeader(props: DetailHeaderProps) {
         <div class="flex flex-col @[480px]:flex-row gap-4 @[480px]:gap-5">
           {/* Thumbnail — full width when stacked, fixed width when side-by-side */}
           <div class="w-full @[480px]:w-[40%] aspect-video rounded-xl overflow-hidden bg-muted/40 flex-shrink-0 max-h-[200px]">
-            {props.tab.ogImage ? (
+            {props.page.ogImage ? (
               <img
-                src={props.tab.ogImage}
+                src={props.page.ogImage}
                 alt=""
                 class="w-full h-full object-cover object-top-left"
                 onError={(e) => {
@@ -94,7 +94,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
           {/* Info */}
           <div class="flex-1 min-w-0">
             <a
-              href={props.tab.url}
+              href={props.page.url}
               target="_blank"
               class="text-xl @[480px]:text-2xl font-bold text-foreground leading-snug hover:text-sky-400 transition-colors cursor-pointer"
             >
@@ -107,7 +107,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
                 <button
                   class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   onClick={() => {
-                    const url = props.tab.creatorUrl;
+                    const url = props.page.creatorUrl;
                     if (url) window.open(url, "_blank");
                   }}
                 >
@@ -129,10 +129,10 @@ export default function DetailHeader(props: DetailHeaderProps) {
 
             {/* Timestamps */}
             <div class="flex items-center gap-2 mt-1.5 text-sm text-muted-foreground/60 flex-wrap">
-              <span>Saved {formatTimeAgo(props.tab.capturedAt)}</span>
-              <Show when={props.tab.publishedAt}>
+              <span>Saved {formatTimeAgo(props.page.capturedAt)}</span>
+              <Show when={props.page.publishedAt}>
                 <span class="text-muted-foreground/30">·</span>
-                <span>Published {formatTimeAgo(props.tab.publishedAt!)}</span>
+                <span>Published {formatTimeAgo(props.page.publishedAt!)}</span>
               </Show>
             </div>
 
@@ -193,9 +193,9 @@ export default function DetailHeader(props: DetailHeaderProps) {
       {/* Compact title — visible when hero scrolled past */}
       <Show when={props.compact}>
         <div class="flex items-center gap-2.5 ml-3 flex-1 min-w-0">
-          {props.tab.ogImage && (
+          {props.page.ogImage && (
             <img
-              src={props.tab.ogImage}
+              src={props.page.ogImage}
               alt=""
               class="w-7 h-7 rounded object-cover flex-shrink-0"
               onError={(e) => {
@@ -230,16 +230,16 @@ export default function DetailHeader(props: DetailHeaderProps) {
         </IconButton>
         <IconButton
           onClick={props.onToggleStar}
-          active={props.tab.starred}
-          title={props.tab.starred ? "Unstar" : "Star"}
+          active={props.page.starred}
+          title={props.page.starred ? "Unstar" : "Star"}
         >
-          <Star size={16} fill={props.tab.starred ? "currentColor" : "none"} />
+          <Star size={16} fill={props.page.starred ? "currentColor" : "none"} />
         </IconButton>
         <IconButton
           onClick={props.onArchive}
-          title={props.tab.archived ? "Unarchive" : "Archive"}
+          title={props.page.archived ? "Unarchive" : "Archive"}
         >
-          <Show when={props.tab.archived} fallback={<Archive size={16} />}>
+          <Show when={props.page.archived} fallback={<Archive size={16} />}>
             <ArchiveRestore size={16} />
           </Show>
         </IconButton>

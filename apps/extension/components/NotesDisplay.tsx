@@ -1,11 +1,11 @@
 import { createSignal, Show } from "solid-js";
 import { StickyNote } from "lucide-solid";
-import type { Tab } from "@/lib/types";
+import type { Page } from "@/lib/types";
 import NotesEditor from "./NotesEditor";
 
 interface NotesDisplayProps {
-  tab: Tab;
-  onSave: (tabId: string, notes: string) => void;
+  tab: Page;
+  onSave: (pageId: string, notes: string) => void;
   /** Max lines before clamping (default 3) */
   clampLines?: number;
 }
@@ -31,8 +31,8 @@ export default function NotesDisplay(props: NotesDisplayProps) {
     setNeedsClamp(textRef.scrollHeight > maxHeight + 2);
   };
 
-  const handleSave = (tabId: string, notes: string) => {
-    props.onSave(tabId, notes);
+  const handleSave = (pageId: string, notes: string) => {
+    props.onSave(pageId, notes);
     setEditing(false);
   };
 

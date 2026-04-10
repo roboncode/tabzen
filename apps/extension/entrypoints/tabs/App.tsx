@@ -1,6 +1,6 @@
 import { createSignal, Show } from "solid-js";
 import { getSettings, updateSettings } from "@/lib/settings";
-import TabCollection from "@/components/TabCollection";
+import PageCollection from "@/components/PageCollection";
 import SettingsPanel from "@/components/SettingsPanel";
 import type { Settings } from "@/lib/types";
 
@@ -19,7 +19,7 @@ export default function App() {
   return (
     <div class="w-full min-h-screen bg-background flex">
       <div class="flex-1 h-screen min-w-0">
-        <TabCollection
+        <PageCollection
           viewMode={viewMode()}
           onViewModeChange={handleViewModeChange}
           showExpandButton={false}

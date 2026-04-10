@@ -2,7 +2,7 @@ import { createSignal, createEffect, Show, For, onMount } from "solid-js";
 import { ChevronDown, ChevronUp, Hash, MessageCircleQuestion, Zap } from "lucide-solid";
 import { getSettings, updateSettings } from "@/lib/settings";
 import { generateDocument } from "@/lib/ai";
-import { getDocumentsForTab, putDocument } from "@/lib/db";
+import { getDocumentsForPage, putDocument } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import PostCard from "./PostCard";
 import ThreadView from "./ThreadView";
@@ -87,7 +87,7 @@ function parseThread(raw: string): GeneratedPost {
 interface SocialPostsViewProps {
   content: string;
   contentType: "transcript" | "markdown";
-  tabId: string;
+  pageId: string;
 }
 
 export default function SocialPostsView(props: SocialPostsViewProps) {
@@ -121,7 +121,7 @@ export default function SocialPostsView(props: SocialPostsViewProps) {
     setHook(settings.socialHook ?? true);
 
     // Load previously generated posts from DB
-    const docs = await getDocumentsForTab(props.tabId);
+    const docs = await getDocumentsForPage(props.pageId);
     const socialDocs = docs.filter((d) => d.templateId.startsWith("social-post-"));
     const restored: Record<string, GeneratedPost> = {};
     const restoredFocus: Record<string, string> = {};
@@ -274,7 +274,7 @@ ${formatInstruction}`;
         : raw;
       await putDocument({
         id: uuidv4(),
-        tabId: props.tabId,
+        pageId: props.pageId,
         templateId: `social-post-${key}`,
         content: storedContent,
         generatedAt: new Date().toISOString(),

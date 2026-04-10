@@ -5,8 +5,8 @@ import { Plus, EyeOff } from "lucide-solid";
 interface DocumentNavProps {
   templates: AITemplate[];
   documents: AIDocument[];
-  activeTab: string;
-  onTabChange: (tab: string) => void;
+  activeSection: string;
+  onSectionChange: (section: string) => void;
   onAddCustom: () => void;
   onHideTemplate?: (template: AITemplate) => void;
 }
@@ -22,13 +22,13 @@ export default function DocumentNav(props: DocumentNavProps) {
       <div class="group flex items-center gap-1">
         <button
           class={`flex-1 text-left text-sm py-1 truncate transition-colors duration-200 ${
-            props.activeTab === template.id
+            props.activeSection === template.id
               ? "text-sky-400 font-medium"
               : hasDoc()
                 ? "text-muted-foreground hover:text-foreground"
                 : "text-muted-foreground/40 hover:text-muted-foreground"
           }`}
-          onClick={() => props.onTabChange(template.id)}
+          onClick={() => props.onSectionChange(template.id)}
           title={template.name}
         >
           {template.name}
@@ -61,11 +61,11 @@ export default function DocumentNav(props: DocumentNavProps) {
       <div class="flex flex-col gap-0.5 px-10 pt-6">
         <button
           class={`block w-full text-left text-sm py-1 transition-colors duration-200 ${
-            props.activeTab === "content"
+            props.activeSection === "content"
               ? "text-sky-400 font-medium"
               : "text-muted-foreground hover:text-foreground"
           }`}
-          onClick={() => props.onTabChange("content")}
+          onClick={() => props.onSectionChange("content")}
         >
           Content
         </button>
@@ -87,7 +87,7 @@ export default function DocumentNav(props: DocumentNavProps) {
         <div class={customTemplates().length === 0 ? "mt-3 pt-3 border-t border-muted-foreground/10" : ""}>
           <button
             class={`block w-full text-left text-sm py-1 transition-colors duration-200 ${
-              props.activeTab === "custom"
+              props.activeSection === "custom"
                 ? "text-sky-400 font-medium"
                 : "text-muted-foreground/40 hover:text-muted-foreground"
             }`}
