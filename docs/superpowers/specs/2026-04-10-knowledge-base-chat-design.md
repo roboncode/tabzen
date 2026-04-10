@@ -153,6 +153,8 @@ One per source document. Contains metadata and framing content shared across all
 ```typescript
 interface DocumentContext {
   documentId: string
+  userId?: string                // document owner
+  teamId?: string               // team or organization
   title: string
   url: string
   author?: string               // channel name, blog author, etc.
@@ -210,6 +212,8 @@ interface Citation {
 
 interface Conversation {
   id: string
+  userId?: string               // conversation owner
+  teamId?: string               // team or organization
   title: string                 // auto-generated or user-edited
   groupId?: string              // user-created group
   scope: ConversationScope
@@ -220,6 +224,8 @@ interface Conversation {
 
 interface ConversationGroup {
   id: string
+  userId?: string               // group owner
+  teamId?: string               // team or organization
   name: string
   sortOrder: number
   createdAt: string
