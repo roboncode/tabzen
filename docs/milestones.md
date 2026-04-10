@@ -71,7 +71,36 @@ Iterative roadmap. Each milestone produces a testable, shippable increment.
 
 ---
 
-## Milestone 5: Subscriptions & RSS Monitoring
+## Milestone 5: SPA Routing & Navigation
+
+**Goal:** Unified single-page app with proper routing, enabling back/forward navigation, page reloads, and deep linking to specific sections.
+
+**Problems solved:**
+- Detail page opens as a separate window — can't navigate back to list
+- "Back" button calls `window.close()` — no real navigation
+- Can't reload a detail page without losing state (reverts to Content tab)
+- Active document section (Key Points, Summary, etc.) not preserved in URL
+- Settings is a slide-in panel, not a proper route
+
+**Implementation:**
+- Install `@solidjs/router` with `HashRouter` (required for chrome-extension:// URLs)
+- Merge tabs + detail entrypoints into a single SPA
+- Route structure:
+  - `#/` — Tab list (current tabs page)
+  - `#/tab/:tabId` — Detail page, defaults to Content section
+  - `#/tab/:tabId/:section` — Detail page with specific section active (e.g., `key-points`, `summary`, `social-posts`)
+  - `#/settings` — Settings page (promoted from slide-in panel)
+- Back button uses `navigate("/")` — real browser back/forward works
+- Active document section syncs bidirectionally with URL
+- Popup and sidepanel remain separate entrypoints (different browser contexts)
+- Deep links: clicking a section in the left nav updates the URL; refreshing restores position
+- `DATA_CHANGED` messaging continues to work across popup/sidepanel/main SPA
+
+**Testable outcome:** Open a tab detail → click Key Points → reload the page → still on Key Points. Click Back → returns to list view. Browser back/forward buttons work. Copy URL → paste in new tab → opens to same section.
+
+---
+
+## Milestone 6: Subscriptions & RSS Monitoring
 
 **Goal:** Subscribe to YouTube channels (and later other sources) for new content alerts.
 
@@ -85,23 +114,21 @@ Iterative roadmap. Each milestone produces a testable, shippable increment.
 
 ---
 
-## Milestone 6: AI Content Generation
+## Milestone 7: AI Content Generation (Remaining)
 
-**Goal:** Generate derivative content from stored transcripts and articles.
+**Goal:** Generate derivative content beyond what was built in M4.
 
-- Prompt templates (as markdown files) for each output type:
-  - Article from transcript
-  - Social media posts (LinkedIn, Twitter/X, Instagram, Facebook)
-  - Product ideas extraction
-- Generation UI in detail page
-- Store generated content in R2, linked to source tab
-- Future: image generation via Nano Banana
+- Article generation from transcript (full long-form article)
+- Product ideas extraction
+- Image generation via Nano Banana (future)
 
-**Testable outcome:** YouTube tab with transcript → generate LinkedIn post → copy to clipboard. Generate article from transcript → view/edit markdown.
+*Note: Social media posts, sponsor detection, key points, summaries, and other AI document types were completed in M4.*
+
+**Testable outcome:** YouTube tab with transcript → generate full article → view/edit markdown.
 
 ---
 
-## Milestone 7: Knowledge Base & Chat
+## Milestone 8: Knowledge Base & Chat
 
 **Goal:** Conversational interface over all stored content using vector search.
 
@@ -117,7 +144,7 @@ Iterative roadmap. Each milestone produces a testable, shippable increment.
 
 ---
 
-## Milestone 8: Performance & Optimization
+## Milestone 9: Performance & Optimization
 
 **Goal:** Optimize storage, caching, and retrieval based on real usage patterns.
 
@@ -134,10 +161,11 @@ Iterative roadmap. Each milestone produces a testable, shippable increment.
 
 ## Notes
 
-- Each milestone builds on the previous — content must be fetched (M1/M3) before it can be processed by AI (M4) or embedded (M7)
+- Each milestone builds on the previous — content must be fetched (M1/M3) before it can be processed by AI (M4) or embedded (M8)
 - The detail page (M2) is the central UI surface that all content milestones build on
+- Routing (M5) is foundational for all future navigation improvements
 - AI prompts are always stored as editable markdown files, never hardcoded
 - R2 for content storage throughout
 - Local dev uses Wrangler R2 emulation — same code path as production
-- Optimization (M8) is driven by real usage data, not speculation
+- Optimization (M9) is driven by real usage data, not speculation
 - Milestones can be further broken into tasks/specs when we start each one
