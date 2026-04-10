@@ -18,6 +18,7 @@ import {
   Inbox,
 } from "lucide-solid";
 import UserMenu from "./UserMenu";
+import AddUrlInput from "./AddUrlInput";
 import EmptyBlock from "./EmptyBlock";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
 import AppSidebar from "./AppSidebar";
@@ -68,6 +69,8 @@ export default function PageCollection(props: PageCollectionProps) {
   const [editingPage, setEditingPage] = createSignal<Page | null>(null);
   const [deletingPage, setDeletingPage] = createSignal<Page | null>(null);
   const [emptyingTrash, setEmptyingTrash] = createSignal(false);
+  const [pastedUrl, setPastedUrl] = createSignal<string | null>(null);
+  const [pasteSaving, setPasteSaving] = createSignal(false);
   const [capturePreview, setCapturePreview] =
     createSignal<CapturePreviewData | null>(null);
 
@@ -121,6 +124,27 @@ export default function PageCollection(props: PageCollectionProps) {
     };
     browser.runtime.onMessage.addListener(listener);
     onCleanup(() => browser.runtime.onMessage.removeListener(listener));
+
+    // Global paste detection — capture URLs pasted anywhere (not in inputs)
+    const handlePaste = async (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+
+      const text = e.clipboardData?.getData("text")?.trim();
+      if (!text) return;
+
+      try {
+        const u = new URL(text);
+        if (u.protocol !== "https:" && u.protocol !== "http:") return;
+      } catch {
+        return;
+      }
+
+      // Valid URL pasted — confirm with user
+      setPastedUrl(text);
+    };
+    document.addEventListener("paste", handlePaste);
+    onCleanup(() => document.removeEventListener("paste", handlePaste));
   });
 
   const filteredGroups = createMemo(() => {
@@ -449,6 +473,8 @@ export default function PageCollection(props: PageCollectionProps) {
             </Show>
           </span>
 
+          <AddUrlInput />
+
           <ViewToggle mode={props.viewMode} onChange={props.onViewModeChange} />
 
           <div class="w-px h-5 bg-muted-foreground/20 flex-shrink-0 mx-2" />
@@ -474,6 +500,41 @@ export default function PageCollection(props: PageCollectionProps) {
                   updateSettings({ syncError: null });
                   sendMessage({ type: "GET_UNCAPTURED_COUNT" }); // triggers badge refresh
                 }}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </Show>
+
+        {/* Paste URL confirmation */}
+        <Show when={pastedUrl()}>
+          <div class="mx-4 mt-2 flex items-center justify-between bg-sky-500/10 rounded-lg px-3 py-2.5 gap-3">
+            <div class="flex-1 min-w-0">
+              <p class="text-xs text-sky-300">Add to collection?</p>
+              <p class="text-xs text-muted-foreground mt-0.5 truncate">{pastedUrl()}</p>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <button
+                class="px-3 py-1 text-xs font-medium rounded-full bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 transition-colors disabled:opacity-50"
+                disabled={pasteSaving()}
+                onClick={async () => {
+                  setPasteSaving(true);
+                  const response = await sendMessage({ type: "CAPTURE_URL", url: pastedUrl()! });
+                  setPasteSaving(false);
+                  if (response.type === "URL_SAVED" && response.pageId) {
+                    setPastedUrl(null);
+                    navigate(`/page/${response.pageId}`);
+                  } else {
+                    setPastedUrl(null);
+                  }
+                }}
+              >
+                {pasteSaving() ? "Saving..." : "Save"}
+              </button>
+              <button
+                class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setPastedUrl(null)}
               >
                 Dismiss
               </button>

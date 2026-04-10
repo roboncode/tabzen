@@ -355,6 +355,8 @@ export default defineBackground(() => {
         return handleLookupProduct(message.name);
       case "LOOKUP_WIKI_IMAGE":
         return handleLookupWikiImage(message.title);
+      case "CAPTURE_URL":
+        return handleCaptureUrl(message.url);
       case "IS_URL_SAVED":
         return handleIsUrlSaved(message.url);
       default:
@@ -1403,6 +1405,98 @@ export default defineBackground(() => {
     await addPages(preview.pages);
     await updateBadge();
     notifyDataChanged();
+  }
+
+  async function handleCaptureUrl(url: string): Promise<MessageResponse> {
+    try {
+      const settings = await getSettings();
+      const existingPages = await getAllPages();
+      const existingUrls = buildUrlSet(existingPages.map((p) => p.url));
+
+      if (isDuplicate(url, existingUrls)) {
+        // Already saved — return the existing page ID
+        const existing = existingPages.find((p) => normalizeUrl(p.url) === normalizeUrl(url));
+        return { type: "URL_SAVED", saved: true, pageId: existing?.id };
+      }
+
+      const meta = await fetchMetadataViaHttp(url);
+      const pageId = uuidv4();
+
+      const domain = (() => {
+        try { return new URL(url).hostname.replace("www.", ""); }
+        catch { return "Other"; }
+      })();
+
+      const existingGroups = await getAllGroups();
+      const existingGroup = existingGroups.find((g) => g.name === domain && !g.archived);
+
+      let groupId: string;
+      let captureId: string;
+
+      if (existingGroup) {
+        groupId = existingGroup.id;
+        captureId = existingGroup.captureId;
+      } else {
+        groupId = uuidv4();
+        captureId = uuidv4();
+      }
+
+      const page: Page = {
+        id: pageId,
+        url,
+        title: meta.ogTitle || domain,
+        favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
+        ...meta,
+        tags: [],
+        notes: null,
+        viewCount: 0,
+        lastViewedAt: null,
+        capturedAt: new Date().toISOString(),
+        sourceLabel: settings.sourceLabel,
+        deviceId: settings.deviceId,
+        archived: false,
+        starred: false,
+        deletedAt: null,
+        groupId,
+        contentKey: null,
+        contentType: null,
+        contentFetchedAt: null,
+      };
+
+      if (!existingGroup) {
+        await addCapture({ id: captureId, capturedAt: new Date().toISOString(), sourceLabel: settings.sourceLabel, tabCount: 1 });
+        await addGroups([{ id: groupId, name: domain, captureId, position: 0, archived: false }]);
+      }
+
+      await addPages([page]);
+      notifyDataChanged();
+
+      // AI tagging (async, non-blocking)
+      if (settings.autoTagging && settings.openRouterApiKey) {
+        (async () => {
+          try {
+            const allTags = await getAllTags();
+            const existingTagNames = allTags.map((t) => t.tag);
+            const tagResults = await generateTags(
+              settings.openRouterApiKey,
+              settings.aiModel,
+              [{ id: pageId, title: page.ogTitle || page.title, url: page.url, description: page.ogDescription || page.metaDescription }],
+              existingTagNames,
+            );
+            for (const result of tagResults) {
+              if (result.tags?.length) {
+                await updatePage(result.id, { tags: result.tags });
+              }
+            }
+            notifyDataChanged();
+          } catch {}
+        })();
+      }
+
+      return { type: "URL_SAVED", saved: true, pageId };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
   }
 
   async function captureSingleTab(

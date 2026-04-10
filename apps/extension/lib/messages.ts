@@ -14,6 +14,7 @@ export type MessageRequest =
   | { type: "RE_EXTRACT_CONTENT"; pageId: string }
   | { type: "SYNC_NOW" }
   | { type: "QUICK_CAPTURE" }
+  | { type: "CAPTURE_URL"; url: string }
   | { type: "IS_URL_SAVED"; url: string }
   | { type: "LOOKUP_PRODUCT"; name: string }
   | { type: "LOOKUP_WIKI_IMAGE"; title: string };
