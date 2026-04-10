@@ -16,6 +16,7 @@ import { stripEmojis } from "@/lib/youtube";
 import IconButton from "@/components/IconButton";
 import Avatar from "@/components/Avatar";
 import TagList from "@/components/TagList";
+import UserMenu from "@/components/UserMenu";
 
 interface DetailHeaderProps {
   page: Page;
@@ -205,6 +206,8 @@ export default function DetailHeader(props: DetailHeaderProps) {
       </button>
 
       <div class="w-px h-5 bg-muted-foreground/20 flex-shrink-0 mx-2" />
+
+      <UserMenu />
 
       {/* Vertical kebab menu */}
       <div class="relative flex-shrink-0">
