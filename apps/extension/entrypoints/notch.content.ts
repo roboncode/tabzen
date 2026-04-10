@@ -86,8 +86,8 @@ export default defineContentScript({
       }
 
       .notch.saved {
-        background: linear-gradient(135deg, #38bdf8, #0284c7);
-        border-color: rgba(14, 165, 233, 0.3);
+        background: linear-gradient(135deg, #34d399, #059669);
+        border-color: rgba(52, 211, 153, 0.3);
       }
 
       .notch:hover {
