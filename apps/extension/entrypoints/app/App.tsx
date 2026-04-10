@@ -1,31 +1,21 @@
-import { createResource, Show } from "solid-js";
+import { HashRouter, Route } from "@solidjs/router";
+import { lazy } from "solid-js";
 import { Toaster } from "solid-sonner";
-import { getPage } from "@/lib/db";
-import DetailPage from "@/components/detail/DetailPage";
+
+const PageList = lazy(() => import("@/pages/PageList"));
+const PageDetail = lazy(() => import("@/pages/PageDetail"));
+const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 
 export default function App() {
-  const params = new URLSearchParams(window.location.search);
-  const tabId = params.get("tabId");
-
-  const [tab] = createResource(
-    () => tabId,
-    async (id) => (id ? getPage(id) : undefined),
-  );
-
   return (
     <>
-      <Show
-        when={tab()}
-        fallback={
-          <div class="flex items-center justify-center h-screen bg-background">
-            <p class="text-muted-foreground text-sm">
-              {tab.loading ? "Loading..." : "Tab not found"}
-            </p>
-          </div>
-        }
-      >
-        {(t) => <DetailPage page={t()} />}
-      </Show>
+      <HashRouter>
+        <Route path="/" component={PageList} />
+        <Route path="/page/:pageId" component={PageDetail} />
+        <Route path="/page/:pageId/:section" component={PageDetail} />
+        <Route path="/settings" component={SettingsPage} />
+        <Route path="*" component={PageList} />
+      </HashRouter>
       <Toaster
         theme="dark"
         position="bottom-center"
