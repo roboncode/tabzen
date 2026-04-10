@@ -1,5 +1,6 @@
 import { createSignal, Show } from "solid-js";
-import { Loader2, Copy, Check } from "lucide-solid";
+import { Copy, Check } from "lucide-solid";
+import { ProseSkeleton } from "./DocumentSkeletons";
 import { marked } from "marked";
 
 interface CustomPromptViewProps {
@@ -58,10 +59,7 @@ export default function CustomPromptView(props: CustomPromptViewProps) {
       </div>
 
       <Show when={props.generating}>
-        <div class="flex flex-col items-center justify-center py-12 gap-3">
-          <Loader2 size={24} class="text-sky-400 animate-spin" />
-          <p class="text-sm text-muted-foreground">Generating...</p>
-        </div>
+        <ProseSkeleton />
       </Show>
 
       <Show when={!props.generating && props.result}>

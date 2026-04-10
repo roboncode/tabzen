@@ -12,11 +12,12 @@ import type { TranscriptSegment } from "@tab-zen/shared";
 import { formatTimestamp } from "./TranscriptView";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { sendMessage } from "@/lib/messages";
-import { updateTab, getTab, softDeleteTab, getAllTemplates, getDocumentsForTab, putDocument, putTemplate } from "@/lib/db";
+import { updateTab, getTab, softDeleteTab, getAllTemplates, getDocumentsForTab, putDocument, putTemplate, deleteDocument, deleteTemplate } from "@/lib/db";
 import { getPendingMigrations } from "@/lib/page-extract";
 import { generateDocument } from "@/lib/ai";
 import { getSettings } from "@/lib/settings";
 import { v4 as uuidv4 } from "uuid";
+import { toast } from "solid-sonner";
 import type { AITemplate, AIDocument } from "@/lib/types";
 import DetailHeader from "./DetailHeader";
 import TranscriptView from "./TranscriptView";
@@ -24,9 +25,26 @@ import MarkdownView from "./MarkdownView";
 import DetailSidebar, { type TocEntry } from "./DetailSidebar";
 import ChatFab from "./ChatFab";
 import NotesDisplay from "@/components/NotesDisplay";
-import DocumentTabs from "./DocumentTabs";
+import DocumentNav from "./DocumentNav";
 import DocumentView from "./DocumentView";
+import { getSkeletonForTemplate } from "./DocumentSkeletons";
 import CustomPromptView from "./CustomPromptView";
+import KeyPointsView from "./KeyPointsView";
+import ActionItemsView from "./ActionItemsView";
+import ELI5View from "./ELI5View";
+import ProductsView from "./ProductsView";
+import SocialPostsView from "./SocialPostsView";
+import PromptViewer from "./PromptViewer";
+
+const SPECIALIZED_RENDERERS: Record<string, (content: string) => any> = {
+  "builtin-key-points": (content: string) => <KeyPointsView content={content} />,
+  "builtin-action-items": (content: string) => <ActionItemsView content={content} />,
+  "builtin-eli5": (content: string) => <ELI5View content={content} />,
+  "builtin-products-mentions": (content: string) => <ProductsView content={content} />,
+};
+
+// Templates that handle their own generation (not the standard document flow)
+const SELF_MANAGED_TEMPLATES = new Set(["builtin-social-posts"]);
 // import ReadingProgress from "@/components/ReadingProgress";
 import { X, ChevronDown, List } from "lucide-solid";
 
@@ -43,7 +61,9 @@ export default function DetailPage(props: DetailPageProps) {
   );
   const [fetchingContent, setFetchingContent] = createSignal(false);
   const [currentTab, setCurrentTab] = createSignal(props.tab);
-  const [isNarrow, setIsNarrow] = createSignal(false);
+  const [isNarrow, setIsNarrow] = createSignal(window.innerWidth < 768);
+  const [hideRightNav, setHideRightNav] = createSignal(window.innerWidth < 1024);
+  const [hideLeftNav, setHideLeftNav] = createSignal(window.innerWidth < 1100);
   const [copied, setCopied] = createSignal(false);
   const [heroScrolledPast, setHeroScrolledPast] = createSignal(false);
   const [reExtracting, setReExtracting] = createSignal(false);
@@ -56,9 +76,15 @@ export default function DetailPage(props: DetailPageProps) {
   const [documents, setDocuments] = createSignal<AIDocument[]>([]);
   const [activeDocTab, setActiveDocTab] = createSignal<string>("content");
   const [generatingIds, setGeneratingIds] = createSignal<Set<string>>(new Set());
-  const [generatingAll, setGeneratingAll] = createSignal(false);
   const [customGenerating, setCustomGenerating] = createSignal(false);
   const [customResult, setCustomResult] = createSignal<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = createSignal(false);
+
+  // Regeneration: track pending results that need user approval
+  // Maps templateId -> { oldDoc, newDoc } for keep/discard flow
+  const [pendingRegen, setPendingRegen] = createSignal<
+    Record<string, { oldDoc: AIDocument; newDoc: AIDocument }>
+  >({});
 
   // Check for pending migrations
   const pendingMigrations = createMemo(() =>
@@ -98,16 +124,23 @@ export default function DetailPage(props: DetailPageProps) {
       handleReExtract();
     }
 
-    if (!containerRef) return;
+    const narrowQuery = window.matchMedia("(max-width: 767px)");
+    const rightNavQuery = window.matchMedia("(max-width: 1023px)");
+    const leftNavQuery = window.matchMedia("(max-width: 1099px)");
 
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setIsNarrow(entry.contentRect.width < 768);
-      }
+    const onNarrowChange = (e: MediaQueryListEvent) => setIsNarrow(e.matches);
+    const onRightNavChange = (e: MediaQueryListEvent) => setHideRightNav(e.matches);
+    const onLeftNavChange = (e: MediaQueryListEvent) => setHideLeftNav(e.matches);
+
+    narrowQuery.addEventListener("change", onNarrowChange);
+    rightNavQuery.addEventListener("change", onRightNavChange);
+    leftNavQuery.addEventListener("change", onLeftNavChange);
+
+    onCleanup(() => {
+      narrowQuery.removeEventListener("change", onNarrowChange);
+      rightNavQuery.removeEventListener("change", onRightNavChange);
+      leftNavQuery.removeEventListener("change", onLeftNavChange);
     });
-    resizeObserver.observe(containerRef);
-
-    onCleanup(() => resizeObserver.disconnect());
 
     // Listen for data changes from other views
     const handleMessage = async (message: any) => {
@@ -133,9 +166,29 @@ export default function DetailPage(props: DetailPageProps) {
         getAllTemplates(),
         getDocumentsForTab(props.tab.id),
       ]);
+      console.log("[TabZen AI] Loaded templates:", tmpl.length, "enabled:", tmpl.filter((t) => t.isEnabled).length);
+      console.log("[TabZen AI] Loaded docs for tab:", docs.length);
       setTemplates(tmpl.filter((t) => t.isEnabled));
       setDocuments(docs);
     })();
+  });
+
+  // Auto-generate when navigating to a section with no document
+  createEffect(() => {
+    const tab = activeDocTab();
+    if (tab === "content" || tab === "custom") return;
+    if (SELF_MANAGED_TEMPLATES.has(tab)) return;
+
+    const tmpl = templates().find((t) => t.id === tab);
+    if (!tmpl) return;
+
+    const hasDoc = documents().some((d) => d.templateId === tab);
+    const isGen = generatingIds().has(tab);
+    const hasSource = transcriptSegments().length > 0 || markdownContent().length > 0;
+
+    if (!hasDoc && !isGen && hasSource) {
+      handleGenerate(tmpl);
+    }
   });
 
   // Extract TOC entries from rendered headings after content changes
@@ -253,15 +306,38 @@ export default function DetailPage(props: DetailPageProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  /** Simple hash of prompt + source content for staleness detection */
+  const computeSourceHash = async (prompt: string, content: string): Promise<string> => {
+    const data = new TextEncoder().encode(prompt + "\n---\n" + content);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+  };
+
+  /** Get the current source hash for a template */
+  const getCurrentSourceHash = async (template: AITemplate): Promise<string | null> => {
+    const content = transcriptSegments().length > 0
+      ? transcriptSegments().map((s) => s.text).join(" ")
+      : markdownContent();
+    if (!content) return null;
+    return computeSourceHash(template.prompt, content);
+  };
+
   const handleGenerate = async (template: AITemplate) => {
     const settings = await getSettings();
     if (!settings.openRouterApiKey) return;
 
+    const content = transcriptSegments().length > 0
+      ? transcriptSegments().map((s) => s.text).join(" ")
+      : markdownContent();
+    if (!content) return;
+
+    // Check if this is a regeneration (existing doc)
+    const existingDoc = documents().find((d) => d.templateId === template.id);
+    const isRegen = !!existingDoc;
+
     setGeneratingIds((prev) => new Set([...prev, template.id]));
     try {
-      const content = transcriptSegments().length > 0
-        ? transcriptSegments().map((s) => s.text).join(" ")
-        : markdownContent();
       const contentType = transcriptSegments().length > 0 ? "transcript" : "markdown" as const;
       const model = template.model || settings.aiModel;
 
@@ -273,18 +349,31 @@ export default function DetailPage(props: DetailPageProps) {
         contentType,
       );
 
-      const doc: AIDocument = {
+      const sourceHash = await computeSourceHash(template.prompt, content);
+
+      const newDoc: AIDocument = {
         id: uuidv4(),
         tabId: props.tab.id,
         templateId: template.id,
         content: result,
         generatedAt: new Date().toISOString(),
         promptUsed: template.prompt,
+        sourceHash,
       };
-      await putDocument(doc);
-      setDocuments(await getDocumentsForTab(props.tab.id));
+
+      if (isRegen && existingDoc) {
+        // Don't save yet — show keep/discard choice
+        setPendingRegen((prev) => ({
+          ...prev,
+          [template.id]: { oldDoc: existingDoc, newDoc },
+        }));
+      } else {
+        // First generation — save directly
+        await putDocument(newDoc);
+        setDocuments(await getDocumentsForTab(props.tab.id));
+      }
     } catch (e) {
-      console.error(`Failed to generate ${template.name}:`, e);
+      console.error(`[TabZen AI] Failed to generate ${template.name}:`, e);
     } finally {
       setGeneratingIds((prev) => {
         const next = new Set(prev);
@@ -294,14 +383,67 @@ export default function DetailPage(props: DetailPageProps) {
     }
   };
 
-  const handleGenerateAll = async () => {
-    setGeneratingAll(true);
-    const ungeneratedTemplates = templates().filter(
-      (t) => !documents().some((d) => d.templateId === t.id),
-    );
-    await Promise.allSettled(ungeneratedTemplates.map((t) => handleGenerate(t)));
-    setGeneratingAll(false);
+  const handleAcceptRegen = async (templateId: string) => {
+    const pending = pendingRegen()[templateId];
+    if (!pending) return;
+    await putDocument(pending.newDoc);
+    setDocuments(await getDocumentsForTab(props.tab.id));
+    setPendingRegen((prev) => {
+      const next = { ...prev };
+      delete next[templateId];
+      return next;
+    });
   };
+
+  const handleDiscardRegen = (templateId: string) => {
+    setPendingRegen((prev) => {
+      const next = { ...prev };
+      delete next[templateId];
+      return next;
+    });
+  };
+
+  const handleDeleteCustomDoc = async (template: AITemplate) => {
+    const doc = documents().find((d) => d.templateId === template.id);
+    if (doc) await deleteDocument(doc.id);
+    await deleteTemplate(template.id);
+    const [tmpl, docs] = await Promise.all([
+      getAllTemplates(),
+      getDocumentsForTab(props.tab.id),
+    ]);
+    setTemplates(tmpl.filter((t) => t.isEnabled));
+    setDocuments(docs);
+    setActiveDocTab("content");
+  };
+
+  const handleUpdatePrompt = async (template: AITemplate, prompt: string) => {
+    const updated = { ...template, prompt };
+    await putTemplate(updated);
+    const tmpl = await getAllTemplates();
+    setTemplates(tmpl.filter((t) => t.isEnabled));
+  };
+
+  const handleHideTemplate = async (template: AITemplate) => {
+    const updated = { ...template, isEnabled: false };
+    await putTemplate(updated);
+    const tmpl = await getAllTemplates();
+    setTemplates(tmpl.filter((t) => t.isEnabled));
+    if (activeDocTab() === template.id) setActiveDocTab("content");
+    toast(template.name + " hidden", {
+      description: "You can bring it back from Settings anytime",
+      duration: 8000,
+      action: {
+        label: "Undo",
+        onClick: async () => {
+          const restored = { ...template, isEnabled: true };
+          await putTemplate(restored);
+          const t = await getAllTemplates();
+          setTemplates(t.filter((x) => x.isEnabled));
+        },
+      },
+    });
+  };
+
 
   const handleCreateCustomTemplate = async (name: string, prompt: string) => {
     const settings = await getSettings();
@@ -334,6 +476,8 @@ export default function DetailPage(props: DetailPageProps) {
         contentType,
       );
 
+      const sourceHash = await computeSourceHash(prompt, content);
+
       const doc: AIDocument = {
         id: uuidv4(),
         tabId: props.tab.id,
@@ -341,9 +485,28 @@ export default function DetailPage(props: DetailPageProps) {
         content: result,
         generatedAt: new Date().toISOString(),
         promptUsed: prompt,
+        sourceHash,
       };
       await putDocument(doc);
       setCustomResult(result);
+
+      // Generate a short title from the result
+      try {
+        const title = await generateDocument(
+          settings.openRouterApiKey,
+          settings.aiModel,
+          "Give this content a short title (3-6 words max). Return ONLY the title, nothing else.",
+          result,
+          "markdown",
+        );
+        const cleanTitle = title.replace(/^["']|["']$/g, "").trim();
+        if (cleanTitle && cleanTitle.length < 60) {
+          template.name = cleanTitle;
+          await putTemplate(template);
+        }
+      } catch {
+        // Title generation failed — keep the truncated prompt as name
+      }
 
       const [tmpl, docs] = await Promise.all([
         getAllTemplates(),
@@ -421,7 +584,44 @@ export default function DetailPage(props: DetailPageProps) {
       ref={containerRef}
       class="@container flex h-screen bg-background relative"
     >
-      {/* Main content + sidebar */}
+      {/* Left sidebar — always in DOM for transitions */}
+      <Show when={hasContent() && templates().length > 0}>
+        {/* Backdrop overlay when sidebar slides over content */}
+        <Show when={hideLeftNav() && sidebarOpen()}>
+          <div
+            class="fixed inset-0 bg-black/50 z-40 animate-[fadeIn_0.2s_ease-out]"
+            onClick={() => setSidebarOpen(false)}
+          />
+        </Show>
+
+        {/* Sidebar panel */}
+        <div
+          class={`flex-shrink-0 bg-[#161618] overflow-y-auto scrollbar-hide ${
+            hideLeftNav()
+              ? `fixed top-0 left-0 h-full w-[300px] z-50 transition-transform duration-300 ${
+                  sidebarOpen() ? "translate-x-0" : "-translate-x-full"
+                }`
+              : "w-[300px]"
+          }`}
+        >
+          <DocumentNav
+            templates={templates()}
+            documents={documents()}
+            activeTab={activeDocTab()}
+            onTabChange={(tab) => {
+              setActiveDocTab(tab);
+              if (hideLeftNav()) setSidebarOpen(false);
+            }}
+            onAddCustom={() => {
+              setActiveDocTab("custom");
+              if (hideLeftNav()) setSidebarOpen(false);
+            }}
+            onHideTemplate={handleHideTemplate}
+          />
+        </div>
+      </Show>
+
+      {/* Main content + right sidebar */}
       <div class="flex-1 min-w-0 flex flex-col">
         {/* Fixed action bar */}
         <DetailHeader
@@ -434,10 +634,11 @@ export default function DetailPage(props: DetailPageProps) {
           onCopy={hasContent() ? handleCopy : undefined}
           copied={copied()}
           compact={heroScrolledPast()}
+          onMenuToggle={hideLeftNav() && hasContent() && templates().length > 0 ? () => setSidebarOpen(!sidebarOpen()) : undefined}
         />
 
         {/* Narrow: "On this page" TOC button + dropdown */}
-        <Show when={isNarrow() && tocEntries().length > 0}>
+        <Show when={hideRightNav() && tocEntries().length > 0}>
           <div class="relative">
             <button
               onClick={() => setTocDropdownOpen(!tocDropdownOpen())}
@@ -451,7 +652,6 @@ export default function DetailPage(props: DetailPageProps) {
               />
             </button>
             <Show when={tocDropdownOpen()}>
-              {/* Backdrop to close on outside click */}
               <div
                 class="fixed inset-0 z-10"
                 onClick={() => setTocDropdownOpen(false)}
@@ -482,32 +682,18 @@ export default function DetailPage(props: DetailPageProps) {
           </div>
         </Show>
 
-        {/* AI Document Tabs */}
-        <Show when={hasContent() && templates().length > 0}>
-          <DocumentTabs
-            templates={templates()}
-            documents={documents()}
-            activeTab={activeDocTab()}
-            onTabChange={setActiveDocTab}
-            onGenerateAll={handleGenerateAll}
-            onAddCustom={() => setActiveDocTab("custom")}
-            generatingAll={generatingAll()}
-            hasContent={hasContent()}
-          />
-        </Show>
-
         {/* Scrollable area containing content + sticky sidebar */}
         <div
           ref={scrollRef}
           class="flex-1 overflow-y-auto scrollbar-hide"
           onScroll={handleScroll}
         >
-          {/* Content + sidebar row */}
+          {/* Content + Right sidebar */}
           <div
             class="flex gap-16 mx-auto"
             style={{ "max-width": "calc(768px + 256px + 64px + 32px)" }}
           >
-            {/* Content column — max 688px like VitePress */}
+            {/* Content column */}
             <div class="flex-1 min-w-0 max-w-[768px] px-4">
               {/* Hero card */}
               <div ref={heroRef}>
@@ -523,7 +709,7 @@ export default function DetailPage(props: DetailPageProps) {
               </div>
 
               {/* Narrow: inline notes (only when sidebar is hidden) */}
-              <Show when={isNarrow()}>
+              <Show when={hideRightNav()}>
                 <div class="mb-6">
                   <NotesDisplay
                     tab={currentTab()}
@@ -545,24 +731,118 @@ export default function DetailPage(props: DetailPageProps) {
                     result={customResult()}
                   />
                 </Show>
+                {/* Social Posts — self-managed, handles its own generation */}
+                <Show when={activeDocTab() === "builtin-social-posts"}>
+                  <SocialPostsView
+                    content={
+                      transcriptSegments().length > 0
+                        ? transcriptSegments().map((s) => s.text).join(" ")
+                        : markdownContent()
+                    }
+                    contentType={transcriptSegments().length > 0 ? "transcript" : "markdown"}
+                    tabId={props.tab.id}
+                  />
+                </Show>
+
                 <For each={templates()}>
-                  {(template) => (
+                  {(template) => {
+                    if (SELF_MANAGED_TEMPLATES.has(template.id)) return null;
+                    const doc = () => documents().find((d) => d.templateId === template.id);
+                    const isGenerating = () => generatingIds().has(template.id);
+                    const pending = () => pendingRegen()[template.id];
+                    const specializedRenderer = SPECIALIZED_RENDERERS[template.id];
+                    const displayContent = () => pending()?.newDoc.content || doc()?.content;
+
+                    // Check staleness — hash mismatch means prompt or content changed
+                    const [stale, setStale] = createSignal(false);
+                    createEffect(async () => {
+                      const d = doc();
+                      if (!d?.sourceHash) { setStale(false); return; }
+                      const currentHash = await getCurrentSourceHash(template);
+                      setStale(currentHash !== null && currentHash !== d.sourceHash);
+                    });
+
+                    return (
                     <Show when={activeDocTab() === template.id}>
-                      <DocumentView
-                        template={template}
-                        document={documents().find((d) => d.templateId === template.id)}
-                        generating={generatingIds().has(template.id)}
-                        onGenerate={() => handleGenerate(template)}
-                        onRegenerate={() => handleGenerate(template)}
-                      />
+                      {/* Generating state — always show skeleton */}
+                      <Show when={isGenerating()}>
+                        <div class="px-2 mb-4">
+                          <h2 class="text-xl font-semibold text-foreground">{template.name}</h2>
+                        </div>
+                        {getSkeletonForTemplate(template.id)}
+                      </Show>
+
+                      {/* Not generating */}
+                      <Show when={!isGenerating()}>
+                        {/* Pending regen bar — keep or discard */}
+                        <Show when={pending()}>
+                          <div class="mx-4 mb-4 flex items-center gap-3 px-4 py-3 rounded-lg bg-sky-500/10">
+                            <span class="text-sm text-sky-300">New version generated</span>
+                            <div class="flex items-center gap-1.5 ml-auto">
+                              <button
+                                onClick={() => handleAcceptRegen(template.id)}
+                                class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition-colors"
+                              >
+                                Use New
+                              </button>
+                              <button
+                                onClick={() => handleDiscardRegen(template.id)}
+                                class="px-3 py-1.5 text-xs font-medium rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                Keep Old
+                              </button>
+                            </div>
+                          </div>
+                        </Show>
+
+                        <Show
+                          when={!!specializedRenderer && !!displayContent()}
+                          fallback={
+                            <DocumentView
+                              template={template}
+                              document={pending()?.newDoc || doc()}
+                              generating={false}
+                              stale={stale()}
+                              onGenerate={() => handleGenerate(template)}
+                              onRegenerate={() => handleGenerate(template)}
+                              onDelete={!template.isBuiltin ? () => handleDeleteCustomDoc(template) : undefined}
+                              onUpdatePrompt={(p) => handleUpdatePrompt(template, p)}
+                            />
+                          }
+                        >
+                          {/* Specialized renderer with title + prompt + stale indicator */}
+                          <div class="px-2">
+                            <div class="flex items-center gap-2 mb-6">
+                              <h2 class="text-xl font-semibold text-foreground">{template.name}</h2>
+                            </div>
+                            <PromptViewer
+                              template={template}
+                              onUpdatePrompt={(p) => handleUpdatePrompt(template, p)}
+                            />
+                          </div>
+                          <Show when={stale()}>
+                            <div class="mx-2 mb-4 flex items-center gap-3 px-4 py-2.5 rounded-lg bg-sky-500/10">
+                              <span class="text-sm text-sky-300">Source or prompt has changed</span>
+                              <button
+                                onClick={() => handleGenerate(template)}
+                                class="ml-auto px-3 py-1.5 text-xs font-medium rounded-lg bg-sky-500/15 text-sky-400 hover:bg-sky-500/25 transition-colors"
+                              >
+                                Regenerate
+                              </button>
+                            </div>
+                          </Show>
+                          {specializedRenderer(displayContent()!)}
+                        </Show>
+                      </Show>
                     </Show>
-                  )}
+                    );
+                  }}
                 </For>
               </div>
             </div>
 
             {/* Sidebar placeholder — reserves space in the flex layout */}
-            <Show when={!isNarrow()}>
+            <Show when={!hideRightNav()}>
               <div class="relative flex-shrink-0 w-[256px]">
                 {/* Fixed sidebar — positioned inside placeholder, full viewport height */}
                 <div class="fixed top-14 max-w-96 h-[calc(100vh-42px)] overflow-y-auto scrollbar-hide z-10">

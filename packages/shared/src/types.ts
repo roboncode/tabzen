@@ -93,4 +93,6 @@ export interface AIDocument {
   content: string;
   generatedAt: string;
   promptUsed: string;
+  /** Hash of prompt + source content — used to detect staleness */
+  sourceHash?: string;
 }

@@ -418,6 +418,11 @@ export async function deleteDocumentsForTab(tabId: string): Promise<void> {
   await tx.done;
 }
 
+export async function deleteDocument(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete("aiDocuments", id);
+}
+
 export async function getAllDocuments(): Promise<AIDocument[]> {
   const db = await getDB();
   return db.getAll("aiDocuments");

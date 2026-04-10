@@ -18,12 +18,17 @@ export interface Settings {
   syncError: string | null;
   viewMode: "cards" | "rows";
   activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates" | "trash";
+  socialVoice: string;
+  socialDefaultLength: "brief" | "standard" | "detailed" | "thread";
+  socialHashtags: boolean;
+  socialEngagementQuestion: boolean;
+  socialHook: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   deviceId: "",
   sourceLabel: "Chrome - Default",
-  openRouterApiKey: "",
+  openRouterApiKey: import.meta.env.VITE_OPENROUTER_API_KEY || "",
   aiModel: "openai/gpt-4o-mini",
   syncEnabled: false,
   syncToken: null,
@@ -59,6 +64,11 @@ export const DEFAULT_SETTINGS: Settings = {
   ],
   viewMode: "cards",
   activeFilter: "all",
+  socialVoice: "",
+  socialDefaultLength: "standard",
+  socialHashtags: true,
+  socialEngagementQuestion: false,
+  socialHook: true,
 };
 
 export interface AIGroupSuggestion {

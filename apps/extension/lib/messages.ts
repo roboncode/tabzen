@@ -14,7 +14,9 @@ export type MessageRequest =
   | { type: "RE_EXTRACT_CONTENT"; tabId: string }
   | { type: "SYNC_NOW" }
   | { type: "QUICK_CAPTURE" }
-  | { type: "IS_URL_SAVED"; url: string };
+  | { type: "IS_URL_SAVED"; url: string }
+  | { type: "LOOKUP_PRODUCT"; name: string }
+  | { type: "LOOKUP_WIKI_IMAGE"; title: string };
 
 export type MessageResponse =
   | { type: "CAPTURE_PREVIEW"; data: CapturePreviewData }
@@ -28,7 +30,9 @@ export type MessageResponse =
   | { type: "SUCCESS" }
   | { type: "SYNC_COMPLETE"; pushed: number; pulled: number }
   | { type: "QUICK_CAPTURE_DONE"; saved: number; skipped: number }
-  | { type: "URL_SAVED"; saved: boolean; tabId?: string };
+  | { type: "URL_SAVED"; saved: boolean; tabId?: string }
+  | { type: "PRODUCT_LOOKUP"; url: string | null; image: string | null; description: string | null }
+  | { type: "WIKI_IMAGE"; url: string | null };
 
 export function sendMessage(message: MessageRequest): Promise<MessageResponse> {
   return browser.runtime.sendMessage(message);

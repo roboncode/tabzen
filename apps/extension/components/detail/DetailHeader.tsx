@@ -1,4 +1,4 @@
-import { createMemo, Show } from "solid-js";
+import { createMemo, createSignal, Show } from "solid-js";
 import {
   ArrowLeft,
   Star,
@@ -8,6 +8,7 @@ import {
   Trash2,
   Copy,
   Check,
+  Menu,
 } from "lucide-solid";
 import type { Tab } from "@/lib/types";
 import { extractCreator, getDomain, getFaviconUrl } from "@/lib/domains";
@@ -30,6 +31,8 @@ interface DetailHeaderProps {
   heroOnly?: boolean;
   /** Show compact title + thumbnail in the action bar */
   compact?: boolean;
+  /** Show menu button for sidebar toggle on narrow screens */
+  onMenuToggle?: () => void;
 }
 
 export default function DetailHeader(props: DetailHeaderProps) {
@@ -50,6 +53,10 @@ export default function DetailHeader(props: DetailHeaderProps) {
 
   const tags = createMemo(() => props.tab.tags || []);
   const title = createMemo(() => props.tab.ogTitle || props.tab.title);
+
+  const [descExpanded, setDescExpanded] = createSignal(false);
+  const [descOverflows, setDescOverflows] = createSignal(false);
+  let descRef: HTMLParagraphElement | undefined;
 
   // ── Hero Only mode: the scrollable card ──
   if (props.heroOnly) {
@@ -131,9 +138,27 @@ export default function DetailHeader(props: DetailHeaderProps) {
 
             {/* Description */}
             {description() && (
-              <p class="text-sm text-muted-foreground mt-2.5 line-clamp-2 leading-relaxed">
-                {description()}
-              </p>
+              <div class="mt-2.5">
+                <p
+                  ref={(el) => {
+                    descRef = el;
+                    requestAnimationFrame(() => {
+                      if (el) setDescOverflows(el.scrollHeight > el.clientHeight);
+                    });
+                  }}
+                  class={`text-sm text-muted-foreground leading-relaxed ${descExpanded() ? "" : "line-clamp-2"}`}
+                >
+                  {description()}
+                </p>
+                <Show when={descOverflows() || descExpanded()}>
+                  <button
+                    onClick={() => setDescExpanded(!descExpanded())}
+                    class="text-xs text-muted-foreground/50 hover:text-foreground transition-colors mt-1"
+                  >
+                    {descExpanded() ? "Show less" : "Show more"}
+                  </button>
+                </Show>
+              </div>
             )}
 
             {/* Tags */}
@@ -146,7 +171,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
 
   // ── Action bar mode (default) ──
   return (
-    <div class="flex items-center gap-1 px-4 py-2.5 bg-muted/30 flex-shrink-0 relative z-20">
+    <div class="flex items-center gap-1 px-4 py-4 bg-background border-b-3 border-[#161618] flex-shrink-0 relative z-20">
       <button
         onClick={props.onBack}
         class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -154,6 +179,16 @@ export default function DetailHeader(props: DetailHeaderProps) {
         <ArrowLeft size={16} />
         <span>Back</span>
       </button>
+
+      {/* Menu button — narrow screens only */}
+      <Show when={props.onMenuToggle}>
+        <IconButton
+          onClick={() => props.onMenuToggle!()}
+          title="Toggle sidebar"
+        >
+          <Menu size={16} />
+        </IconButton>
+      </Show>
 
       {/* Compact title — visible when hero scrolled past */}
       <Show when={props.compact}>

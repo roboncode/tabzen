@@ -336,6 +336,12 @@ export default defineBackground(() => {
         return handleSyncNow();
       case "QUICK_CAPTURE":
         return handleQuickCapture();
+      case "GET_METADATA":
+        return handleGetMetadata(message.url);
+      case "LOOKUP_PRODUCT":
+        return handleLookupProduct(message.name);
+      case "LOOKUP_WIKI_IMAGE":
+        return handleLookupWikiImage(message.title);
       case "IS_URL_SAVED":
         return handleIsUrlSaved(message.url);
       default:
@@ -929,6 +935,100 @@ export default defineBackground(() => {
     } catch (e) {
       console.error("[TabZen] Quick capture error:", e);
       return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleLookupProduct(name: string): Promise<MessageResponse> {
+    try {
+      const response = await fetch(
+        `https://api.duckduckgo.com/?q=${encodeURIComponent(name)}&format=json&no_html=1`,
+        { signal: AbortSignal.timeout(5000) },
+      );
+      const data = await response.json();
+
+      // Extract official website from Infobox
+      let url: string | null = null;
+      const infobox = data.Infobox?.content || [];
+      for (const item of infobox) {
+        if (item.label?.toLowerCase() === "official website" && item.value?.startsWith("http")) {
+          url = item.value;
+          break;
+        }
+        if (item.label?.toLowerCase() === "website" && !url) {
+          // Extract URL from "[domain]" or "http://..." format
+          const val = item.value || "";
+          if (val.startsWith("http")) {
+            url = val;
+          } else {
+            const match = val.match(/\[?(https?:\/\/[^\]\s]+|[\w.-]+\.\w{2,}[^\]\s]*)\]?/);
+            if (match) {
+              url = match[1].startsWith("http") ? match[1] : `https://${match[1]}`;
+            }
+          }
+        }
+      }
+
+      // DDG image (relative path)
+      let image = data.Image || null;
+      if (image && !image.startsWith("http")) {
+        image = `https://duckduckgo.com${image}`;
+      }
+
+      // If we found a URL, also fetch OG metadata for it
+      if (url) {
+        try {
+          const meta = await fetchMetadataViaHttp(url);
+          return {
+            type: "PRODUCT_LOOKUP",
+            url,
+            image: meta.ogImage || image,
+            description: meta.ogDescription || data.AbstractText || null,
+          };
+        } catch {
+          // OG fetch failed, still return what we have from DDG
+        }
+      }
+
+      return {
+        type: "PRODUCT_LOOKUP",
+        url,
+        image,
+        description: data.AbstractText || null,
+      };
+    } catch (e) {
+      console.warn("[TabZen] Product lookup failed for", name, e);
+      return { type: "PRODUCT_LOOKUP", url: null, image: null, description: null };
+    }
+  }
+
+  async function handleLookupWikiImage(title: string): Promise<MessageResponse> {
+    try {
+      const response = await fetch(
+        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,
+        { signal: AbortSignal.timeout(5000) },
+      );
+      if (!response.ok) return { type: "WIKI_IMAGE", url: null };
+      const data = await response.json();
+      const imageUrl = data.thumbnail?.source || data.originalimage?.source || null;
+      return { type: "WIKI_IMAGE", url: imageUrl };
+    } catch {
+      return { type: "WIKI_IMAGE", url: null };
+    }
+  }
+
+  async function handleGetMetadata(url: string): Promise<MessageResponse> {
+    try {
+      const meta = await fetchMetadataViaHttp(url);
+      return {
+        type: "METADATA",
+        ogTitle: meta.ogTitle,
+        ogDescription: meta.ogDescription,
+        ogImage: meta.ogImage,
+        metaDescription: null,
+      };
+    } catch (e) {
+      console.warn("[TabZen] Metadata fetch failed for", url, e);
+      return { type: "METADATA", ogTitle: null, ogDescription: null, ogImage: null, metaDescription: null };
     }
   }
 

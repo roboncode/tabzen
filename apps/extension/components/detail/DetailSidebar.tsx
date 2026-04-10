@@ -81,11 +81,11 @@ export default function DetailSidebar(props: DetailSidebarProps) {
   };
 
   return (
-    <div class="pl-4 pr-4 pt-24 pb-8 border-l border-muted-foreground/10">
+    <div class="pl-4 pr-4 pt-20 pb-8 border-l border-muted-foreground/5">
       {/* Table of Contents */}
       <Show when={props.tocEntries.length > 0}>
         <div class="mb-5">
-          <div class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          <div class="text-xs font-semibold text-foreground/90 mb-3">
             On this page
           </div>
           <div class="relative">
@@ -114,7 +114,7 @@ export default function DetailSidebar(props: DetailSidebarProps) {
 
       {/* Notes */}
       <div class="mb-5">
-        <div class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        <div class="text-xs font-semibold text-foreground/90 mb-3">
           Notes
         </div>
         <NotesDisplay
@@ -127,7 +127,7 @@ export default function DetailSidebar(props: DetailSidebarProps) {
       {/* Tags */}
       <Show when={props.tab.tags && props.tab.tags.length > 0}>
         <div class="mb-5">
-          <div class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          <div class="text-xs font-semibold text-foreground/90 mb-3">
             Tags
           </div>
           <div class="flex flex-wrap gap-x-2 gap-y-1">
@@ -145,7 +145,7 @@ export default function DetailSidebar(props: DetailSidebarProps) {
       {/* External Links */}
       <Show when={externalLinks().length > 0}>
         <div class="mb-5">
-          <div class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          <div class="text-xs font-semibold text-foreground/90 mb-3">
             Links
           </div>
           <For each={externalLinks()}>
