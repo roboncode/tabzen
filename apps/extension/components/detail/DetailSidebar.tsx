@@ -1,5 +1,7 @@
 import { createSignal, createEffect, onCleanup, For, Show } from "solid-js";
+import { useNavigate } from "@solidjs/router";
 import type { Page } from "@/lib/types";
+import { getDomain, extractCreator } from "@/lib/domains";
 import NotesDisplay from "@/components/NotesDisplay";
 
 export interface TocEntry {
@@ -13,9 +15,11 @@ interface DetailSidebarProps {
   tocEntries: TocEntry[];
   scrollRef: HTMLElement | undefined;
   onSaveNotes: (pageId: string, notes: string) => void;
+  relatedPages?: Page[];
 }
 
 export default function DetailSidebar(props: DetailSidebarProps) {
+  const navigate = useNavigate();
   const [activeId, setActiveId] = createSignal<string>("");
 
   // Track which heading is in view using IntersectionObserver
@@ -159,6 +163,55 @@ export default function DetailSidebar(props: DetailSidebarProps) {
               </a>
             )}
           </For>
+        </div>
+      </Show>
+
+      {/* Related Pages */}
+      <Show when={props.relatedPages && props.relatedPages.length > 0}>
+        <div class="mb-5">
+          <div class="text-xs font-semibold text-foreground/90 mb-3">
+            Related
+          </div>
+          <div class="flex flex-col gap-2.5">
+            <For each={props.relatedPages}>
+              {(related) => {
+                const creator = () => extractCreator(related);
+                const domain = () => getDomain(related.url);
+                return (
+                  <button
+                    class="flex gap-2.5 text-left rounded-lg hover:bg-muted/30 transition-colors cursor-pointer p-1 -mx-1 group/related"
+                    onClick={() => navigate(`/page/${related.id}`)}
+                  >
+                    <div class="w-16 h-10 rounded-md overflow-hidden bg-muted/40 flex-shrink-0">
+                      <Show
+                        when={related.ogImage}
+                        fallback={
+                          <div class="w-full h-full flex items-center justify-center text-muted-foreground/30 text-[8px]">
+                            {domain()}
+                          </div>
+                        }
+                      >
+                        <img
+                          src={related.ogImage!}
+                          alt=""
+                          class="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      </Show>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs font-medium text-muted-foreground group-hover/related:text-foreground transition-colors line-clamp-2 leading-snug">
+                        {related.ogTitle || related.title}
+                      </p>
+                      <p class="text-[10px] text-muted-foreground/50 mt-0.5 truncate">
+                        {creator() || domain()}
+                      </p>
+                    </div>
+                  </button>
+                );
+              }}
+            </For>
+          </div>
         </div>
       </Show>
     </div>

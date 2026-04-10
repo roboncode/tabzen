@@ -15,7 +15,7 @@ import type { TranscriptSegment } from "@tab-zen/shared";
 import { formatTimestamp } from "./TranscriptView";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { sendMessage } from "@/lib/messages";
-import { updatePage, getPage, softDeletePage, getAllTemplates, getDocumentsForPage, putDocument, putTemplate, deleteDocument, deleteTemplate } from "@/lib/db";
+import { updatePage, getPage, softDeletePage, getAllPages, getAllTemplates, getDocumentsForPage, putDocument, putTemplate, deleteDocument, deleteTemplate } from "@/lib/db";
 import { getPendingMigrations } from "@/lib/page-extract";
 import { generateDocument } from "@/lib/ai";
 import { getSettings } from "@/lib/settings";
@@ -87,6 +87,7 @@ export default function DetailPage(props: DetailPageProps) {
   const [customGenerating, setCustomGenerating] = createSignal(false);
   const [customResult, setCustomResult] = createSignal<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
+  const [relatedPages, setRelatedPages] = createSignal<Page[]>([]);
 
   // Sync active section changes to the URL
   createEffect(on(activeSection, (section) => {
@@ -180,6 +181,24 @@ export default function DetailPage(props: DetailPageProps) {
       setTemplates(tmpl.filter((t) => t.isEnabled));
       setDocuments(docs);
       setDocsLoaded(true);
+    })();
+
+    // Find related pages by tag overlap
+    (async () => {
+      const myTags = props.page.tags;
+      if (!myTags?.length) return;
+      const allPages = await getAllPages();
+      const myTagSet = new Set(myTags);
+      const scored = allPages
+        .filter((p) => p.id !== props.page.id && !p.deletedAt && !p.archived && p.tags?.length)
+        .map((p) => ({
+          page: p,
+          overlap: p.tags.filter((t) => myTagSet.has(t)).length,
+        }))
+        .filter((s) => s.overlap > 0)
+        .sort((a, b) => b.overlap - a.overlap)
+        .slice(0, 3);
+      setRelatedPages(scored.map((s) => s.page));
     })();
   });
 
@@ -850,6 +869,7 @@ export default function DetailPage(props: DetailPageProps) {
                     tocEntries={tocEntries()}
                     scrollRef={scrollRef}
                     onSaveNotes={handleSaveNotes}
+                    relatedPages={relatedPages()}
                   />
                 </div>
               </div>
