@@ -1,6 +1,7 @@
 import { createSignal, createMemo, onMount, onCleanup, For, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X, ExternalLink, ArrowRight, Trash2, Star, StickyNote, Calendar, Archive, Inbox } from "lucide-solid";
+import { Menu, X, Trash2, Star, StickyNote, Calendar, Archive, Inbox } from "lucide-solid";
+import UserMenu from "./UserMenu";
 import EmptyBlock from "./EmptyBlock";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
 import AppSidebar from "./AppSidebar";
@@ -35,8 +36,6 @@ import ConfirmDialog from "./ConfirmDialog";
 interface PageCollectionProps {
   viewMode: Settings["viewMode"];
   onViewModeChange: (mode: "cards" | "rows") => void;
-  showExpandButton?: boolean;
-  onOpenSettings?: () => void;
 }
 
 export default function PageCollection(props: PageCollectionProps) {
@@ -46,7 +45,6 @@ export default function PageCollection(props: PageCollectionProps) {
   const [domainFilter, setDomainFilter] = createSignal<string | null>(null);
   const [creatorFilter, setCreatorFilter] = createSignal<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
-  const [openMode, setOpenMode] = createSignal<"new-tab" | "current-tab">("new-tab");
   const [syncError, setSyncError] = createSignal<string | null>(null);
   let searchBarApi: { setSearch: (q: string) => void } | undefined;
   const [searchQuery, setSearchQuery] = createSignal<string>("");
@@ -91,7 +89,6 @@ export default function PageCollection(props: PageCollectionProps) {
   onMount(() => {
     loadData();
     getSettings().then((s) => {
-      setOpenMode(s.openMode || "new-tab");
       if (s.syncError) setSyncError(s.syncError);
     });
 
@@ -340,21 +337,6 @@ export default function PageCollection(props: PageCollectionProps) {
     }
   };
 
-  const openSidePanel = async () => {
-    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id) {
-      await browser.sidePanel.open({ tabId: tab.id });
-    }
-  };
-
-  const openFullPage = async () => {
-    await browser.tabs.create({ url: browser.runtime.getURL("/index.html") });
-    // Close the side panel if we're in one
-    if (props.showExpandButton) {
-      window.close();
-    }
-  };
-
   return (
     <div class="flex h-full bg-background text-foreground @container">
       {/* Sidebar - persistent when container is wide enough */}
@@ -388,71 +370,37 @@ export default function PageCollection(props: PageCollectionProps) {
 
       {/* Main content */}
       <div class="flex-1 flex flex-col h-full min-w-0">
-        {/* Top Bar */}
-        <div class="flex items-center justify-between px-4 py-3 bg-muted/30">
-          <div class="flex items-center gap-2">
-            {/* Hamburger - visible only when sidebar is hidden */}
-            <button
-              class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors @[768px]:hidden"
-              onClick={() => setSidebarOpen(!sidebarOpen())}
-              title="Browse domains"
-            >
-              <Menu size={16} />
-            </button>
-            <h1 class="text-base font-semibold text-foreground">
-              Tab Zen
-              <Show when={domainFilter()}>
-                <span class="text-muted-foreground font-normal">
-                  {" / "}{domainFilter()}
-                  <Show when={creatorFilter()}>
-                    {" / "}{creatorFilter()}
-                  </Show>
-                </span>
-              </Show>
-            </h1>
-          </div>
-          <div class="flex items-center gap-2">
-            <ViewToggle
-              mode={props.viewMode}
-              onChange={props.onViewModeChange}
-            />
-            <button
-              class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-              onClick={() => {
-                const next = openMode() === "new-tab" ? "current-tab" : "new-tab";
-                setOpenMode(next);
-                updateSettings({ openMode: next });
-              }}
-              title={openMode() === "new-tab" ? "Opens in new tab (click to change)" : "Opens in current tab (click to change)"}
-            >
-              {openMode() === "new-tab" ? <ExternalLink size={15} /> : <ArrowRight size={15} />}
-            </button>
-            <Show when={props.showExpandButton}>
-              <button
-                class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                onClick={openFullPage}
-                title="Open full page"
-              >
-                <Maximize2 size={15} />
-              </button>
+        {/* Top Bar — matches detail page header */}
+        <div class="flex items-center gap-2 px-4 py-4 bg-background border-b-3 border-[#161618] flex-shrink-0">
+          {/* Hamburger - visible only when sidebar is hidden */}
+          <button
+            class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors @[768px]:hidden flex-shrink-0"
+            onClick={() => setSidebarOpen(!sidebarOpen())}
+            title="Browse domains"
+          >
+            <Menu size={16} />
+          </button>
+
+          <span class="text-sm font-medium text-foreground truncate flex-1 min-w-0">
+            Collections
+            <Show when={domainFilter()}>
+              <span class="text-muted-foreground font-normal">
+                {" / "}{domainFilter()}
+                <Show when={creatorFilter()}>
+                  {" / "}{creatorFilter()}
+                </Show>
+              </span>
             </Show>
-            <Show when={!props.showExpandButton}>
-              <button
-                class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                onClick={openSidePanel}
-                title="Open side panel"
-              >
-                <PanelRight size={15} />
-              </button>
-            </Show>
-            <button
-              class="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-              onClick={() => props.onOpenSettings?.()}
-              title="Settings"
-            >
-              <SettingsIcon size={15} />
-            </button>
-          </div>
+          </span>
+
+          <ViewToggle
+            mode={props.viewMode}
+            onChange={props.onViewModeChange}
+          />
+
+          <div class="w-px h-5 bg-muted-foreground/20 flex-shrink-0 mx-2" />
+
+          <UserMenu />
         </div>
 
       {/* Sync error banner */}
@@ -462,7 +410,7 @@ export default function PageCollection(props: PageCollectionProps) {
           <div class="flex items-center gap-2">
             <button
               class="text-xs text-red-300 hover:text-red-200 transition-colors"
-              onClick={() => props.onOpenSettings?.()}
+              onClick={() => navigate("/settings")}
             >
               Settings
             </button>

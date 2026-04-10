@@ -1,11 +1,9 @@
 import { createSignal } from "solid-js";
-import { useNavigate } from "@solidjs/router";
 import { getSettings, updateSettings } from "@/lib/settings";
 import PageCollection from "@/components/PageCollection";
 import type { Settings } from "@/lib/types";
 
 export default function PageList() {
-  const navigate = useNavigate();
   const [viewMode, setViewMode] = createSignal<Settings["viewMode"]>("cards");
 
   getSettings().then((s) => setViewMode(s.viewMode));
@@ -21,8 +19,6 @@ export default function PageList() {
         <PageCollection
           viewMode={viewMode()}
           onViewModeChange={handleViewModeChange}
-          showExpandButton={false}
-          onOpenSettings={() => navigate("/settings")}
         />
       </div>
     </div>
