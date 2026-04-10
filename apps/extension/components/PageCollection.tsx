@@ -1,6 +1,22 @@
-import { createSignal, createMemo, onMount, onCleanup, For, Show } from "solid-js";
+import {
+  createSignal,
+  createMemo,
+  onMount,
+  onCleanup,
+  For,
+  Show,
+} from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { Menu, X, Trash2, Star, StickyNote, Calendar, Archive, Inbox } from "lucide-solid";
+import {
+  Menu,
+  X,
+  Trash2,
+  Star,
+  StickyNote,
+  Calendar,
+  Archive,
+  Inbox,
+} from "lucide-solid";
 import UserMenu from "./UserMenu";
 import EmptyBlock from "./EmptyBlock";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
@@ -174,7 +190,10 @@ export default function PageCollection(props: PageCollectionProps) {
       pages = pages.filter((t) => (t.deviceId || t.sourceLabel) === device);
     }
 
-    if (f === "trash") return pages.filter((t) => t.deletedAt !== null && t.deletedAt !== undefined);
+    if (f === "trash")
+      return pages.filter(
+        (t) => t.deletedAt !== null && t.deletedAt !== undefined,
+      );
 
     // All non-trash views exclude soft-deleted pages
     pages = pages.filter((t) => !t.deletedAt);
@@ -197,11 +216,15 @@ export default function PageCollection(props: PageCollectionProps) {
       const live = pages.filter((t) => !t.archived);
       const urlCount = new Map<string, number>();
       for (const t of live) {
-        const normalized = t.url.replace(/\/$/, "").replace(/^https?:\/\/www\./, "https://");
+        const normalized = t.url
+          .replace(/\/$/, "")
+          .replace(/^https?:\/\/www\./, "https://");
         urlCount.set(normalized, (urlCount.get(normalized) || 0) + 1);
       }
       return live.filter((t) => {
-        const normalized = t.url.replace(/\/$/, "").replace(/^https?:\/\/www\./, "https://");
+        const normalized = t.url
+          .replace(/\/$/, "")
+          .replace(/^https?:\/\/www\./, "https://");
         return urlCount.get(normalized)! > 1;
       });
     }
@@ -217,7 +240,11 @@ export default function PageCollection(props: PageCollectionProps) {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today.getTime() - 86400000);
-    const pageDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const pageDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    );
 
     if (pageDay.getTime() === today.getTime()) return "Today";
     if (pageDay.getTime() === yesterday.getTime()) return "Yesterday";
@@ -241,7 +268,10 @@ export default function PageCollection(props: PageCollectionProps) {
     for (const page of sorted) {
       const dayKey = page.capturedAt.slice(0, 10); // YYYY-MM-DD
       if (!groups.has(dayKey)) {
-        groups.set(dayKey, { label: formatDateLabel(page.capturedAt), pages: [] });
+        groups.set(dayKey, {
+          label: formatDateLabel(page.capturedAt),
+          pages: [],
+        });
       }
       groups.get(dayKey)!.pages.push(page);
     }
@@ -284,7 +314,10 @@ export default function PageCollection(props: PageCollectionProps) {
 
   const handleOpenSource = async (page: Page) => {
     await sendMessage({ type: "OPEN_PAGE", pageId: page.id });
-    patchPage(page.id, { viewCount: page.viewCount + 1, lastViewedAt: new Date().toISOString() });
+    patchPage(page.id, {
+      viewCount: page.viewCount + 1,
+      lastViewedAt: new Date().toISOString(),
+    });
   };
 
   const handleSaveNotes = async (pageId: string, notes: string) => {
@@ -345,9 +378,17 @@ export default function PageCollection(props: PageCollectionProps) {
           domains={domainIndex()}
           activeDomain={domainFilter()}
           activeCreator={creatorFilter()}
-          onSelectDomain={(d) => { setDomainFilter(d); setCreatorFilter(null); }}
-          onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
-          totalCount={(allPages() || []).filter((t) => !t.deletedAt && !t.archived).length}
+          onSelectDomain={(d) => {
+            setDomainFilter(d);
+            setCreatorFilter(null);
+          }}
+          onSelectCreator={(d, c) => {
+            setDomainFilter(d);
+            setCreatorFilter(c);
+          }}
+          totalCount={
+            (allPages() || []).filter((t) => !t.deletedAt && !t.archived).length
+          }
         />
       </div>
 
@@ -359,12 +400,25 @@ export default function PageCollection(props: PageCollectionProps) {
               domains={domainIndex()}
               activeDomain={domainFilter()}
               activeCreator={creatorFilter()}
-              onSelectDomain={(d) => { setDomainFilter(d); setCreatorFilter(null); }}
-              onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); if (c) setSidebarOpen(false); }}
-              totalCount={(allPages() || []).filter((t) => !t.deletedAt && !t.archived).length}
+              onSelectDomain={(d) => {
+                setDomainFilter(d);
+                setCreatorFilter(null);
+              }}
+              onSelectCreator={(d, c) => {
+                setDomainFilter(d);
+                setCreatorFilter(c);
+                if (c) setSidebarOpen(false);
+              }}
+              totalCount={
+                (allPages() || []).filter((t) => !t.deletedAt && !t.archived)
+                  .length
+              }
             />
           </div>
-          <div class="flex-1 bg-black/60" onClick={() => setSidebarOpen(false)} />
+          <div
+            class="flex-1 bg-black/60"
+            onClick={() => setSidebarOpen(false)}
+          />
         </div>
       </Show>
 
@@ -385,271 +439,311 @@ export default function PageCollection(props: PageCollectionProps) {
             Collections
             <Show when={domainFilter()}>
               <span class="text-muted-foreground font-normal">
-                {" / "}{domainFilter()}
+                {" / "}
+                {domainFilter()}
                 <Show when={creatorFilter()}>
-                  {" / "}{creatorFilter()}
+                  {" / "}
+                  {creatorFilter()}
                 </Show>
               </span>
             </Show>
           </span>
 
-          <ViewToggle
-            mode={props.viewMode}
-            onChange={props.onViewModeChange}
-          />
+          <ViewToggle mode={props.viewMode} onChange={props.onViewModeChange} />
 
           <div class="w-px h-5 bg-muted-foreground/20 flex-shrink-0 mx-2" />
 
           <UserMenu />
         </div>
 
-      {/* Sync error banner */}
-      <Show when={syncError()}>
-        <div class="mx-4 mt-2 flex items-center justify-between bg-red-500/10 rounded-lg px-3 py-2">
-          <p class="text-xs text-red-300">{syncError()}</p>
-          <div class="flex items-center gap-2">
-            <button
-              class="text-xs text-red-300 hover:text-red-200 transition-colors"
-              onClick={() => navigate("/settings")}
-            >
-              Settings
-            </button>
-            <button
-              class="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => {
-                setSyncError(null);
-                updateSettings({ syncError: null });
-                sendMessage({ type: "GET_UNCAPTURED_COUNT" }); // triggers badge refresh
-              }}
-            >
-              Dismiss
-            </button>
+        {/* Sync error banner */}
+        <Show when={syncError()}>
+          <div class="mx-4 mt-2 flex items-center justify-between bg-red-500/10 rounded-lg px-3 py-2">
+            <p class="text-xs text-red-300">{syncError()}</p>
+            <div class="flex items-center gap-2">
+              <button
+                class="text-xs text-red-300 hover:text-red-200 transition-colors"
+                onClick={() => navigate("/settings")}
+              >
+                Settings
+              </button>
+              <button
+                class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => {
+                  setSyncError(null);
+                  updateSettings({ syncError: null });
+                  sendMessage({ type: "GET_UNCAPTURED_COUNT" }); // triggers badge refresh
+                }}
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
-        </div>
-      </Show>
-
-      <SearchBar
-        onSearch={handleSearch}
-        onAISearch={handleAISearch}
-        tags={tagIndex()}
-        onInit={(api) => { searchBarApi = api; }}
-      />
-      <div class="flex items-center gap-2 px-4 pt-4 pb-4">
-        <div class="flex-1 overflow-x-auto scrollbar-hide">
-          <FilterPills active={filter()} onChange={setFilter} />
-        </div>
-        <Show when={uniqueDevices().length > 1}>
-          <select
-            class="bg-muted/40 text-sm text-foreground rounded-lg px-3 py-1.5 outline-none focus:bg-muted/60 transition-colors flex-shrink-0"
-            value={deviceFilter()}
-            onChange={(e) => setDeviceFilter(e.currentTarget.value)}
-          >
-            <option value="all">All Devices</option>
-            <For each={uniqueDevices()}>
-              {(device) => <option value={device.id}>{device.label}</option>}
-            </For>
-          </select>
         </Show>
-      </div>
 
-      {/* Collection - @container for responsive card grid */}
-      <div class="flex-1 overflow-y-auto @container">
-        <Show when={(allPages() || []).filter((t) => !t.deletedAt).length > 0} fallback={<EmptyState />}>
-          {/* Notes view */}
-          <Show when={filter() === "notes"}>
-            <Show
-              when={filteredPages().length > 0}
-              fallback={
-                <EmptyBlock icon={<StickyNote size={52} />} title="No notes yet" description="Add notes to any page to see them here." />
-              }
+        <SearchBar
+          onSearch={handleSearch}
+          onAISearch={handleAISearch}
+          tags={tagIndex()}
+          onInit={(api) => {
+            searchBarApi = api;
+          }}
+        />
+        <div class="flex items-center gap-2 px-4 pt-8 pb-4">
+          <div class="flex-1 overflow-x-auto scrollbar-hide">
+            <FilterPills active={filter()} onChange={setFilter} />
+          </div>
+          <Show when={uniqueDevices().length > 1}>
+            <select
+              class="bg-muted/40 text-sm text-foreground rounded-lg px-3 py-1.5 outline-none focus:bg-muted/60 transition-colors flex-shrink-0"
+              value={deviceFilter()}
+              onChange={(e) => setDeviceFilter(e.currentTarget.value)}
             >
-              <div class="grid grid-cols-1 @[600px]:grid-cols-2 @[900px]:grid-cols-3 gap-4 p-4">
-                <For each={filteredPages()}>
-                  {(page) => (
-                    <NoteCard
-                      page={page}
-                      onOpen={handleOpenPage}
+              <option value="all">All Devices</option>
+              <For each={uniqueDevices()}>
+                {(device) => <option value={device.id}>{device.label}</option>}
+              </For>
+            </select>
+          </Show>
+        </div>
+
+        {/* Collection - @container for responsive card grid */}
+        <div class="flex-1 overflow-y-auto @container">
+          <Show
+            when={(allPages() || []).filter((t) => !t.deletedAt).length > 0}
+            fallback={<EmptyState />}
+          >
+            {/* Notes view */}
+            <Show when={filter() === "notes"}>
+              <Show
+                when={filteredPages().length > 0}
+                fallback={
+                  <EmptyBlock
+                    icon={<StickyNote size={52} />}
+                    title="No notes yet"
+                    description="Add notes to any page to see them here."
+                  />
+                }
+              >
+                <div class="grid grid-cols-1 @[600px]:grid-cols-2 @[900px]:grid-cols-3 gap-4 p-4">
+                  <For each={filteredPages()}>
+                    {(page) => (
+                      <NoteCard
+                        page={page}
+                        onOpen={handleOpenPage}
+                        onEditNotes={setEditingPage}
+                      />
+                    )}
+                  </For>
+                </div>
+              </Show>
+            </Show>
+
+            {/* By Date view */}
+            <Show when={filter() === "byDate"}>
+              <Show
+                when={filteredPages().length > 0}
+                fallback={
+                  <EmptyBlock
+                    icon={<Calendar size={52} />}
+                    title="No pages saved yet"
+                    description="Capture some pages to see them organized by date."
+                  />
+                }
+              >
+                <For each={pagesByDate()}>
+                  {(dateGroup) => (
+                    <GroupSection
+                      group={{
+                        id: dateGroup.label,
+                        name: dateGroup.label,
+                        captureId: "",
+                        position: 0,
+                        archived: false,
+                      }}
+                      pages={dateGroup.pages}
+                      viewMode={props.viewMode}
+                      searchQuery={searchQuery()}
+                      onOpenPage={handleOpenPage}
                       onEditNotes={setEditingPage}
+                      onRenameGroup={() => {}}
+                      onToggleStar={handleToggleStar}
+                      onOpenSource={handleOpenSource}
+                      onSelectCreator={(d, c) => {
+                        setDomainFilter(d);
+                        setCreatorFilter(c);
+                      }}
+                      onTagClick={handleTagClick}
                     />
                   )}
                 </For>
-              </div>
-            </Show>
-          </Show>
-
-          {/* By Date view */}
-          <Show when={filter() === "byDate"}>
-            <Show
-              when={filteredPages().length > 0}
-              fallback={
-                <EmptyBlock icon={<Calendar size={52} />} title="No pages saved yet" description="Capture some pages to see them organized by date." />
-              }
-            >
-              <For each={pagesByDate()}>
-                {(dateGroup) => (
-                  <GroupSection
-                    group={{
-                      id: dateGroup.label,
-                      name: dateGroup.label,
-                      captureId: "",
-                      position: 0,
-                      archived: false,
-                    }}
-                    pages={dateGroup.pages}
-                    viewMode={props.viewMode}
-                    searchQuery={searchQuery()}
-                    onOpenPage={handleOpenPage}
-                    onEditNotes={setEditingPage}
-                    onRenameGroup={() => {}}
-                    onToggleStar={handleToggleStar}
-                    onOpenSource={handleOpenSource}
-                    onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
-                    onTagClick={handleTagClick}
-                  />
-                )}
-              </For>
-            </Show>
-          </Show>
-
-          {/* Trash view */}
-          <Show when={filter() === "trash"}>
-            <div class="mx-4 mt-3 mb-4 px-4 py-3 bg-muted/30 rounded-xl flex items-center justify-between gap-4">
-              <div class="flex items-center gap-2.5 min-w-0">
-                <Trash2 size={15} class="text-muted-foreground/50 flex-shrink-0" />
-                <span class="text-sm text-muted-foreground">
-                  Items are automatically deleted after 30 days
-                </span>
-              </div>
-              <Show when={filteredPages().length > 0}>
-                <button
-                  class="text-sm font-medium text-red-400/80 hover:text-red-400 transition-colors flex-shrink-0 px-3 py-1 rounded-full hover:bg-red-400/10"
-                  onClick={() => setEmptyingTrash(true)}
-                >
-                  Empty Now
-                </button>
               </Show>
-            </div>
+            </Show>
+
+            {/* Trash view */}
+            <Show when={filter() === "trash"}>
+              <div class="mx-4 mt-3 mb-4 px-4 py-3 bg-muted/30 rounded-xl flex items-center justify-between gap-4">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <Trash2
+                    size={15}
+                    class="text-muted-foreground/50 flex-shrink-0"
+                  />
+                  <span class="text-sm text-muted-foreground">
+                    Items are automatically deleted after 30 days
+                  </span>
+                </div>
+                <Show when={filteredPages().length > 0}>
+                  <button
+                    class="text-sm font-medium text-red-400/80 hover:text-red-400 transition-colors flex-shrink-0 px-3 py-1 rounded-full hover:bg-red-400/10"
+                    onClick={() => setEmptyingTrash(true)}
+                  >
+                    Empty Now
+                  </button>
+                </Show>
+              </div>
+              <Show
+                when={filteredPages().length > 0}
+                fallback={
+                  <EmptyBlock
+                    icon={<Trash2 size={52} />}
+                    title="Trash is empty"
+                    description="Deleted pages will appear here."
+                  />
+                }
+              >
+                <GroupSection
+                  group={{
+                    id: "trash",
+                    name: "Trash",
+                    captureId: "",
+                    position: 0,
+                    archived: false,
+                  }}
+                  pages={filteredPages()}
+                  viewMode={props.viewMode}
+                  onOpenPage={handleOpenPage}
+                  onEditNotes={setEditingPage}
+                  onRenameGroup={() => {}}
+                  onToggleStar={handleToggleStar}
+                  onRestore={handleRestore}
+                  onHardDelete={handleHardDelete}
+                  isTrash
+                />
+              </Show>
+            </Show>
+
+            {/* Default group view (All, Starred, Archived, Duplicates) */}
             <Show
-              when={filteredPages().length > 0}
-              fallback={
-                <EmptyBlock icon={<Trash2 size={52} />} title="Trash is empty" description="Deleted pages will appear here." />
+              when={
+                filter() !== "notes" &&
+                filter() !== "byDate" &&
+                filter() !== "trash"
               }
             >
-            <GroupSection
-              group={{
-                id: "trash",
-                name: "Trash",
-                captureId: "",
-                position: 0,
-                archived: false,
-              }}
-              pages={filteredPages()}
-              viewMode={props.viewMode}
-              onOpenPage={handleOpenPage}
-              onEditNotes={setEditingPage}
-              onRenameGroup={() => {}}
-              onToggleStar={handleToggleStar}
-              onRestore={handleRestore}
-              onHardDelete={handleHardDelete}
-              isTrash
+              <Show
+                when={filteredPages().length > 0}
+                fallback={
+                  filter() === "starred" ? (
+                    <EmptyBlock
+                      icon={<Star size={52} />}
+                      title="No starred pages"
+                      description="Star pages to quickly find them later."
+                    />
+                  ) : filter() === "archived" ? (
+                    <EmptyBlock
+                      icon={<Archive size={52} />}
+                      title="No archived pages"
+                      description="Archive pages to declutter without deleting."
+                    />
+                  ) : (
+                    <EmptyBlock
+                      icon={<Inbox size={52} />}
+                      title="No pages to show"
+                      description="Capture some pages to get started."
+                    />
+                  )
+                }
+              >
+                <For each={filteredGroups()}>
+                  {(group) => {
+                    const pages = () => pagesForGroup(group.id);
+                    return (
+                      <Show when={pages().length > 0}>
+                        <GroupSection
+                          group={group}
+                          pages={pages()}
+                          viewMode={props.viewMode}
+                          searchQuery={searchQuery()}
+                          onOpenPage={handleOpenPage}
+                          onEditNotes={setEditingPage}
+                          onRenameGroup={handleRenameGroup}
+                          onToggleStar={handleToggleStar}
+                          onOpenSource={handleOpenSource}
+                        />
+                      </Show>
+                    );
+                  }}
+                </For>
+              </Show>
+            </Show>
+          </Show>
+        </div>
+
+        {/* Notes Editor Modal */}
+        <Show when={editingPage()}>
+          {(page) => (
+            <NotesEditor
+              page={page()}
+              onSave={handleSaveNotes}
+              onClose={() => setEditingPage(null)}
             />
-            </Show>
-          </Show>
-
-          {/* Default group view (All, Starred, Archived, Duplicates) */}
-          <Show when={filter() !== "notes" && filter() !== "byDate" && filter() !== "trash"}>
-            <Show
-              when={filteredPages().length > 0}
-              fallback={
-                filter() === "starred" ? (
-                  <EmptyBlock icon={<Star size={52} />} title="No starred pages" description="Star pages to quickly find them later." />
-                ) : filter() === "archived" ? (
-                  <EmptyBlock icon={<Archive size={52} />} title="No archived pages" description="Archive pages to declutter without deleting." />
-                ) : (
-                  <EmptyBlock icon={<Inbox size={52} />} title="No pages to show" description="Capture some pages to get started." />
-                )
-              }
-            >
-              <For each={filteredGroups()}>
-                {(group) => {
-                  const pages = () => pagesForGroup(group.id);
-                  return (
-                    <Show when={pages().length > 0}>
-                      <GroupSection
-                        group={group}
-                        pages={pages()}
-                        viewMode={props.viewMode}
-                        searchQuery={searchQuery()}
-                        onOpenPage={handleOpenPage}
-                        onEditNotes={setEditingPage}
-                        onRenameGroup={handleRenameGroup}
-                        onToggleStar={handleToggleStar}
-                        onOpenSource={handleOpenSource}
-                      />
-                    </Show>
-                  );
-                }}
-              </For>
-            </Show>
-          </Show>
+          )}
         </Show>
-      </div>
 
-      {/* Notes Editor Modal */}
-      <Show when={editingPage()}>
-        {(page) => (
-          <NotesEditor
-            page={page()}
-            onSave={handleSaveNotes}
-            onClose={() => setEditingPage(null)}
-          />
-        )}
-      </Show>
+        {/* Capture Preview Modal */}
+        <Show when={capturePreview()}>
+          {(preview) => (
+            <CapturePreview
+              data={preview()}
+              onConfirm={handleConfirmCapture}
+              onCancel={() => setCapturePreview(null)}
+            />
+          )}
+        </Show>
 
-      {/* Capture Preview Modal */}
-      <Show when={capturePreview()}>
-        {(preview) => (
-          <CapturePreview
-            data={preview()}
-            onConfirm={handleConfirmCapture}
-            onCancel={() => setCapturePreview(null)}
-          />
-        )}
-      </Show>
+        {/* Delete Forever Confirmation */}
+        <Show when={deletingPage()}>
+          {(page) => (
+            <ConfirmDialog
+              title="Delete forever"
+              message={`Permanently delete "${page().title}"? This cannot be undone.`}
+              confirmLabel="Delete Forever"
+              destructive
+              onConfirm={confirmDelete}
+              onCancel={() => setDeletingPage(null)}
+            />
+          )}
+        </Show>
 
-      {/* Delete Forever Confirmation */}
-      <Show when={deletingPage()}>
-        {(page) => (
+        {/* Empty Trash Confirmation */}
+        <Show when={emptyingTrash()}>
           <ConfirmDialog
-            title="Delete forever"
-            message={`Permanently delete "${page().title}"? This cannot be undone.`}
-            confirmLabel="Delete Forever"
+            title="Empty trash"
+            message={`Permanently delete all ${filteredPages().length} items in trash? This cannot be undone.`}
+            confirmLabel="Empty Trash"
             destructive
-            onConfirm={confirmDelete}
-            onCancel={() => setDeletingPage(null)}
+            onConfirm={async () => {
+              const trashPages = (allPages() || []).filter((t) => t.deletedAt);
+              for (const page of trashPages) {
+                await hardDeletePage(page.id);
+              }
+              setEmptyingTrash(false);
+              loadData();
+              notifyChanged();
+            }}
+            onCancel={() => setEmptyingTrash(false)}
           />
-        )}
-      </Show>
-
-      {/* Empty Trash Confirmation */}
-      <Show when={emptyingTrash()}>
-        <ConfirmDialog
-          title="Empty trash"
-          message={`Permanently delete all ${filteredPages().length} items in trash? This cannot be undone.`}
-          confirmLabel="Empty Trash"
-          destructive
-          onConfirm={async () => {
-            const trashPages = (allPages() || []).filter((t) => t.deletedAt);
-            for (const page of trashPages) {
-              await hardDeletePage(page.id);
-            }
-            setEmptyingTrash(false);
-            loadData();
-            notifyChanged();
-          }}
-          onCancel={() => setEmptyingTrash(false)}
-        />
-      </Show>
+        </Show>
       </div>
     </div>
   );

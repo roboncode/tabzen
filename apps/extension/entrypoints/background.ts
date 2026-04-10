@@ -1479,5 +1479,27 @@ export default defineBackground(() => {
 
     await addPages([page]);
     notifyDataChanged();
+
+    // AI tagging (async, non-blocking)
+    if (settings.openRouterApiKey) {
+      (async () => {
+        try {
+          const allTags = await getAllTags();
+          const existingTagNames = allTags.map((t) => t.tag);
+          const tagResults = await generateTags(
+            settings.openRouterApiKey,
+            settings.aiModel,
+            [{ id: pageId, title: page.ogTitle || page.title, url: page.url, description: page.ogDescription || page.metaDescription }],
+            existingTagNames,
+          );
+          for (const result of tagResults) {
+            if (result.tags?.length) {
+              await updatePage(result.id, { tags: result.tags });
+            }
+          }
+          notifyDataChanged();
+        } catch {}
+      })();
+    }
   }
 });
