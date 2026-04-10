@@ -1,6 +1,5 @@
 import { createMemo, createSignal, Show } from "solid-js";
 import {
-  Home,
   Star,
   Archive,
   ArchiveRestore,
@@ -195,16 +194,15 @@ export default function DetailHeader(props: DetailHeaderProps) {
         {title()}
       </span>
 
-      {/* Right: Home | separator | Kebab */}
+      {/* Right: Collections | separator | Kebab */}
       <button
         onClick={props.onBack}
-        class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+        class="text-sm text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
       >
-        <Home size={16} />
-        <span>Home</span>
+        Collections
       </button>
 
-      <div class="w-px h-4 bg-muted-foreground/20 flex-shrink-0" />
+      <div class="w-px h-5 bg-muted-foreground/20 flex-shrink-0 mx-2" />
 
       {/* Vertical kebab menu */}
       <div class="relative flex-shrink-0">
