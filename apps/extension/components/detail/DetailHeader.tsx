@@ -58,7 +58,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
   // ── Hero Only mode: the scrollable card ──
   if (props.heroOnly) {
     return (
-      <div class="@container px-4 pt-24 pb-6 md:pb-12">
+      <div class="@container px-4 pt-6 @[480px]:pt-24 pb-6 md:pb-12">
         <div class="flex flex-col @[480px]:flex-row gap-4 @[480px]:gap-5">
           {/* Thumbnail — clickable, opens source URL */}
           <a
@@ -179,10 +179,10 @@ export default function DetailHeader(props: DetailHeaderProps) {
 
       {/* Left: Star + Title */}
       <button
-        class={`flex-shrink-0 p-1 rounded-md transition-colors ${
+        class={`flex-shrink-0 p-1.5 rounded-md cursor-pointer transition-colors ${
           props.page.starred
-            ? "text-yellow-400 hover:text-yellow-300"
-            : "text-muted-foreground/30 hover:text-yellow-400"
+            ? "text-yellow-400 hover:text-yellow-300 hover:bg-yellow-400/10"
+            : "text-muted-foreground/30 hover:text-yellow-400 hover:bg-muted/40"
         }`}
         onClick={props.onToggleStar}
         title={props.page.starred ? "Unstar" : "Star"}
