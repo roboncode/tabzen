@@ -70,7 +70,7 @@ export default defineContentScript({
         top: ${positionY}%;
         transform: translateY(-50%);
         width: 16px;
-        height: 40px;
+        height: 32px;
         background: var(--tz-notch-bg);
         border: 1px solid var(--tz-notch-border);
         ${side === "right" ? `border-right: none; border-radius: 8px 0 0 8px;` : `border-left: none; border-radius: 0 8px 8px 0;`}
@@ -103,10 +103,6 @@ export default defineContentScript({
         transition: opacity 0.2s ease, color 0.2s ease;
         flex-shrink: 0;
         color: var(--tz-notch-icon);
-      }
-
-      .notch.saved .notch-icon {
-        color: white;
       }
 
       .notch:hover .notch-icon {
@@ -248,11 +244,12 @@ export default defineContentScript({
 
     // --- Theme Detection & Live Update ---
     function applyTheme(light: boolean) {
-      host.style.setProperty("--tz-notch-bg", light ? "rgba(30, 30, 34, 0.85)" : "rgba(255, 255, 255, 0.85)");
-      host.style.setProperty("--tz-notch-border", light ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.2)");
-      host.style.setProperty("--tz-notch-shadow", light ? "-2px 0 8px rgba(0, 0, 0, 0.2)" : "-2px 0 8px rgba(255, 255, 255, 0.1)");
-      host.style.setProperty("--tz-notch-shadow-hover", light ? "-2px 0 14px rgba(0, 0, 0, 0.3)" : "-2px 0 14px rgba(255, 255, 255, 0.15)");
-      host.style.setProperty("--tz-notch-icon", light ? "white" : "#1e1e22");
+      // Sky-500 base on light pages, lighter sky on dark pages
+      host.style.setProperty("--tz-notch-bg", light ? "rgba(14, 165, 233, 0.9)" : "rgba(56, 189, 248, 0.85)");
+      host.style.setProperty("--tz-notch-border", light ? "rgba(14, 165, 233, 0.4)" : "rgba(56, 189, 248, 0.3)");
+      host.style.setProperty("--tz-notch-shadow", light ? "-2px 0 8px rgba(14, 165, 233, 0.25)" : "-2px 0 8px rgba(56, 189, 248, 0.15)");
+      host.style.setProperty("--tz-notch-shadow-hover", light ? "-2px 0 14px rgba(14, 165, 233, 0.4)" : "-2px 0 14px rgba(56, 189, 248, 0.25)");
+      host.style.setProperty("--tz-notch-icon", "white");
     }
     applyTheme(pageIsLight);
 
