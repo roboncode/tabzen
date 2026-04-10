@@ -296,20 +296,21 @@ export default defineBackground(() => {
 
   // --- Message handler ---
   browser.runtime.onMessage.addListener(
-    (message: MessageRequest, _sender, sendResponse) => {
-      handleMessage(message).then(sendResponse);
+    (message: MessageRequest, sender, sendResponse) => {
+      handleMessage(message, sender).then(sendResponse);
       return true;
     },
   );
 
   async function handleMessage(
     message: MessageRequest,
+    sender: Browser.runtime.MessageSender,
   ): Promise<MessageResponse> {
     switch (message.type) {
       case "CAPTURE_ALL_TABS":
         return handleCaptureAllTabs();
       case "CAPTURE_PAGE":
-        return handleCapturePage(message.tabId);
+        return handleCapturePage(message.tabId === -1 && sender.tab?.id ? sender.tab.id : message.tabId);
       case "CONFIRM_CAPTURE":
         return handleConfirmCapture(message.captureData);
       case "GET_UNCAPTURED_COUNT":
