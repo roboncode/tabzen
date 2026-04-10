@@ -24,6 +24,21 @@ export default defineContentScript({
 
     const side: "left" | "right" = settings.notchSide || "right";
     let positionY: number = stored[NOTCH_POS_KEY] ?? 50;
+
+    // Detect if page background is light or dark
+    function isPageLight(): boolean {
+      try {
+        const bg = getComputedStyle(document.body).backgroundColor;
+        const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (!match) return true; // default to light if transparent/unparseable
+        const [, r, g, b] = match.map(Number);
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        return luminance > 0.5;
+      } catch {
+        return true;
+      }
+    }
+    const pageIsLight = isPageLight();
     let isSaved = false;
     let savedPageId: string | undefined;
 
@@ -56,50 +71,29 @@ export default defineContentScript({
         transform: translateY(-50%);
         width: 16px;
         height: 40px;
-        background: rgba(255, 255, 255, 0.85);
-        ${side === "right" ? "border-radius: 8px 0 0 8px;" : "border-radius: 0 8px 8px 0;"}
+        background: ${pageIsLight ? "rgba(30, 30, 34, 0.85)" : "rgba(255, 255, 255, 0.85)"};
+        border: 1px solid ${pageIsLight ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.2)"};
+        ${side === "right" ? `border-right: none; border-radius: 8px 0 0 8px;` : `border-left: none; border-radius: 0 8px 8px 0;`}
         cursor: pointer;
         transition: width 0.2s ease, background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
-        opacity: 0.8;
+        opacity: 0.85;
         pointer-events: auto;
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        box-shadow: -1px 0 6px rgba(0, 0, 0, 0.15);
+        box-shadow: ${pageIsLight ? "-2px 0 8px rgba(0, 0, 0, 0.2)" : "-2px 0 8px rgba(255, 255, 255, 0.1)"};
       }
 
       .notch.saved {
         background: linear-gradient(135deg, #0ea5e9, #6366f1);
+        border-color: rgba(14, 165, 233, 0.3);
       }
 
       .notch:hover {
         width: 40px;
         opacity: 1;
-        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
-      }
-
-      @media (prefers-color-scheme: dark) {
-        .notch:not(.saved) {
-          background: rgba(255, 255, 255, 0.8);
-          box-shadow: -1px 0 6px rgba(255, 255, 255, 0.1);
-        }
-        .notch:not(.saved):hover {
-          box-shadow: -2px 0 10px rgba(255, 255, 255, 0.15);
-        }
-      }
-
-      @media (prefers-color-scheme: light) {
-        .notch:not(.saved) {
-          background: rgba(30, 30, 34, 0.8);
-          box-shadow: -1px 0 6px rgba(0, 0, 0, 0.1);
-        }
-        .notch:not(.saved):hover {
-          box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
-        }
-        .notch .notch-icon {
-          color: white;
-        }
+        box-shadow: ${pageIsLight ? "-2px 0 14px rgba(0, 0, 0, 0.3)" : "-2px 0 14px rgba(255, 255, 255, 0.15)"};
       }
 
       .notch-icon {
@@ -108,7 +102,7 @@ export default defineContentScript({
         opacity: 0;
         transition: opacity 0.2s ease;
         flex-shrink: 0;
-        color: #1e1e22;
+        color: ${pageIsLight ? "white" : "#1e1e22"};
       }
 
       .notch.saved .notch-icon {
@@ -130,7 +124,7 @@ export default defineContentScript({
         top: ${positionY}%;
         transform: translateY(-50%) translateX(${side === "right" ? "20px" : "-20px"});
         background: #1e1e22;
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.15);
         border-radius: 10px;
         padding: 10px 14px;
         pointer-events: auto;
@@ -173,7 +167,7 @@ export default defineContentScript({
         top: ${positionY}%;
         transform: translateY(-50%);
         background: #1e1e22;
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.15);
         border-radius: 12px;
         padding: 14px 16px;
         pointer-events: auto;
