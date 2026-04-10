@@ -1,7 +1,8 @@
 import { type Component, createSignal, Show, For, onMount, onCleanup } from 'solid-js';
 import {
   ChatContainer, ConversationList, Message, MessageAvatar, MessageContent,
-  PromptInput, ScrollButton, Loader, PromptSuggestion, ModelSwitcher, VoiceInput,
+  PromptInput, PromptInputTextarea, PromptInputActions,
+  ScrollButton, Loader, PromptSuggestion, ModelSwitcher, VoiceInput,
 } from '@tab-zen/chat';
 import type { ChatMessage, ModelOption } from '@tab-zen/shared';
 import { LocalAdapter } from './adapters/local-adapter';
@@ -34,6 +35,7 @@ const App: Component = () => {
   });
   const [currentModel, setCurrentModel] = createSignal(CHAT_MODEL);
   const [streamingContent, setStreamingContent] = createSignal('');
+  const [promptText, setPromptText] = createSignal('');
 
   async function handleSendMessage(text: string) {
     if (!API_KEY) { alert('Please set your OpenRouter API key in App.tsx'); return; }
@@ -86,7 +88,7 @@ const App: Component = () => {
   const suggestions = ['What videos mention React?', 'Summarize recent saves', 'Topics from this week'];
 
   return (
-    <div class="flex h-screen w-screen bg-background text-foreground">
+    <div class="dark flex h-screen w-screen bg-background text-foreground">
       {/* Sidebar */}
       <Show when={sidebarOpen()}>
         <div class="w-[270px] flex-shrink-0">
@@ -165,19 +167,25 @@ const App: Component = () => {
         <div class="px-5 pb-4 pt-2">
           <div class="max-w-[760px] mx-auto">
             <PromptInput
-              placeholder="Ask about your saved content..."
-              onSubmit={handleSendMessage}
               isLoading={isStreaming()}
-              actions={
-                <Show when={!!GROQ_API_KEY}>
+              value={promptText()}
+              onValueChange={setPromptText}
+              onSubmit={() => {
+                const text = promptText().trim();
+                if (text) { setPromptText(''); handleSendMessage(text); }
+              }}
+            >
+              <PromptInputTextarea placeholder="Ask about your saved content..." />
+              <Show when={!!GROQ_API_KEY}>
+                <PromptInputActions>
                   <VoiceInput onTranscribe={handleVoiceTranscribe} onTranscription={(text) => handleSendMessage(text)} />
-                </Show>
-              }
-            />
+                </PromptInputActions>
+              </Show>
+            </PromptInput>
             <Show when={!store.activeConversation()?.messages.length}>
               <div class="flex gap-2 mt-2 justify-center">
                 <For each={suggestions}>
-                  {(suggestion) => <PromptSuggestion text={suggestion} onClick={() => handleSendMessage(suggestion)} />}
+                  {(suggestion) => <PromptSuggestion onClick={() => handleSendMessage(suggestion)}>{suggestion}</PromptSuggestion>}
                 </For>
               </div>
             </Show>

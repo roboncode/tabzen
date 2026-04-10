@@ -177,7 +177,7 @@ export function ContextContentHeader(props: ContextContentHeaderProps) {
     const pct = usedPercent() * PERCENT_MAX;
     if (pct > 90) return 'bg-red-400';
     if (pct > 70) return 'bg-yellow-400';
-    return 'bg-ring';
+    return 'bg-primary';
   });
 
   return (

@@ -7,7 +7,7 @@ const badgeVariants = cva('inline-flex items-center rounded-full text-xs font-me
     variant: {
       default: 'bg-muted text-muted-foreground',
       count: 'bg-muted text-muted-foreground min-w-5 h-5 justify-center px-1.5',
-      citation: 'bg-citation text-white px-1.5 py-0.5 cursor-pointer',
+      citation: 'bg-primary text-primary-foreground px-1.5 py-0.5 cursor-pointer',
     },
   },
   defaultVariants: { variant: 'default' },
