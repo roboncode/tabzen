@@ -191,7 +191,7 @@ export default function DetailPage(props: DetailPageProps) {
       const allPages = await getAllPages();
       const myTagSet = new Set(myTags);
       const scored = allPages
-        .filter((p) => p.id !== props.page.id && !p.deletedAt && !p.archived && p.tags?.length)
+        .filter((p) => p.id !== props.page.id && p.url !== props.page.url && !p.deletedAt && !p.archived && p.tags?.length)
         .map((p) => ({
           page: p,
           overlap: p.tags.filter((t) => myTagSet.has(t)).length,

@@ -58,31 +58,58 @@ export default defineContentScript({
         position: fixed;
         top: 0;
         left: 0;
-        width: 0;
-        height: 0;
+        width: 100vw;
+        height: 100vh;
         z-index: 2147483647;
         pointer-events: none;
+        overflow: visible;
       }
 
-      .notch {
+      .notch-zone {
         position: fixed;
         ${side}: 0;
         top: ${positionY}%;
         transform: translateY(-50%);
-        width: 18px;
-        height: 32px;
+        pointer-events: none;
+        width: 110px;
+        height: 160px;
+        display: flex;
+        align-items: center;
+        ${side === "right" ? "justify-content: flex-end;" : "justify-content: flex-start;"}
+      }
+
+      .notch-zone .notch {
+        pointer-events: auto;
+      }
+
+      .notch {
+        position: static;
+        width: 8px;
+        height: 40px;
         background: var(--tz-notch-bg);
         border: 1px solid var(--tz-notch-border);
         ${side === "right" ? `border-right: none; border-radius: 8px 0 0 8px;` : `border-left: none; border-radius: 0 8px 8px 0;`}
-        cursor: pointer;
-        transition: width 0.2s ease, background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        transition: width 0.15s ease, background 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
         opacity: 0.85;
-        pointer-events: auto;
+        cursor: pointer;
+        box-shadow: var(--tz-notch-shadow);
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        box-shadow: var(--tz-notch-shadow);
+      }
+
+      .notch-icon {
+        opacity: 0;
+        transition: opacity 0.15s ease;
+        color: var(--tz-notch-icon);
+        display: flex;
+        flex-shrink: 0;
+      }
+
+      .notch-zone:hover .notch-icon,
+      .notch-zone.open .notch-icon {
+        opacity: 1;
       }
 
       .notch.saved {
@@ -90,28 +117,89 @@ export default defineContentScript({
         border-color: rgba(52, 211, 153, 0.3);
       }
 
-      .notch:hover {
-        width: 40px;
+      .notch-zone:hover .notch,
+      .notch-zone.open .notch {
+        width: 36px;
         opacity: 1;
         box-shadow: var(--tz-notch-shadow-hover);
       }
 
-      .notch-icon {
-        width: 16px;
-        height: 16px;
-        opacity: 0;
-        transition: opacity 0.2s ease, color 0.2s ease;
-        flex-shrink: 0;
-        color: var(--tz-notch-icon);
-      }
-
-      .notch:hover .notch-icon {
-        opacity: 1;
-      }
-
       .notch.saving {
-        width: 40px;
         opacity: 1;
+      }
+
+      /* Fan-out buttons */
+      .fan-btn {
+        position: absolute;
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        border: 1px solid var(--tz-notch-border);
+        background: var(--tz-notch-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: var(--tz-notch-shadow);
+        color: var(--tz-notch-icon);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.1s ease, transform 0.1s ease, background 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      /* Positions relative to zone (150px tall, notch centered) */
+      .fan-top {
+        top: 0;
+        ${side === "right" ? "right: 20px;" : "left: 20px;"}
+        transform: translateY(6px);
+      }
+
+      .fan-side {
+        top: 52px;
+        ${side === "right" ? "right: 56px;" : "left: 56px;"}
+        transform: translateX(${side === "right" ? "6px" : "-6px"});
+      }
+
+      .fan-bottom {
+        bottom: 0;
+        ${side === "right" ? "right: 20px;" : "left: 20px;"}
+        transform: translateY(-6px);
+      }
+
+      .notch-zone.open .fan-btn {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translate(0, 0);
+        transition: opacity 0.25s ease 0.05s, transform 0.25s ease 0.05s, background 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .notch-zone.open .fan-btn:hover {
+        filter: brightness(1.15);
+        box-shadow: var(--tz-notch-shadow-hover), 0 0 12px rgba(255,255,255,0.15);
+      }
+
+      .fan-btn.save-btn {
+        background: linear-gradient(135deg, #a78bfa, #7c3aed);
+        border-color: rgba(139, 92, 246, 0.3);
+        color: white;
+      }
+
+      .fan-btn.save-btn.saved {
+        background: linear-gradient(135deg, #34d399, #059669);
+        border-color: rgba(52, 211, 153, 0.3);
+        color: white;
+      }
+
+      .fan-btn.collections-btn {
+        background: linear-gradient(135deg, #fbbf24, #d97706);
+        border-color: rgba(245, 158, 11, 0.3);
+        color: white;
+      }
+
+      .fan-btn.settings-btn {
+        background: linear-gradient(135deg, #94a3b8, #475569);
+        border-color: rgba(100, 116, 139, 0.3);
+        color: white;
       }
 
       .toast {
@@ -123,7 +211,7 @@ export default defineContentScript({
         border: 1px solid rgba(255, 255, 255, 0.15);
         border-radius: 10px;
         padding: 10px 14px;
-        pointer-events: auto;
+        pointer-events: none;
         opacity: 0;
         transition: opacity 0.3s ease, transform 0.3s ease;
         max-width: 220px;
@@ -133,6 +221,7 @@ export default defineContentScript({
       .toast.visible {
         opacity: 1;
         transform: translateY(-50%) translateX(0);
+        pointer-events: auto;
       }
 
       .toast-text {
@@ -212,19 +301,44 @@ export default defineContentScript({
     styleEl.textContent = styles;
     shadow.appendChild(styleEl);
 
-    // Bookmark SVG icon
-    const bookmarkSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>`;
-    const checkSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    // SVG icons (14px for fan buttons)
+    const bookmarkSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>`;
+    const checkSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    const gridSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>`;
+    const settingsSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`;
 
-    // Create notch
+    // Create notch (the slim bar)
+    // Tab Zen logo
+    const notchIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="23" viewBox="0 0 112 163" fill="none"><circle cx="85.0842" cy="85.0616" r="26" fill="currentColor"/><rect x="59" y="59" width="25" height="27" fill="currentColor"/><circle cx="85.0842" cy="26.0616" r="26" fill="currentColor" opacity="0.95"/><rect x="59" y="25" width="25" height="27" fill="currentColor" opacity="0.95"/><rect x="59" width="25" height="27" fill="currentColor" opacity="0.95"/><circle cx="26" cy="26.0616" r="26" transform="rotate(-180 26 26.0616)" fill="currentColor" opacity="0.6"/><rect x="52.0842" y="52.1233" width="25" height="27" transform="rotate(-180 52.0842 52.1233)" fill="currentColor" opacity="0.6"/><rect x="52.0842" y="27.1233" width="25" height="27" transform="rotate(-180 52.0842 27.1233)" fill="currentColor" opacity="0.6"/><rect y="0.00012207" width="52" height="162.026" rx="26" fill="currentColor" opacity="0.95"/><ellipse cx="26" cy="40.8998" rx="26" ry="40.8998" transform="rotate(-180 26 40.8998)" fill="currentColor" opacity="0.95"/><rect x="52.0842" y="42.5699" width="25" height="42.4729" transform="rotate(-180 52.0842 42.5699)" fill="currentColor" opacity="0.95"/><rect x="25.0842" y="162.123" width="25" height="42.4729" transform="rotate(-180 25.0842 162.123)" fill="currentColor" opacity="0.95"/></svg>`;
+
     const notch = document.createElement("div");
     notch.className = isSaved ? "notch saved" : "notch";
+    notch.innerHTML = `<div class="notch-icon">${notchIconSvg}</div>`;
 
-    const icon = document.createElement("div");
-    icon.className = "notch-icon";
-    icon.innerHTML = isSaved ? checkSvg : bookmarkSvg;
-    notch.appendChild(icon);
-    shadow.appendChild(notch);
+    // Fan-out buttons with CSS-only positioning
+    const saveBtn = document.createElement("button");
+    saveBtn.className = isSaved ? "fan-btn fan-top save-btn saved" : "fan-btn fan-top save-btn";
+    saveBtn.innerHTML = isSaved ? checkSvg : bookmarkSvg;
+    saveBtn.title = isSaved ? "View details" : "Save page";
+
+    const collectionsBtn = document.createElement("button");
+    collectionsBtn.className = "fan-btn fan-side collections-btn";
+    collectionsBtn.innerHTML = gridSvg;
+    collectionsBtn.title = "Collections";
+
+    const settingsBtn = document.createElement("button");
+    settingsBtn.className = "fan-btn fan-bottom settings-btn";
+    settingsBtn.innerHTML = settingsSvg;
+    settingsBtn.title = "Settings";
+
+    // Zone wraps everything — notch is the position anchor
+    const zone = document.createElement("div");
+    zone.className = "notch-zone";
+    zone.appendChild(notch);
+    zone.appendChild(saveBtn);
+    zone.appendChild(collectionsBtn);
+    zone.appendChild(settingsBtn);
+    shadow.appendChild(zone);
 
     // Create toast (hidden initially)
     const toast = document.createElement("div");
@@ -292,7 +406,7 @@ export default defineContentScript({
         toastLink.style.display = "inline-block";
         toastLink.onclick = async (e) => {
           e.preventDefault();
-          hideToast();
+          hideToast(true);
           // Use background to open/focus the SPA tab (content scripts can't reliably open extension URLs)
           const appUrl = browser.runtime.getURL("/index.html");
           try {
@@ -315,13 +429,48 @@ export default defineContentScript({
       toastTimer = setTimeout(hideToast, 4000);
     }
 
-    function hideToast() {
-      if (toastHovered) return;
+    function hideToast(force = false) {
+      if (toastHovered && !force) return;
+      toastHovered = false;
       toast.classList.remove("visible");
       if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
     }
 
-    // --- Click & Drag Logic ---
+    // --- Fan Open/Close ---
+    function openFan() {
+      zone.classList.add("open");
+    }
+
+    function closeFan() {
+      zone.classList.remove("open");
+    }
+
+    // --- Fan Button Handlers ---
+    saveBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      closeFan();
+      handleSaveClick();
+    });
+
+    collectionsBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      closeFan();
+      const appUrl = browser.runtime.getURL("/index.html");
+      try {
+        await browser.runtime.sendMessage({ type: "OPEN_EXTENSION_PAGE", url: `${appUrl}#/` });
+      } catch {}
+    });
+
+    settingsBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      closeFan();
+      const appUrl = browser.runtime.getURL("/index.html");
+      try {
+        await browser.runtime.sendMessage({ type: "OPEN_EXTENSION_PAGE", url: `${appUrl}#/settings` });
+      } catch {}
+    });
+
+    // --- Drag Logic (notch bar only) ---
     let isDragging = false;
     let dragStartY = 0;
     let dragStartPos = 0;
@@ -343,7 +492,7 @@ export default defineContentScript({
       const deltaPercent = (deltaY / window.innerHeight) * 100;
       if (Math.abs(deltaY) > 5) dragMoved = true;
       positionY = Math.max(10, Math.min(90, dragStartPos + deltaPercent));
-      notch.style.top = `${positionY}%`;
+      zone.style.top = `${positionY}%`;
     });
 
     document.addEventListener("mouseup", () => {
@@ -356,30 +505,42 @@ export default defineContentScript({
         return;
       }
 
-      // Short click — handle as save action
+      // Short click — toggle fan menu
       const elapsed = Date.now() - mouseDownTime;
       if (elapsed < 300) {
-        handleClick();
+        zone.classList.contains("open") ? closeFan() : openFan();
       }
     });
 
-    async function handleClick() {
+    // Close fan when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!host.contains(e.target as Node) && zone.classList.contains("open")) {
+        closeFan();
+      }
+    });
+
+    async function handleSaveClick() {
       if (isSaved) {
-        showToast("Already saved", savedPageId);
+        // Navigate directly to detail page
+        if (savedPageId) {
+          const appUrl = browser.runtime.getURL("/index.html");
+          try {
+            await browser.runtime.sendMessage({
+              type: "OPEN_EXTENSION_PAGE",
+              url: `${appUrl}#/page/${savedPageId}`,
+            });
+          } catch {}
+        }
         return;
       }
 
       // Show saving state
       notch.classList.add("saving");
-      icon.innerHTML = checkSvg;
 
       try {
-        // Content scripts can't access browser.tabs — send message and let
-        // background use sender.tab.id when tabId is -1
         const response = await browser.runtime.sendMessage({ type: "CAPTURE_PAGE", tabId: -1 });
         if (response?.type === "ERROR") {
           showToast("Could not save");
-          icon.innerHTML = bookmarkSvg;
           notch.classList.remove("saving");
           return;
         }
@@ -392,10 +553,12 @@ export default defineContentScript({
 
         isSaved = true;
         notch.className = "notch saved";
+        saveBtn.className = "fan-btn fan-top save-btn saved";
+        saveBtn.innerHTML = checkSvg;
+        saveBtn.title = "View details";
         showToast("Saved to Tab Zen", savedPageId);
       } catch {
         showToast("Could not save");
-        icon.innerHTML = bookmarkSvg;
         notch.classList.remove("saving");
       }
     }
@@ -454,7 +617,7 @@ export default defineContentScript({
     window.addEventListener("resize", () => {
       // Clamp position to viewport
       positionY = Math.max(10, Math.min(90, positionY));
-      notch.style.top = `${positionY}%`;
+      zone.style.top = `${positionY}%`;
     });
 
     // --- Settings Change Listener ---

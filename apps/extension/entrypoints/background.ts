@@ -303,6 +303,7 @@ export default defineBackground(() => {
           const appUrl = browser.runtime.getURL("/index.html");
           const existing = await browser.tabs.query({ url: `${appUrl}*` });
           if (existing.length > 0 && existing[0].id) {
+            // Always set URL to force navigation (even if hash changes)
             await browser.tabs.update(existing[0].id, { url: message.url, active: true });
             if (existing[0].windowId) {
               await browser.windows.update(existing[0].windowId, { focused: true });
