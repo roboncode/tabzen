@@ -69,10 +69,8 @@ export default defineContentScript({
         ${side}: 0;
         top: ${positionY}%;
         transform: translateY(-50%);
-        width: 32px;
+        width: 18px;
         height: 32px;
-        padding-${side === "right" ? "right" : "left"}: 14px;
-        box-sizing: content-box;
         background: var(--tz-notch-bg);
         border: 1px solid var(--tz-notch-border);
         ${side === "right" ? `border-right: none; border-radius: 8px 0 0 8px;` : `border-left: none; border-radius: 0 8px 8px 0;`}
@@ -93,7 +91,7 @@ export default defineContentScript({
       }
 
       .notch:hover {
-        width: 50px;
+        width: 40px;
         opacity: 1;
         box-shadow: var(--tz-notch-shadow-hover);
       }
@@ -112,7 +110,7 @@ export default defineContentScript({
       }
 
       .notch.saving {
-        width: 50px;
+        width: 40px;
         opacity: 1;
       }
 
