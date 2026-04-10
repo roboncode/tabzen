@@ -1,6 +1,7 @@
 import { createSignal, Show } from "solid-js";
-import { ArrowLeft } from "lucide-solid";
+import { useNavigate } from "@solidjs/router";
 import ConfirmDialog from "./ConfirmDialog";
+import UserMenu from "./UserMenu";
 import { useSettings } from "@/lib/hooks/useSettings";
 import {
   exportAsJson,
@@ -20,6 +21,7 @@ interface SettingsPanelProps {
 type SettingsTab = "general" | "ai" | "sync" | "domains" | "data";
 
 export default function SettingsPanel(props: SettingsPanelProps) {
+  const navigate = useNavigate();
   const { settings, save: rawSave } = useSettings();
   const [saving, setSaving] = createSignal(false);
   const [importResult, setImportResult] = createSignal<string | null>(null);
@@ -73,16 +75,21 @@ export default function SettingsPanel(props: SettingsPanelProps) {
 
   return (
     <div class="h-full bg-background text-foreground overflow-y-auto">
-      <div class="bg-muted/30 px-4 py-3">
-        <div class="flex items-center gap-3 max-w-2xl mx-auto">
-          <button
-            class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            onClick={props.onClose}
-          >
-            <ArrowLeft size={16} />
-          </button>
-          <h1 class="text-base font-semibold text-foreground">Settings</h1>
-        </div>
+      {/* Header — matches detail page action bar */}
+      <div class="flex items-center gap-2 px-4 py-4 bg-background border-b-3 border-[#161618] flex-shrink-0">
+        <span class="text-sm font-medium text-foreground flex-1 min-w-0">Settings</span>
+
+        <div class="w-6 flex-shrink-0" />
+        <button
+          onClick={() => navigate("/")}
+          class="text-sm text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+        >
+          Collections
+        </button>
+
+        <div class="w-px h-5 bg-muted-foreground/20 flex-shrink-0 mx-2" />
+
+        <UserMenu />
       </div>
 
       <div class="flex gap-1.5 px-4 py-2.5 overflow-x-auto scrollbar-hide max-w-2xl mx-auto">
