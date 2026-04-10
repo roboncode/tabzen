@@ -3,7 +3,8 @@ export default defineContentScript({
   runAt: "document_idle",
   async main() {
     // --- Settings & State ---
-    const STORAGE_KEY = "local:settings";
+    // WXT storage strips the "local:" prefix — raw key in chrome.storage.local is just "settings"
+    const STORAGE_KEY = "settings";
     const NOTCH_POS_KEY = "notchPositionY";
     const ONBOARDING_KEY = "notchOnboardingDismissed";
 
