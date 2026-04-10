@@ -1,4 +1,4 @@
-import { type Component, createSignal, Show, For } from 'solid-js';
+import { type Component, createSignal, Show, For, onMount, onCleanup } from 'solid-js';
 import {
   ChatContainer, ConversationList, Message, MessageAvatar, MessageContent,
   PromptInput, ScrollButton, Loader, PromptSuggestion, ModelSwitcher, VoiceInput,
@@ -23,8 +23,15 @@ const MODELS: ModelOption[] = [
 const App: Component = () => {
   const adapter = new LocalAdapter({ openRouterApiKey: API_KEY, embeddingModel: EMBEDDING_MODEL });
   const store = createChatStore(adapter);
-  const [sidebarOpen, setSidebarOpen] = createSignal(true);
+  const wideScreen = window.matchMedia('(min-width: 768px)');
+  const [sidebarOpen, setSidebarOpen] = createSignal(wideScreen.matches);
   const [isStreaming, setIsStreaming] = createSignal(false);
+
+  onMount(() => {
+    const handleBreakpoint = (e: MediaQueryListEvent) => setSidebarOpen(e.matches);
+    wideScreen.addEventListener('change', handleBreakpoint);
+    onCleanup(() => wideScreen.removeEventListener('change', handleBreakpoint));
+  });
   const [currentModel, setCurrentModel] = createSignal(CHAT_MODEL);
   const [streamingContent, setStreamingContent] = createSignal('');
 
