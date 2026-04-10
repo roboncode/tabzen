@@ -14,6 +14,7 @@ import type { Page } from "@/lib/types";
 import type { TranscriptSegment } from "@tab-zen/shared";
 import { formatTimestamp } from "./TranscriptView";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
+import { getDomain, extractCreator } from "@/lib/domains";
 import { sendMessage } from "@/lib/messages";
 import { updatePage, getPage, softDeletePage, getAllPages, getAllTemplates, getDocumentsForPage, putDocument, putTemplate, deleteDocument, deleteTemplate } from "@/lib/db";
 import { getPendingMigrations } from "@/lib/page-extract";
@@ -722,7 +723,8 @@ export default function DetailPage(props: DetailPageProps) {
         
                   onArchive={handleArchive}
                   onDelete={handleDelete}
-                          heroOnly
+                  heroOnly
+                  showTags={hideRightNav()}
                 />
               </div>
 
@@ -857,6 +859,53 @@ export default function DetailPage(props: DetailPageProps) {
                   }}
                 </For>
               </div>
+
+              {/* Narrow: related pages at bottom of content (when sidebar hidden) */}
+              <Show when={hideRightNav() && relatedPages().length > 0}>
+                <div class="px-2 pb-8 mt-4">
+                  <div class="text-xs font-semibold text-foreground/90 mb-3">Related</div>
+                  <div class="flex flex-col gap-3">
+                    <For each={relatedPages()}>
+                      {(related) => {
+                        const creator = () => extractCreator(related);
+                        const domain = () => getDomain(related.url);
+                        return (
+                          <button
+                            class="flex gap-3 text-left rounded-lg hover:bg-muted/30 transition-colors cursor-pointer p-1.5 -mx-1.5 group/related"
+                            onClick={() => navigate(`/page/${related.id}`)}
+                          >
+                            <div class="w-24 h-16 rounded-md overflow-hidden bg-muted/40 flex-shrink-0">
+                              <Show
+                                when={related.ogImage}
+                                fallback={
+                                  <div class="w-full h-full flex items-center justify-center text-muted-foreground/30 text-xs">
+                                    {domain()}
+                                  </div>
+                                }
+                              >
+                                <img
+                                  src={related.ogImage!}
+                                  alt=""
+                                  class="w-full h-full object-cover"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                                />
+                              </Show>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                              <p class="text-sm font-medium text-muted-foreground group-hover/related:text-foreground transition-colors line-clamp-2 leading-snug">
+                                {related.ogTitle || related.title}
+                              </p>
+                              <p class="text-xs text-muted-foreground/50 mt-1 truncate">
+                                {creator() || domain()}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      }}
+                    </For>
+                  </div>
+                </div>
+              </Show>
             </div>
 
             {/* Sidebar placeholder — reserves space in the flex layout */}

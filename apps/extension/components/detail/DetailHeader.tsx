@@ -28,6 +28,8 @@ interface DetailHeaderProps {
   copied?: boolean;
   /** Render only the hero card (no action bar) */
   heroOnly?: boolean;
+  /** Show tags in the hero card (hidden when sidebar shows them) */
+  showTags?: boolean;
   /** Show menu button for sidebar toggle on narrow screens */
   onMenuToggle?: () => void;
 }
@@ -158,8 +160,10 @@ export default function DetailHeader(props: DetailHeaderProps) {
               </div>
             )}
 
-            {/* Tags */}
-            <TagList tags={tags()} class="mt-2.5" />
+            {/* Tags — hidden when sidebar is visible (sidebar has its own tags section) */}
+            <Show when={props.showTags !== false}>
+              <TagList tags={tags()} class="mt-2.5" />
+            </Show>
           </div>
         </div>
       </div>
