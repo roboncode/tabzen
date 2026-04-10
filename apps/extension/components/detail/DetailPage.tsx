@@ -250,10 +250,6 @@ export default function DetailPage(props: DetailPageProps) {
     notifyChanged();
   };
 
-  const handleOpenSource = () => {
-    window.open(props.page.url, "_blank");
-  };
-
   const handleArchive = async () => {
     const page = currentPage();
     await updatePage(page.id, { archived: !page.archived });
@@ -644,7 +640,7 @@ export default function DetailPage(props: DetailPageProps) {
           page={currentPage()}
           onBack={handleBack}
           onToggleStar={handleToggleStar}
-          onOpenSource={handleOpenSource}
+
           onArchive={handleArchive}
           onDelete={handleDelete}
           onCopy={hasContent() ? handleCopy : undefined}
@@ -717,7 +713,7 @@ export default function DetailPage(props: DetailPageProps) {
                   page={currentPage()}
                   onBack={handleBack}
                   onToggleStar={handleToggleStar}
-                  onOpenSource={handleOpenSource}
+        
                   onArchive={handleArchive}
                   onDelete={handleDelete}
                           heroOnly

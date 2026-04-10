@@ -1,14 +1,14 @@
 import { createMemo, createSignal, Show } from "solid-js";
 import {
-  ArrowLeft,
+  Home,
   Star,
-  ExternalLink,
   Archive,
   ArchiveRestore,
   Trash2,
   Copy,
   Check,
   Menu,
+  Ellipsis,
 } from "lucide-solid";
 import type { Page } from "@/lib/types";
 import { extractCreator, getDomain, getFaviconUrl } from "@/lib/domains";
@@ -22,7 +22,6 @@ interface DetailHeaderProps {
   page: Page;
   onBack: () => void;
   onToggleStar: () => void;
-  onOpenSource: () => void;
   onArchive: () => void;
   onDelete: () => void;
   onCopy?: () => void;
@@ -56,21 +55,20 @@ export default function DetailHeader(props: DetailHeaderProps) {
 
   const [descExpanded, setDescExpanded] = createSignal(false);
   const [descOverflows, setDescOverflows] = createSignal(false);
+  const [menuOpen, setMenuOpen] = createSignal(false);
   let descRef: HTMLParagraphElement | undefined;
 
   // ── Hero Only mode: the scrollable card ──
   if (props.heroOnly) {
     return (
       <div class="@container px-4 pt-24 pb-6 md:pb-12">
-        {/*
-          Container query breakpoints:
-          < 480px: stacked (thumbnail on top, info below) — like a card
-          >= 480px: side-by-side (thumbnail left, info right)
-          >= 700px: larger thumbnail
-        */}
         <div class="flex flex-col @[480px]:flex-row gap-4 @[480px]:gap-5">
-          {/* Thumbnail — full width when stacked, fixed width when side-by-side */}
-          <div class="w-full @[480px]:w-[40%] aspect-video rounded-xl overflow-hidden bg-muted/40 flex-shrink-0 max-h-[200px]">
+          {/* Thumbnail — clickable, opens source URL */}
+          <a
+            href={props.page.url}
+            target="_blank"
+            class="w-full @[480px]:w-[40%] aspect-video rounded-xl overflow-hidden bg-muted/40 flex-shrink-0 max-h-[200px] cursor-pointer hover:opacity-90 transition-opacity"
+          >
             {props.page.ogImage ? (
               <img
                 src={props.page.ogImage}
@@ -89,17 +87,31 @@ export default function DetailHeader(props: DetailHeaderProps) {
                 )}
               </div>
             )}
-          </div>
+          </a>
 
           {/* Info */}
           <div class="flex-1 min-w-0">
-            <a
-              href={props.page.url}
-              target="_blank"
-              class="text-xl @[480px]:text-2xl font-bold text-foreground leading-snug hover:text-sky-400 transition-colors cursor-pointer"
-            >
-              {title()}
-            </a>
+            {/* Title + Star */}
+            <div class="flex items-start gap-2">
+              <a
+                href={props.page.url}
+                target="_blank"
+                class="flex-1 text-xl @[480px]:text-2xl font-bold text-foreground leading-snug hover:text-sky-400 transition-colors cursor-pointer"
+              >
+                {title()}
+              </a>
+              <button
+                class={`flex-shrink-0 mt-1 p-1 rounded-md transition-colors ${
+                  props.page.starred
+                    ? "text-yellow-400 hover:text-yellow-300"
+                    : "text-muted-foreground/30 hover:text-yellow-400"
+                }`}
+                onClick={props.onToggleStar}
+                title={props.page.starred ? "Unstar" : "Star"}
+              >
+                <Star size={18} fill={props.page.starred ? "currentColor" : "none"} />
+              </button>
+            </div>
 
             {/* Creator — clickable */}
             <div class="flex items-center gap-2 mt-2">
@@ -176,8 +188,8 @@ export default function DetailHeader(props: DetailHeaderProps) {
         onClick={props.onBack}
         class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
-        <ArrowLeft size={16} />
-        <span>Back</span>
+        <Home size={16} />
+        <span>Home</span>
       </button>
 
       {/* Menu button — narrow screens only */}
@@ -212,44 +224,49 @@ export default function DetailHeader(props: DetailHeaderProps) {
         <div class="flex-1" />
       </Show>
 
-      <div class="flex items-center gap-0.5 ml-auto">
+      {/* Kebab menu */}
+      <div class="relative ml-auto">
         <IconButton
-          onClick={() => props.onCopy?.()}
-          class={`${props.onCopy ? "opacity-100" : "opacity-0 pointer-events-none"} transition-opacity`}
-          title="Copy transcript"
+          onClick={() => setMenuOpen(!menuOpen())}
+          title="More actions"
         >
-          <Show when={props.copied} fallback={<Copy size={16} />}>
-            <Check size={16} class="text-green-400" />
-          </Show>
+          <Ellipsis size={16} />
         </IconButton>
-        <div
-          class={`w-px h-4 mx-1.5 transition-opacity ${props.onCopy ? "bg-muted-foreground/30" : "bg-transparent"}`}
-        />
-        <IconButton onClick={props.onOpenSource} title="Visit page">
-          <ExternalLink size={16} />
-        </IconButton>
-        <IconButton
-          onClick={props.onToggleStar}
-          active={props.page.starred}
-          title={props.page.starred ? "Unstar" : "Star"}
-        >
-          <Star size={16} fill={props.page.starred ? "currentColor" : "none"} />
-        </IconButton>
-        <IconButton
-          onClick={props.onArchive}
-          title={props.page.archived ? "Unarchive" : "Archive"}
-        >
-          <Show when={props.page.archived} fallback={<Archive size={16} />}>
-            <ArchiveRestore size={16} />
-          </Show>
-        </IconButton>
-        <IconButton
-          onClick={props.onDelete}
-          variant="destructive"
-          title="Delete"
-        >
-          <Trash2 size={16} />
-        </IconButton>
+
+        <Show when={menuOpen()}>
+          {/* Backdrop to close menu */}
+          <div class="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
+
+          <div class="absolute right-0 top-full mt-1 z-40 bg-[#1e1e22] rounded-lg py-1 min-w-[180px] shadow-xl shadow-black/40">
+            <Show when={props.onCopy}>
+              <button
+                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+                onClick={() => { props.onCopy?.(); setMenuOpen(false); }}
+              >
+                <Show when={props.copied} fallback={<Copy size={14} />}>
+                  <Check size={14} class="text-green-400" />
+                </Show>
+                <span>{props.copied ? "Copied!" : "Copy content"}</span>
+              </button>
+            </Show>
+            <button
+              class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+              onClick={() => { props.onArchive(); setMenuOpen(false); }}
+            >
+              <Show when={props.page.archived} fallback={<Archive size={14} />}>
+                <ArchiveRestore size={14} />
+              </Show>
+              <span>{props.page.archived ? "Unarchive" : "Archive"}</span>
+            </button>
+            <button
+              class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400/80 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+              onClick={() => { props.onDelete(); setMenuOpen(false); }}
+            >
+              <Trash2 size={14} />
+              <span>Delete</span>
+            </button>
+          </div>
+        </Show>
       </div>
     </div>
   );
