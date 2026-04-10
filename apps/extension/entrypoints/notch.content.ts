@@ -8,8 +8,8 @@ export default defineContentScript({
     const ONBOARDING_KEY = "notchOnboardingDismissed";
 
     // Read settings
-    const stored = await browser.storage.local.get([STORAGE_KEY, NOTCH_POS_KEY, ONBOARDING_KEY]);
-    const settings = stored[STORAGE_KEY] || {};
+    const stored = await browser.storage.local.get([STORAGE_KEY, NOTCH_POS_KEY, ONBOARDING_KEY]) as Record<string, any>;
+    const settings = (stored[STORAGE_KEY] || {}) as Record<string, any>;
 
     // Check if notch is enabled
     if (settings.notchEnabled === false) return;
@@ -376,7 +376,7 @@ export default defineContentScript({
     // --- Settings Change Listener ---
     browser.storage.onChanged.addListener((changes) => {
       if (changes[STORAGE_KEY]) {
-        const newSettings = changes[STORAGE_KEY].newValue || {};
+        const newSettings = (changes[STORAGE_KEY].newValue || {}) as Record<string, any>;
         // Check if notch was disabled
         if (newSettings.notchEnabled === false) {
           host.remove();
