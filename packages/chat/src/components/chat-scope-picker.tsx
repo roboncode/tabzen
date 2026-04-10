@@ -1,0 +1,43 @@
+import { splitProps, Show } from 'solid-js';
+import { cn } from '../utils/cn';
+import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '../ui/dropdown';
+import { Button } from '../ui/button';
+import type { SearchFilters } from '@tab-zen/shared';
+
+export interface ChatScopePickerProps {
+  currentLabel: string;
+  onScopeChange: (filters: SearchFilters | undefined) => void;
+  availableAuthors?: string[];
+  availableTags?: string[];
+  class?: string;
+}
+
+export function ChatScopePicker(props: ChatScopePickerProps) {
+  const [local] = splitProps(props, ['currentLabel', 'onScopeChange', 'availableAuthors', 'availableTags', 'class']);
+  return (
+    <Dropdown>
+      <DropdownTrigger as={(triggerProps: any) => (
+        <Button variant="ghost" size="sm" class={cn('gap-1 text-xs', local.class)} {...triggerProps}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          {local.currentLabel}
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </Button>
+      )} />
+      <DropdownContent class="min-w-[180px]">
+        <DropdownItem onSelect={() => local.onScopeChange(undefined)}>All Content</DropdownItem>
+        <Show when={local.availableAuthors?.length}>
+          <div class="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground/60">Authors</div>
+          {local.availableAuthors!.map((author) => (
+            <DropdownItem onSelect={() => local.onScopeChange({ authors: [author] })}>{author}</DropdownItem>
+          ))}
+        </Show>
+        <Show when={local.availableTags?.length}>
+          <div class="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground/60">Tags</div>
+          {local.availableTags!.map((tag) => (
+            <DropdownItem onSelect={() => local.onScopeChange({ tags: [tag] })}>{tag}</DropdownItem>
+          ))}
+        </Show>
+      </DropdownContent>
+    </Dropdown>
+  );
+}

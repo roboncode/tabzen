@@ -5,6 +5,7 @@
     "declaration": true,
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
+    "baseUrl": ".",
     "paths": {
       "@tab-zen/shared": ["../shared/src/index.ts"]
     }
