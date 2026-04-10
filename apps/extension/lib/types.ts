@@ -25,6 +25,8 @@ export interface Settings {
   socialHook: boolean;
   autoTagging: boolean;
   autoChapters: boolean;
+  notchEnabled: boolean;
+  notchSide: "left" | "right";
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -73,6 +75,8 @@ export const DEFAULT_SETTINGS: Settings = {
   socialHook: true,
   autoTagging: true,
   autoChapters: true,
+  notchEnabled: true,
+  notchSide: "right",
 };
 
 export interface AIGroupSuggestion {
