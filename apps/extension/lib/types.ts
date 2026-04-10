@@ -23,6 +23,8 @@ export interface Settings {
   socialHashtags: boolean;
   socialEngagementQuestion: boolean;
   socialHook: boolean;
+  autoTagging: boolean;
+  autoChapters: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -69,6 +71,8 @@ export const DEFAULT_SETTINGS: Settings = {
   socialHashtags: true,
   socialEngagementQuestion: false,
   socialHook: true,
+  autoTagging: true,
+  autoChapters: true,
 };
 
 export interface AIGroupSuggestion {
