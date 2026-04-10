@@ -8,7 +8,6 @@ import actionItemsPrompt from "@/prompts/action-items.md?raw";
 import eli5Prompt from "@/prompts/eli5.md?raw";
 import productsMentionsPrompt from "@/prompts/products-mentions.md?raw";
 import socialPostsPrompt from "@/prompts/social-posts.md?raw";
-import sponsorsPrompt from "@/prompts/sponsors.md?raw";
 
 interface BuiltinDef {
   id: string;
@@ -22,7 +21,6 @@ const BUILTIN_TEMPLATES: BuiltinDef[] = [
   { id: "builtin-action-items", name: "Action Items", prompt: actionItemsPrompt.trim() },
   { id: "builtin-eli5", name: "Simplified", prompt: eli5Prompt.trim() },
   { id: "builtin-products-mentions", name: "Products & Mentions", prompt: productsMentionsPrompt.trim() },
-  { id: "builtin-sponsors", name: "Sponsors", prompt: sponsorsPrompt.trim() },
   { id: "builtin-social-posts", name: "Social Posts", prompt: socialPostsPrompt.trim() },
 ];
 
@@ -37,7 +35,7 @@ export async function seedTemplatesIfNeeded(): Promise<void> {
   }
 
   // Add new built-in templates for existing installs
-  const newBuiltins = ["builtin-sponsors", "builtin-social-posts"];
+  const newBuiltins = ["builtin-social-posts"];
   for (const id of newBuiltins) {
     if (!existing.find((t) => t.id === id)) {
       const def = BUILTIN_TEMPLATES.find((d) => d.id === id)!;

@@ -8,7 +8,6 @@ const SLUG_TO_ID: Record<string, string> = {
   "action-items": "builtin-action-items",
   "eli5": "builtin-eli5",
   "products-mentions": "builtin-products-mentions",
-  "sponsors": "builtin-sponsors",
   "social-posts": "builtin-social-posts",
 };
 
