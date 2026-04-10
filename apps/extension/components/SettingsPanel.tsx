@@ -135,6 +135,53 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                     Tags your captures so you know where they came from
                   </p>
                 </div>
+                <div class="pt-4 border-t border-muted-foreground/10">
+                  <div class="flex items-center justify-between mb-3">
+                    <div>
+                      <p class="text-sm text-foreground">Capture button on pages</p>
+                      <p class="text-xs text-muted-foreground mt-0.5">Show a floating save button on every web page</p>
+                    </div>
+                    <button
+                      class={`w-10 h-6 rounded-full transition-colors ${
+                        s().notchEnabled ? "bg-sky-500" : "bg-muted/60"
+                      }`}
+                      onClick={() => save({ notchEnabled: !s().notchEnabled })}
+                    >
+                      <div class={`w-4 h-4 rounded-full bg-white mx-1 transition-transform ${
+                        s().notchEnabled ? "translate-x-4" : "translate-x-0"
+                      }`} />
+                    </button>
+                  </div>
+                  <Show when={s().notchEnabled}>
+                    <div>
+                      <label class="block text-sm text-muted-foreground mb-1.5">
+                        Button position
+                      </label>
+                      <div class="flex gap-2">
+                        <button
+                          class={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                            s().notchSide === "left"
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          }`}
+                          onClick={() => save({ notchSide: "left" })}
+                        >
+                          Left
+                        </button>
+                        <button
+                          class={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                            s().notchSide === "right"
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          }`}
+                          onClick={() => save({ notchSide: "right" })}
+                        >
+                          Right
+                        </button>
+                      </div>
+                    </div>
+                  </Show>
+                </div>
               </div>
             </Show>
 
