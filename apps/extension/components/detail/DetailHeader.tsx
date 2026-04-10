@@ -167,6 +167,16 @@ export default function DetailHeader(props: DetailHeaderProps) {
   // ── Action bar mode (default) ──
   return (
     <div class="flex items-center gap-2 px-4 py-4 bg-background border-b-3 border-[#161618] flex-shrink-0 relative z-20">
+      {/* Menu button — narrow screens only */}
+      <Show when={props.onMenuToggle}>
+        <IconButton
+          onClick={() => props.onMenuToggle!()}
+          title="Toggle sidebar"
+        >
+          <Menu size={16} />
+        </IconButton>
+      </Show>
+
       {/* Left: Star + Title */}
       <button
         class={`flex-shrink-0 p-1 rounded-md transition-colors ${
@@ -179,16 +189,6 @@ export default function DetailHeader(props: DetailHeaderProps) {
       >
         <Star size={16} fill={props.page.starred ? "currentColor" : "none"} />
       </button>
-
-      {/* Menu button — narrow screens only */}
-      <Show when={props.onMenuToggle}>
-        <IconButton
-          onClick={() => props.onMenuToggle!()}
-          title="Toggle sidebar"
-        >
-          <Menu size={16} />
-        </IconButton>
-      </Show>
 
       <span class="text-sm font-medium text-foreground truncate flex-1 min-w-0">
         {title()}
