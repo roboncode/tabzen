@@ -74,7 +74,6 @@ export default function DetailPage(props: DetailPageProps) {
   const [hideRightNav, setHideRightNav] = createSignal(window.innerWidth < 1024);
   const [hideLeftNav, setHideLeftNav] = createSignal(window.innerWidth < 1100);
   const [copied, setCopied] = createSignal(false);
-  const [heroScrolledPast, setHeroScrolledPast] = createSignal(false);
   const [reExtracting, setReExtracting] = createSignal(false);
   const [migrationDismissed, setMigrationDismissed] = createSignal(false);
   const [updateSuccess, setUpdateSuccess] = createSignal(false);
@@ -127,7 +126,6 @@ export default function DetailPage(props: DetailPageProps) {
 
   let containerRef: HTMLDivElement | undefined;
   let scrollRef: HTMLDivElement | undefined;
-  let heroRef: HTMLDivElement | undefined;
 
   onMount(() => {
     // Auto-run silent migration actions
@@ -556,14 +554,6 @@ export default function DetailPage(props: DetailPageProps) {
     }
   };
 
-  const handleScroll = () => {
-    if (!heroRef || !scrollRef) return;
-    const heroRect = heroRef.getBoundingClientRect();
-    const scrollRect = scrollRef.getBoundingClientRect();
-    // Hero is scrolled past when its bottom goes above the scroll container's top edge
-    // (which is right below the action bar)
-    setHeroScrolledPast(heroRect.bottom < scrollRect.top + 52);
-  };
 
   const ContentView = () => (
     <>
@@ -645,7 +635,6 @@ export default function DetailPage(props: DetailPageProps) {
           onDelete={handleDelete}
           onCopy={hasContent() ? handleCopy : undefined}
           copied={copied()}
-          compact={heroScrolledPast()}
           onMenuToggle={hideLeftNav() && hasContent() && templates().length > 0 ? () => setSidebarOpen(!sidebarOpen()) : undefined}
         />
 
@@ -698,7 +687,6 @@ export default function DetailPage(props: DetailPageProps) {
         <div
           ref={scrollRef}
           class="flex-1 overflow-y-auto scrollbar-hide"
-          onScroll={handleScroll}
         >
           {/* Content + Right sidebar */}
           <div
@@ -708,7 +696,7 @@ export default function DetailPage(props: DetailPageProps) {
             {/* Content column */}
             <div class="flex-1 min-w-0 max-w-[768px] px-4">
               {/* Hero card */}
-              <div ref={heroRef}>
+              <div>
                 <DetailHeader
                   page={currentPage()}
                   onBack={handleBack}

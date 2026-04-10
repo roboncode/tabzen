@@ -28,8 +28,6 @@ interface DetailHeaderProps {
   copied?: boolean;
   /** Render only the hero card (no action bar) */
   heroOnly?: boolean;
-  /** Show compact title + thumbnail in the action bar */
-  compact?: boolean;
   /** Show menu button for sidebar toggle on narrow screens */
   onMenuToggle?: () => void;
 }
@@ -91,27 +89,13 @@ export default function DetailHeader(props: DetailHeaderProps) {
 
           {/* Info */}
           <div class="flex-1 min-w-0">
-            {/* Title + Star */}
-            <div class="flex items-start gap-2">
-              <a
-                href={props.page.url}
-                target="_blank"
-                class="flex-1 text-xl @[480px]:text-2xl font-bold text-foreground leading-snug hover:text-sky-400 transition-colors cursor-pointer"
-              >
-                {title()}
-              </a>
-              <button
-                class={`flex-shrink-0 mt-1 p-1 rounded-md transition-colors ${
-                  props.page.starred
-                    ? "text-yellow-400 hover:text-yellow-300"
-                    : "text-muted-foreground/30 hover:text-yellow-400"
-                }`}
-                onClick={props.onToggleStar}
-                title={props.page.starred ? "Unstar" : "Star"}
-              >
-                <Star size={18} fill={props.page.starred ? "currentColor" : "none"} />
-              </button>
-            </div>
+            <a
+              href={props.page.url}
+              target="_blank"
+              class="text-xl @[480px]:text-2xl font-bold text-foreground leading-snug hover:text-sky-400 transition-colors cursor-pointer"
+            >
+              {title()}
+            </a>
 
             {/* Creator — clickable */}
             <div class="flex items-center gap-2 mt-2">
@@ -183,13 +167,18 @@ export default function DetailHeader(props: DetailHeaderProps) {
 
   // ── Action bar mode (default) ──
   return (
-    <div class="flex items-center gap-1 px-4 py-4 bg-background border-b-3 border-[#161618] flex-shrink-0 relative z-20">
+    <div class="flex items-center gap-2 px-4 py-4 bg-background border-b-3 border-[#161618] flex-shrink-0 relative z-20">
+      {/* Left: Star + Title */}
       <button
-        onClick={props.onBack}
-        class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        class={`flex-shrink-0 p-1 rounded-md transition-colors ${
+          props.page.starred
+            ? "text-yellow-400 hover:text-yellow-300"
+            : "text-muted-foreground/30 hover:text-yellow-400"
+        }`}
+        onClick={props.onToggleStar}
+        title={props.page.starred ? "Unstar" : "Star"}
       >
-        <Home size={16} />
-        <span>Home</span>
+        <Star size={16} fill={props.page.starred ? "currentColor" : "none"} />
       </button>
 
       {/* Menu button — narrow screens only */}
@@ -202,35 +191,28 @@ export default function DetailHeader(props: DetailHeaderProps) {
         </IconButton>
       </Show>
 
-      {/* Compact title — visible when hero scrolled past */}
-      <Show when={props.compact}>
-        <div class="flex items-center gap-2.5 ml-3 flex-1 min-w-0">
-          {props.page.ogImage && (
-            <img
-              src={props.page.ogImage}
-              alt=""
-              class="w-7 h-7 rounded object-cover flex-shrink-0"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
-          )}
-          <span class="text-sm font-medium text-foreground truncate">
-            {title()}
-          </span>
-        </div>
-      </Show>
-      <Show when={!props.compact}>
-        <div class="flex-1" />
-      </Show>
+      <span class="text-sm font-medium text-foreground truncate flex-1 min-w-0">
+        {title()}
+      </span>
 
-      {/* Kebab menu */}
-      <div class="relative ml-auto">
+      {/* Right: Home | separator | Kebab */}
+      <button
+        onClick={props.onBack}
+        class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+      >
+        <Home size={16} />
+        <span>Home</span>
+      </button>
+
+      <div class="w-px h-4 bg-muted-foreground/20 flex-shrink-0" />
+
+      {/* Vertical kebab menu */}
+      <div class="relative flex-shrink-0">
         <IconButton
           onClick={() => setMenuOpen(!menuOpen())}
           title="More actions"
         >
-          <Ellipsis size={16} />
+          <Ellipsis size={16} class="rotate-90" />
         </IconButton>
 
         <Show when={menuOpen()}>
