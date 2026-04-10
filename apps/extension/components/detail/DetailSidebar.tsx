@@ -118,7 +118,7 @@ export default function DetailSidebar(props: DetailSidebarProps) {
           Notes
         </div>
         <NotesDisplay
-          tab={props.page}
+          page={props.page}
           onSave={props.onSaveNotes}
           clampLines={3}
         />

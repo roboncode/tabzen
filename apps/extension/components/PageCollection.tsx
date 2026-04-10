@@ -548,7 +548,7 @@ export default function PageCollection(props: PageCollectionProps) {
             <Show
               when={filteredPages().length > 0}
               fallback={
-                <EmptyBlock icon={<StickyNote size={52} />} title="No notes yet" description="Add notes to any tab to see them here." />
+                <EmptyBlock icon={<StickyNote size={52} />} title="No notes yet" description="Add notes to any page to see them here." />
               }
             >
               <div class="grid grid-cols-1 @[600px]:grid-cols-2 @[900px]:grid-cols-3 gap-4 p-4">
@@ -570,7 +570,7 @@ export default function PageCollection(props: PageCollectionProps) {
             <Show
               when={filteredPages().length > 0}
               fallback={
-                <EmptyBlock icon={<Calendar size={52} />} title="No tabs saved yet" description="Capture some tabs to see them organized by date." />
+                <EmptyBlock icon={<Calendar size={52} />} title="No pages saved yet" description="Capture some pages to see them organized by date." />
               }
             >
               <For each={pagesByDate()}>
@@ -625,7 +625,7 @@ export default function PageCollection(props: PageCollectionProps) {
             <Show
               when={filteredPages().length > 0}
               fallback={
-                <EmptyBlock icon={<Trash2 size={52} />} title="Trash is empty" description="Deleted tabs will appear here." />
+                <EmptyBlock icon={<Trash2 size={52} />} title="Trash is empty" description="Deleted pages will appear here." />
               }
             >
             <GroupSection
@@ -660,11 +660,11 @@ export default function PageCollection(props: PageCollectionProps) {
               when={filteredPages().length > 0}
               fallback={
                 filter() === "starred" ? (
-                  <EmptyBlock icon={<Star size={52} />} title="No starred tabs" description="Star tabs to quickly find them later." />
+                  <EmptyBlock icon={<Star size={52} />} title="No starred pages" description="Star pages to quickly find them later." />
                 ) : filter() === "archived" ? (
-                  <EmptyBlock icon={<Archive size={52} />} title="No archived tabs" description="Archive tabs to declutter without deleting." />
+                  <EmptyBlock icon={<Archive size={52} />} title="No archived pages" description="Archive pages to declutter without deleting." />
                 ) : (
-                  <EmptyBlock icon={<Inbox size={52} />} title="No tabs to show" description="Capture some tabs to get started." />
+                  <EmptyBlock icon={<Inbox size={52} />} title="No pages to show" description="Capture some pages to get started." />
                 )
               }
             >
@@ -702,7 +702,7 @@ export default function PageCollection(props: PageCollectionProps) {
       <Show when={editingPage()}>
         {(page) => (
           <NotesEditor
-            tab={page()}
+            page={page()}
             onSave={handleSaveNotes}
             onClose={() => setEditingPage(null)}
           />

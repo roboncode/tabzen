@@ -734,7 +734,7 @@ export default function DetailPage(props: DetailPageProps) {
               <Show when={hideRightNav()}>
                 <div class="mb-6">
                   <NotesDisplay
-                    tab={currentPage()}
+                    page={currentPage()}
                     onSave={handleSaveNotes}
                     clampLines={3}
                   />

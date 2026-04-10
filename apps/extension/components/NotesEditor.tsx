@@ -3,13 +3,13 @@ import type { Page } from "@/lib/types";
 import Dialog from "./Dialog";
 
 interface NotesEditorProps {
-  tab: Page;
+  page: Page;
   onSave: (pageId: string, notes: string) => void;
   onClose: () => void;
 }
 
 export default function NotesEditor(props: NotesEditorProps) {
-  const [notes, setNotes] = createSignal(props.tab.notes || "");
+  const [notes, setNotes] = createSignal(props.page.notes || "");
   const [visible, setVisible] = createSignal(false);
   const narrow = window.innerWidth < 500;
   let textareaRef: HTMLTextAreaElement | undefined;
@@ -41,7 +41,7 @@ export default function NotesEditor(props: NotesEditorProps) {
   });
 
   const handleSave = () => {
-    props.onSave(props.tab.id, notes());
+    props.onSave(props.page.id, notes());
     if (narrow) {
       animateClose();
     } else {
@@ -85,13 +85,13 @@ export default function NotesEditor(props: NotesEditorProps) {
     return (
       <Dialog open={true} onClose={props.onClose}>
         <h3 class="text-base font-semibold text-foreground mb-1">Notes</h3>
-        <p class="text-sm text-muted-foreground mb-4 truncate">{props.tab.title}</p>
+        <p class="text-sm text-muted-foreground mb-4 truncate">{props.page.title}</p>
         <textarea
           ref={textareaRef}
           class={`${textareaClass} h-48`}
           value={notes()}
           onInput={(e) => setNotes(e.currentTarget.value)}
-          placeholder="Add notes about this tab..."
+          placeholder="Add notes about this page..."
         />
         <div class="flex justify-end gap-2 mt-4">
           <button
@@ -139,11 +139,11 @@ export default function NotesEditor(props: NotesEditorProps) {
 
           <div class="px-5 pb-6">
             <div class="flex items-center gap-2.5 mb-4">
-              {props.tab.favicon && (
-                <img src={props.tab.favicon} alt="" class="w-5 h-5 rounded-full" />
+              {props.page.favicon && (
+                <img src={props.page.favicon} alt="" class="w-5 h-5 rounded-full" />
               )}
               <p class="text-sm font-medium text-foreground truncate flex-1 min-w-0">
-                {props.tab.title}
+                {props.page.title}
               </p>
             </div>
 
@@ -152,7 +152,7 @@ export default function NotesEditor(props: NotesEditorProps) {
               class={textareaClass}
               value={notes()}
               onInput={(e) => setNotes(e.currentTarget.value)}
-              placeholder="Add notes about this tab..."
+              placeholder="Add notes about this page..."
             />
             <div class="flex gap-2 mt-4">
               <button

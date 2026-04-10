@@ -62,7 +62,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       try {
         const result = await importFromJson(text);
         setImportResult(
-          `Imported ${result.imported} tabs, skipped ${result.skipped} duplicates`,
+          `Imported ${result.imported} pages, skipped ${result.skipped} duplicates`,
         );
       } catch (err) {
         setImportResult(`Import failed: ${err}`);
@@ -200,7 +200,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                     <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
                   </select>
                   <p class="text-xs text-muted-foreground mt-1.5">
-                    Without an API key, tabs are grouped by domain
+                    Without an API key, pages are grouped by domain
                   </p>
                 </div>
                 <div class="pt-2">
@@ -263,7 +263,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                     Clear Data
                   </button>
                   <p class="text-xs text-muted-foreground mt-1.5">
-                    Clear tabs from this profile or all data
+                    Clear pages from this profile or all data
                   </p>
                 </div>
               </div>
@@ -302,7 +302,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                       >
                         <p class="text-sm font-medium text-foreground">Clear this profile's data</p>
                         <p class="text-xs text-muted-foreground mt-1">
-                          Only removes tabs captured from "{settings()?.sourceLabel}". Data from other devices is kept.
+                          Only removes pages captured from "{settings()?.sourceLabel}". Data from other devices is kept.
                         </p>
                       </button>
                       <button
@@ -311,7 +311,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                       >
                         <p class="text-sm font-medium text-red-300">Clear all data</p>
                         <p class="text-xs text-muted-foreground mt-1">
-                          Removes all tabs, groups, and captures from every device. Cannot be undone.
+                          Removes all pages, groups, and captures from every device. Cannot be undone.
                         </p>
                       </button>
                     </div>
@@ -330,7 +330,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               <Show when={confirming() === "profile"}>
                 <ConfirmDialog
                   title="Clear profile data"
-                  message={`Remove all tabs from "${settings()?.sourceLabel}"? Tabs from other devices will be kept.`}
+                  message={`Remove all pages from "${settings()?.sourceLabel}"? Pages from other devices will be kept.`}
                   confirmLabel="Clear Profile"
                   destructive
                   onConfirm={async () => {
@@ -347,7 +347,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               <Show when={confirming() === "all"}>
                 <ConfirmDialog
                   title="Clear all data"
-                  message="Delete all tabs, groups, and captures from every device? This cannot be undone."
+                  message="Delete all pages, groups, and captures from every device? This cannot be undone."
                   confirmLabel="Clear Everything"
                   destructive
                   onConfirm={async () => {

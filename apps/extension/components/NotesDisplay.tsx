@@ -4,7 +4,7 @@ import type { Page } from "@/lib/types";
 import NotesEditor from "./NotesEditor";
 
 interface NotesDisplayProps {
-  tab: Page;
+  page: Page;
   onSave: (pageId: string, notes: string) => void;
   /** Max lines before clamping (default 3) */
   clampLines?: number;
@@ -39,7 +39,7 @@ export default function NotesDisplay(props: NotesDisplayProps) {
   return (
     <>
       <Show
-        when={props.tab.notes}
+        when={props.page.notes}
         fallback={
           <button
             onClick={() => setEditing(true)}
@@ -69,7 +69,7 @@ export default function NotesDisplay(props: NotesDisplayProps) {
                 expanded() ? "" : "line-clamp-" + maxLines()
               }`}
             >
-              {props.tab.notes}
+              {props.page.notes}
             </div>
           </div>
           <Show when={needsClamp()}>
@@ -89,7 +89,7 @@ export default function NotesDisplay(props: NotesDisplayProps) {
       {/* Notes editor modal */}
       <Show when={editing()}>
         <NotesEditor
-          tab={props.tab}
+          tab={props.page}
           onSave={handleSave}
           onClose={() => setEditing(false)}
         />

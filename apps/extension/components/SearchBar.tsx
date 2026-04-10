@@ -121,7 +121,7 @@ export default function SearchBar(props: SearchBarProps) {
           ref={inputRef}
           type="text"
           class="w-full bg-muted/40 text-sm text-foreground rounded-lg pl-10 pr-10 py-2.5 outline-none focus:bg-muted/60 transition-colors placeholder:text-muted-foreground"
-          placeholder={props.placeholder || "Search tabs, notes, #tags..."}
+          placeholder={props.placeholder || "Search pages, notes, #tags..."}
           value={query()}
           onInput={(e) => handleInput(e.currentTarget.value)}
           onKeyDown={handleKeyDown}
