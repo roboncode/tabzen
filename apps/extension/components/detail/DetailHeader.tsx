@@ -58,7 +58,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
   // ── Hero Only mode: the scrollable card ──
   if (props.heroOnly) {
     return (
-      <div class="@container px-4 pt-6 @[480px]:pt-24 pb-6 md:pb-12">
+      <div class="@container px-4 pt-3 @[480px]:pt-24 pb-6 md:pb-12">
         <div class="flex flex-col @[480px]:flex-row gap-4 @[480px]:gap-5">
           {/* Thumbnail — clickable, opens source URL */}
           <a
