@@ -59,7 +59,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
   if (props.heroOnly) {
     return (
       <div class="@container px-4 pt-8 pb-6 md:pb-12">
-        <div class="flex flex-col @[520px]:flex-row gap-4 @[520px]:gap-5">
+        <div class="flex flex-col @[520px]:flex-row gap-4 @[520px]:gap-5 group/hero">
           {/* Thumbnail — clickable, opens source URL */}
           <a
             href={props.page.url}
@@ -91,7 +91,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
             <a
               href={props.page.url}
               target="_blank"
-              class="text-xl @[520px]:text-2xl font-bold text-foreground leading-snug hover:text-sky-400 transition-colors cursor-pointer"
+              class="text-xl @[520px]:text-2xl font-bold text-foreground leading-snug hover:text-sky-400 group-hover/hero:text-sky-400 transition-colors cursor-pointer"
             >
               {title()}
             </a>
