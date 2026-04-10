@@ -33,7 +33,7 @@ function Markdown(props: MarkdownProps) {
   const blocks = createMemo(() => parseMarkdownIntoBlocks(local.content));
 
   return (
-    <div class={cn('break-words whitespace-normal', local.class)}>
+    <div class={cn('prose dark:prose-invert prose-sm max-w-none break-words whitespace-normal', local.class)}>
       <For each={blocks()}>
         {(block, index) => (
           <MarkdownBlock content={block} />

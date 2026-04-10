@@ -15,7 +15,7 @@ type Story = StoryObj<typeof meta>;
 export const PlainText: Story = {
   args: {
     content: 'This is a simple paragraph of text rendered through the Markdown component.',
-    class: 'prose text-foreground',
+    class: '',
   },
 };
 
@@ -27,7 +27,7 @@ export const Headings: Story = {
 #### Heading 4
 
 Some text below the headings.`,
-    class: 'prose text-foreground',
+    class: '',
   },
 };
 
@@ -45,7 +45,7 @@ And another block:
 \`\`\`python
 print("hello world")
 \`\`\``,
-    class: 'prose text-foreground',
+    class: '',
   },
 };
 
@@ -62,7 +62,7 @@ export const Lists: Story = {
 1. Step one
 2. Step two
 3. Step three`,
-    class: 'prose text-foreground',
+    class: '',
   },
 };
 
@@ -76,7 +76,7 @@ export const GFMTable: Story = {
 | Bundle Size | ~7KB | ~40KB | ~2KB |
 | Performance | Excellent | Good | Excellent |
 | Learning Curve | Moderate | Moderate | Easy |`,
-    class: 'prose text-foreground',
+    class: '',
   },
 };
 
@@ -112,6 +112,6 @@ pnpm dev
 | Styling | Tailwind | Design |
 
 For more info, visit [solidjs.com](https://solidjs.com).`,
-    class: 'prose text-foreground max-w-2xl',
+    class: 'max-w-2xl',
   },
 };
