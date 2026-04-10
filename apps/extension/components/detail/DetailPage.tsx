@@ -712,8 +712,8 @@ export default function DetailPage(props: DetailPageProps) {
             class="flex gap-16 mx-auto"
             style={{ "max-width": "calc(768px + 256px + 64px + 32px)" }}
           >
-            {/* Content column */}
-            <div class="flex-1 min-w-0 max-w-[768px] px-4">
+            {/* Content column — centered when sidebar is hidden */}
+            <div class={`flex-1 min-w-0 max-w-[768px] px-4 ${hideRightNav() ? "mx-auto" : ""}`}>
               {/* Hero card */}
               <div>
                 <DetailHeader
