@@ -66,7 +66,7 @@ export default defineContentScript({
 
       .notch {
         position: fixed;
-        ${side}: 2px;
+        ${side}: 14px;
         top: ${positionY}%;
         transform: translateY(-50%);
         width: 16px;
@@ -116,7 +116,7 @@ export default defineContentScript({
 
       .toast {
         position: fixed;
-        ${side}: 44px;
+        ${side}: 56px;
         top: ${positionY}%;
         transform: translateY(-50%) translateX(${side === "right" ? "20px" : "-20px"});
         background: #1e1e22;
@@ -159,7 +159,7 @@ export default defineContentScript({
 
       .tooltip {
         position: fixed;
-        ${side}: 44px;
+        ${side}: 56px;
         top: ${positionY}%;
         transform: translateY(-50%);
         background: #1e1e22;
