@@ -275,6 +275,16 @@ export default defineContentScript({
 
     // --- Toast Logic ---
     let toastTimer: ReturnType<typeof setTimeout> | null = null;
+    let toastHovered = false;
+
+    toast.addEventListener("mouseenter", () => {
+      toastHovered = true;
+      if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+    });
+    toast.addEventListener("mouseleave", () => {
+      toastHovered = false;
+      toastTimer = setTimeout(hideToast, 2000);
+    });
 
     function showToast(message: string, pageId?: string) {
       toastText.textContent = message;
@@ -297,6 +307,7 @@ export default defineContentScript({
     }
 
     function hideToast() {
+      if (toastHovered) return;
       toast.classList.remove("visible");
       if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
     }
@@ -403,17 +414,31 @@ export default defineContentScript({
       tooltip.appendChild(tooltipBtn);
       shadow.appendChild(tooltip);
 
+      // Pause auto-dismiss while hovered
+      let tooltipHovered = false;
+      let tooltipAutoTimer: ReturnType<typeof setTimeout> | null = null;
+
+      tooltip.addEventListener("mouseenter", () => {
+        tooltipHovered = true;
+        if (tooltipAutoTimer) { clearTimeout(tooltipAutoTimer); tooltipAutoTimer = null; }
+      });
+      tooltip.addEventListener("mouseleave", () => {
+        tooltipHovered = false;
+        tooltipAutoTimer = setTimeout(dismissTooltip, 3000);
+      });
+
+      function dismissTooltip() {
+        if (tooltipHovered) return;
+        tooltip.classList.remove("visible");
+        browser.storage.local.set({ [ONBOARDING_KEY]: true });
+        setTimeout(() => { if (tooltip.isConnected) tooltip.remove(); }, 300);
+      }
+
       // Show after a short delay
       setTimeout(() => tooltip.classList.add("visible"), 500);
 
-      // Auto-dismiss after 10 seconds
-      setTimeout(() => {
-        if (tooltip.isConnected) {
-          tooltip.classList.remove("visible");
-          browser.storage.local.set({ [ONBOARDING_KEY]: true });
-          setTimeout(() => { if (tooltip.isConnected) tooltip.remove(); }, 300);
-        }
-      }, 10000);
+      // Auto-dismiss after 10 seconds (unless hovered)
+      tooltipAutoTimer = setTimeout(dismissTooltip, 10000);
     }
 
     // --- Viewport Resize Handling ---
