@@ -559,6 +559,7 @@ export default function DetailPage(props: DetailPageProps) {
         <TranscriptView
           segments={transcriptSegments()}
           videoUrl={props.page.url}
+          chapters={currentPage().chapters}
           onFetchTranscript={
             transcriptSegments().length === 0 ? handleFetchContent : undefined
           }
