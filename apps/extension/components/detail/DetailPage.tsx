@@ -84,6 +84,7 @@ export default function DetailPage(props: DetailPageProps) {
   const initialSectionId = slugToSectionId(props.initialSection || params.section);
   const [templates, setTemplates] = createSignal<AITemplate[]>([]);
   const [documents, setDocuments] = createSignal<AIDocument[]>([]);
+  const [docsLoaded, setDocsLoaded] = createSignal(false);
   const [activeSection, setActiveSection] = createSignal<string>(initialSectionId);
   const [generatingIds, setGeneratingIds] = createSignal<Set<string>>(new Set());
   const [customGenerating, setCustomGenerating] = createSignal(false);
@@ -192,11 +193,14 @@ export default function DetailPage(props: DetailPageProps) {
       console.log("[TabZen AI] Loaded docs for page:", docs.length);
       setTemplates(tmpl.filter((t) => t.isEnabled));
       setDocuments(docs);
+      setDocsLoaded(true);
     })();
   });
 
   // Auto-generate when navigating to a section with no document
+  // Only runs after documents have been loaded to avoid false-positive triggers
   createEffect(() => {
+    if (!docsLoaded()) return;
     const section = activeSection();
     if (section === "content" || section === "custom") return;
     if (SELF_MANAGED_TEMPLATES.has(section)) return;
