@@ -34,6 +34,7 @@ import ActionItemsView from "./ActionItemsView";
 import ELI5View from "./ELI5View";
 import ProductsView from "./ProductsView";
 import SocialPostsView from "./SocialPostsView";
+import SponsorsView from "./SponsorsView";
 import PromptViewer from "./PromptViewer";
 
 const SPECIALIZED_RENDERERS: Record<string, (content: string) => any> = {
@@ -41,6 +42,7 @@ const SPECIALIZED_RENDERERS: Record<string, (content: string) => any> = {
   "builtin-action-items": (content: string) => <ActionItemsView content={content} />,
   "builtin-eli5": (content: string) => <ELI5View content={content} />,
   "builtin-products-mentions": (content: string) => <ProductsView content={content} />,
+  "builtin-sponsors": (content: string) => <SponsorsView content={content} />,
 };
 
 // Templates that handle their own generation (not the standard document flow)

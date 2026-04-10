@@ -175,11 +175,43 @@ export function ProseSkeleton() {
   );
 }
 
+/** Sponsors — cards with metadata */
+export function SponsorsSkeleton() {
+  return (
+    <div class="px-2 pb-12">
+      <div class="flex flex-col gap-4">
+        <For each={[1, 2]}>
+          {(n) => (
+            <div class="p-4 bg-muted/10 rounded-xl">
+              <div class="flex items-start justify-between mb-2">
+                <div class={`h-4 rounded ${s}`} style={{ width: `${30 + (n * 13) % 20}%` }} />
+                <div class={`h-5 w-16 rounded-md ${s}`} />
+              </div>
+              <div class={`h-3.5 w-full rounded mb-3 ${s}`} />
+              <div class="flex flex-col gap-1.5">
+                <div class="flex gap-2">
+                  <div class={`h-3 w-12 rounded ${s}`} />
+                  <div class={`h-3 rounded ${s}`} style={{ width: `${40 + (n * 7) % 25}%` }} />
+                </div>
+                <div class="flex gap-2">
+                  <div class={`h-3 w-10 rounded ${s}`} />
+                  <div class={`h-3 w-24 rounded ${s}`} />
+                </div>
+              </div>
+            </div>
+          )}
+        </For>
+      </div>
+    </div>
+  );
+}
+
 export const SKELETON_MAP: Record<string, () => any> = {
   "builtin-key-points": () => <KeyPointsSkeleton />,
   "builtin-action-items": () => <ActionItemsSkeleton />,
   "builtin-eli5": () => <ELI5Skeleton />,
   "builtin-products-mentions": () => <ProductsSkeleton />,
+  "builtin-sponsors": () => <SponsorsSkeleton />,
 };
 
 export function getSkeletonForTemplate(templateId: string) {

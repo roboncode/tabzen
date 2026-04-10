@@ -53,20 +53,21 @@ Iterative roadmap. Each milestone produces a testable, shippable increment.
 
 ---
 
-## Milestone 4: AI-Generated Documents & Summaries
+## Milestone 4: AI-Generated Documents & Summaries ✅
 
 **Goal:** AI processes raw content (transcripts, articles) into structured documents using editable prompt templates.
 
-- Prompt templates stored as markdown files in a dedicated package/directory
-  - Structured document from transcript (highlights, key points, organized content)
-  - Summary prompt (configurable length)
-  - Sponsor detection prompt (for YouTube)
-- AI service reads prompt files, injects content, calls model
-- Store AI-generated markdown to R2 alongside raw content
-- Display in detail page Summary tab
-- Prompt iteration workflow: edit markdown file → re-process → see improved output
+- Prompt templates stored as markdown files (`apps/extension/prompts/*.md`)
+  - Summary, Key Points, Action Items, Simplified, Products & Mentions, Sponsors, Social Posts
+  - Each with specialized view components and skeleton loading states
+- AI service reads prompt files, injects content, calls OpenRouter API
+- AI documents stored in IndexedDB and synced to R2 via existing sync flow
+- VitePress-style detail page with left nav, inline prompt editor, auto-generation
+- Prompt iteration workflow: inline edit → staleness detection via SHA-256 hash → regenerate
+- Sponsor detection identifies paid sponsorships, promo codes, and timeframes
+- Social Posts section (pulled forward from M6) with platform-specific generation
 
-**Testable outcome:** Tab with raw transcript → AI generates structured document → view in detail page. Edit prompt file → re-process → compare output.
+**Completed:** 2026-04-10
 
 ---
 

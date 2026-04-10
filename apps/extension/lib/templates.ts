@@ -8,6 +8,7 @@ import actionItemsPrompt from "@/prompts/action-items.md?raw";
 import eli5Prompt from "@/prompts/eli5.md?raw";
 import productsMentionsPrompt from "@/prompts/products-mentions.md?raw";
 import socialPostsPrompt from "@/prompts/social-posts.md?raw";
+import sponsorsPrompt from "@/prompts/sponsors.md?raw";
 
 interface BuiltinDef {
   id: string;
@@ -21,6 +22,7 @@ const BUILTIN_TEMPLATES: BuiltinDef[] = [
   { id: "builtin-action-items", name: "Action Items", prompt: actionItemsPrompt.trim() },
   { id: "builtin-eli5", name: "Simplified", prompt: eli5Prompt.trim() },
   { id: "builtin-products-mentions", name: "Products & Mentions", prompt: productsMentionsPrompt.trim() },
+  { id: "builtin-sponsors", name: "Sponsors", prompt: sponsorsPrompt.trim() },
   { id: "builtin-social-posts", name: "Social Posts", prompt: socialPostsPrompt.trim() },
 ];
 
@@ -34,19 +36,22 @@ export async function seedTemplatesIfNeeded(): Promise<void> {
     await putTemplates([eli5]);
   }
 
-  // Add Social Posts for existing installs that don't have it
-  if (!existing.find((t) => t.id === "builtin-social-posts")) {
-    const socialDef = BUILTIN_TEMPLATES.find((d) => d.id === "builtin-social-posts")!;
-    await putTemplates([{
-      id: socialDef.id,
-      name: socialDef.name,
-      prompt: socialDef.prompt,
-      isBuiltin: true,
-      defaultPrompt: socialDef.prompt,
-      isEnabled: true,
-      sortOrder: existing.length,
-      model: null,
-    }]);
+  // Add new built-in templates for existing installs
+  const newBuiltins = ["builtin-sponsors", "builtin-social-posts"];
+  for (const id of newBuiltins) {
+    if (!existing.find((t) => t.id === id)) {
+      const def = BUILTIN_TEMPLATES.find((d) => d.id === id)!;
+      await putTemplates([{
+        id: def.id,
+        name: def.name,
+        prompt: def.prompt,
+        isBuiltin: true,
+        defaultPrompt: def.prompt,
+        isEnabled: true,
+        sortOrder: existing.length,
+        model: null,
+      }]);
+    }
   }
 
   if (existing.length > 0) return;

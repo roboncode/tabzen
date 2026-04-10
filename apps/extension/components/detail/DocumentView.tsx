@@ -9,6 +9,7 @@ const TEMPLATE_DESCRIPTIONS: Record<string, string> = {
   "builtin-summary": "Creates an editorial-style summary that captures the key narrative, arguments, and conclusions in a few paragraphs.",
   "builtin-eli5": "Breaks down complex topics into plain language using simple analogies, explains how things work, why they matter, and defines key concepts.",
   "builtin-products-mentions": "Lists all products, tools, services, and people mentioned with links, descriptions, and context for how they were referenced.",
+  "builtin-sponsors": "Identifies sponsored segments, advertisements, and promotional content including promo codes and what each sponsor offers.",
   "builtin-social-posts": "Generates social media posts that position you as a subject matter expert. Choose your platform, length, and tone.",
 };
 import { marked } from "marked";
