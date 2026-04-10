@@ -1,5 +1,5 @@
 import { Show, createMemo } from "solid-js";
-import { Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2, Maximize2 } from "lucide-solid";
+import { Star, ExternalLink, Undo2, Trash2 } from "lucide-solid";
 import type { Page } from "@/lib/types";
 import { extractCreator, getDomain, getFaviconUrl } from "@/lib/domains";
 import { formatTimeAgo } from "@/lib/format";
@@ -13,14 +13,11 @@ interface PageCardProps {
   onOpen: (page: Page) => void;
   onEditNotes: (page: Page) => void;
   onToggleStar: (page: Page) => void;
-  onArchive: (page: Page) => void;
-  onDelete: (page: Page) => void;
-  onBlockDomain?: (page: Page) => void;
+  onOpenSource?: (page: Page) => void;
   onRestore?: (page: Page) => void;
   onHardDelete?: (page: Page) => void;
   onSelectCreator?: (domain: string, creator: string) => void;
   onTagClick?: (tag: string) => void;
-  onExpand?: (page: Page) => void;
   isTrash?: boolean;
 }
 
@@ -73,7 +70,7 @@ export default function PageCard(props: PageCardProps) {
             )}
           </div>
         )}
-        {/* Action buttons - left aligned, star always anchored */}
+        {/* Action buttons - left aligned */}
         <div class="absolute top-2 left-2 flex gap-1.5">
           <Show when={props.isTrash}>
             <button
@@ -104,44 +101,20 @@ export default function PageCard(props: PageCardProps) {
             >
               <Star size={18} fill={props.page.starred ? "currentColor" : "none"} />
             </button>
-            {/* Other actions - only on hover */}
-            <button
-              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-sky-500/80 transition-colors opacity-0 group-hover:opacity-100"
-              onClick={(e) => { e.stopPropagation(); props.onArchive(props.page); }}
-              title={props.page.archived ? "Unarchive" : "Archive"}
-            >
-              {props.page.archived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
-            </button>
-            <Show when={props.onBlockDomain}>
-              <button
-                class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-sky-500/80 transition-colors opacity-0 group-hover:opacity-100"
-                onClick={(e) => { e.stopPropagation(); props.onBlockDomain?.(props.page); }}
-                title="Block this domain"
-              >
-                <ShieldBan size={16} />
-              </button>
-            </Show>
-            <button
-              class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-red-500/85 transition-colors opacity-0 group-hover:opacity-100"
-              onClick={(e) => { e.stopPropagation(); props.onDelete(props.page); }}
-              title="Delete"
-            >
-              <Trash2 size={16} />
-            </button>
           </Show>
         </div>
-        {/* Expand button - right side */}
-        <Show when={props.onExpand && !props.isTrash}>
+        {/* External link - right side */}
+        <Show when={props.onOpenSource && !props.isTrash}>
           <div class="absolute top-2 right-2">
             <button
               class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-sky-500/80 transition-colors opacity-0 group-hover:opacity-100"
               onClick={(e) => {
                 e.stopPropagation();
-                props.onExpand?.(props.page);
+                props.onOpenSource?.(props.page);
               }}
-              title="Open detail page"
+              title="Open source URL"
             >
-              <Maximize2 size={14} />
+              <ExternalLink size={14} />
             </button>
           </div>
         </Show>

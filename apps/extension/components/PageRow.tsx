@@ -1,5 +1,5 @@
 import { Show, createMemo } from "solid-js";
-import { Eye, Star, Archive, ArchiveRestore, Trash2, ShieldBan, Undo2 } from "lucide-solid";
+import { Eye, Star, ExternalLink, Undo2, Trash2 } from "lucide-solid";
 import type { Page } from "@/lib/types";
 import { getDomain, getFaviconUrl } from "@/lib/domains";
 import Highlight from "./Highlight";
@@ -11,9 +11,7 @@ interface PageRowProps {
   onOpen: (page: Page) => void;
   onEditNotes: (page: Page) => void;
   onToggleStar: (page: Page) => void;
-  onArchive: (page: Page) => void;
-  onDelete: (page: Page) => void;
-  onBlockDomain?: (page: Page) => void;
+  onOpenSource?: (page: Page) => void;
   onRestore?: (page: Page) => void;
   onHardDelete?: (page: Page) => void;
   onSelectCreator?: (domain: string, creator: string) => void;
@@ -112,29 +110,13 @@ export default function PageRow(props: PageRowProps) {
               <Trash2 size={15} />
             </button>
           </Show>
-          <Show when={!props.isTrash}>
+          <Show when={!props.isTrash && props.onOpenSource}>
             <button
               class="p-1.5 rounded-md bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
-              onClick={(e) => { e.stopPropagation(); props.onArchive(props.page); }}
-              title={props.page.archived ? "Unarchive" : "Archive"}
+              onClick={(e) => { e.stopPropagation(); props.onOpenSource?.(props.page); }}
+              title="Open source URL"
             >
-              {props.page.archived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
-            </button>
-            <Show when={props.onBlockDomain}>
-              <button
-                class="p-1.5 rounded-md bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
-                onClick={(e) => { e.stopPropagation(); props.onBlockDomain?.(props.page); }}
-                title="Block this domain"
-              >
-                <ShieldBan size={15} />
-              </button>
-            </Show>
-            <button
-              class="p-1.5 rounded-md bg-muted/50 text-muted-foreground hover:bg-red-500/20 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-              onClick={(e) => { e.stopPropagation(); props.onDelete(props.page); }}
-              title="Delete"
-            >
-              <Trash2 size={15} />
+              <ExternalLink size={15} />
             </button>
           </Show>
         </div>

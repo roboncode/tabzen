@@ -13,14 +13,11 @@ interface GroupSectionProps {
   onEditNotes: (page: Page) => void;
   onRenameGroup: (group: Group, newName: string) => void;
   onToggleStar: (page: Page) => void;
-  onArchive: (page: Page) => void;
-  onDelete: (page: Page) => void;
-  onBlockDomain?: (page: Page) => void;
+  onOpenSource?: (page: Page) => void;
   onRestore?: (page: Page) => void;
   onHardDelete?: (page: Page) => void;
   onSelectCreator?: (domain: string, creator: string) => void;
   onTagClick?: (tag: string) => void;
-  onExpandPage?: (page: Page) => void;
   isTrash?: boolean;
 }
 
@@ -100,9 +97,7 @@ export default function GroupSection(props: GroupSectionProps) {
                     onOpen={props.onOpenPage}
                     onEditNotes={props.onEditNotes}
                     onToggleStar={props.onToggleStar}
-                    onArchive={props.onArchive}
-                    onDelete={props.onDelete}
-                    onBlockDomain={props.onBlockDomain}
+                    onOpenSource={props.onOpenSource}
                     onRestore={props.onRestore}
                     onHardDelete={props.onHardDelete}
                     onSelectCreator={props.onSelectCreator}
@@ -125,12 +120,9 @@ export default function GroupSection(props: GroupSectionProps) {
                     onOpen={props.onOpenPage}
                     onEditNotes={props.onEditNotes}
                     onToggleStar={props.onToggleStar}
-                    onArchive={props.onArchive}
-                    onDelete={props.onDelete}
-                    onBlockDomain={props.onBlockDomain}
+                    onOpenSource={props.onOpenSource}
                     onRestore={props.onRestore}
                     onHardDelete={props.onHardDelete}
-                    onExpand={props.onExpandPage}
                     isTrash={props.isTrash}
                   />
                 </div>

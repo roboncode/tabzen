@@ -17,7 +17,6 @@ import {
   getAllCaptures,
   updatePage,
   updateGroup,
-  softDeletePage,
   hardDeletePage,
   restorePage,
 } from "@/lib/db";
@@ -282,7 +281,11 @@ export default function PageCollection(props: PageCollectionProps) {
     browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
   };
 
-  const handleOpenPage = async (page: Page) => {
+  const handleOpenPage = (page: Page) => {
+    navigate(`/page/${page.id}`);
+  };
+
+  const handleOpenSource = async (page: Page) => {
     await sendMessage({ type: "OPEN_PAGE", pageId: page.id });
     patchPage(page.id, { viewCount: page.viewCount + 1, lastViewedAt: new Date().toISOString() });
   };
@@ -300,19 +303,6 @@ export default function PageCollection(props: PageCollectionProps) {
     notifyChanged();
   };
 
-  const handleArchive = async (page: Page) => {
-    const archived = !page.archived;
-    await updatePage(page.id, { archived });
-    patchPage(page.id, { archived });
-    notifyChanged();
-  };
-
-  const handleDelete = async (page: Page) => {
-    await softDeletePage(page.id);
-    patchPage(page.id, { deletedAt: new Date().toISOString() });
-    notifyChanged();
-  };
-
   const handleRestore = async (page: Page) => {
     await restorePage(page.id);
     patchPage(page.id, { deletedAt: null });
@@ -321,32 +311,6 @@ export default function PageCollection(props: PageCollectionProps) {
 
   const handleHardDelete = (page: Page) => {
     setDeletingPage(page);
-  };
-
-  const [blockingPage, setBlockingPage] = createSignal<Page | null>(null);
-
-  const handleBlockDomain = (page: Page) => {
-    setBlockingPage(page);
-  };
-
-  const confirmBlockDomain = async () => {
-    const page = blockingPage();
-    if (page) {
-      const domain = (() => {
-        try { return new URL(page.url).hostname.replace("www.", ""); }
-        catch { return ""; }
-      })();
-      if (domain) {
-        const settings = await getSettings();
-        const blocked = [...(settings.blockedDomains || [])];
-        if (!blocked.includes(domain)) {
-          blocked.push(domain);
-          await updateSettings({ blockedDomains: blocked });
-          notifyChanged();
-        }
-      }
-      setBlockingPage(null);
-    }
   };
 
   const confirmDelete = async () => {
@@ -590,14 +554,9 @@ export default function PageCollection(props: PageCollectionProps) {
                     onEditNotes={setEditingPage}
                     onRenameGroup={() => {}}
                     onToggleStar={handleToggleStar}
-                    onArchive={handleArchive}
-                    onDelete={handleDelete}
-                    onBlockDomain={handleBlockDomain}
+                    onOpenSource={handleOpenSource}
                     onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
                     onTagClick={handleTagClick}
-                    onExpandPage={(page) => {
-                      navigate(`/page/${page.id}`);
-                    }}
                   />
                 )}
               </For>
@@ -642,13 +601,8 @@ export default function PageCollection(props: PageCollectionProps) {
               onEditNotes={setEditingPage}
               onRenameGroup={() => {}}
               onToggleStar={handleToggleStar}
-              onArchive={handleArchive}
-              onDelete={handleDelete}
               onRestore={handleRestore}
               onHardDelete={handleHardDelete}
-              onExpandPage={(page) => {
-                navigate(`/page/${page.id}`);
-              }}
               isTrash
             />
             </Show>
@@ -682,12 +636,7 @@ export default function PageCollection(props: PageCollectionProps) {
                         onEditNotes={setEditingPage}
                         onRenameGroup={handleRenameGroup}
                         onToggleStar={handleToggleStar}
-                        onArchive={handleArchive}
-                        onDelete={handleDelete}
-                        onBlockDomain={handleBlockDomain}
-                        onExpandPage={(page) => {
-                          navigate(`/page/${page.id}`);
-                        }}
+                        onOpenSource={handleOpenSource}
                       />
                     </Show>
                   );
@@ -732,25 +681,6 @@ export default function PageCollection(props: PageCollectionProps) {
             onCancel={() => setDeletingPage(null)}
           />
         )}
-      </Show>
-
-      {/* Block Domain Confirmation */}
-      <Show when={blockingPage()}>
-        {(page) => {
-          const domain = () => {
-            try { return new URL(page().url).hostname.replace("www.", ""); }
-            catch { return page().url; }
-          };
-          return (
-            <ConfirmDialog
-              title="Block domain"
-              message={`Block "${domain()}"? Future captures will skip all tabs from this domain. You can unblock it in Settings.`}
-              confirmLabel="Block"
-              onConfirm={confirmBlockDomain}
-              onCancel={() => setBlockingPage(null)}
-            />
-          );
-        }}
       </Show>
 
       {/* Empty Trash Confirmation */}
