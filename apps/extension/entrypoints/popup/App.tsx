@@ -6,7 +6,7 @@ import { getSettings } from "@/lib/settings";
 import { getDomain } from "@/lib/domains";
 
 async function openOrFocusSPA(hash: string = "") {
-  const appUrl = browser.runtime.getURL("/app.html");
+  const appUrl = browser.runtime.getURL("/index.html");
   const existing = await browser.tabs.query({ url: `${appUrl}*` });
   if (existing.length > 0 && existing[0].id) {
     await browser.tabs.update(existing[0].id, { url: `${appUrl}#${hash}`, active: true });

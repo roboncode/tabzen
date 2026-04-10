@@ -19,7 +19,7 @@ export default defineConfig({
       "<all_urls>",
     ],
     side_panel: {
-      default_path: "app.html",
+      default_path: "index.html",
     },
     commands: {
       _execute_side_panel: {

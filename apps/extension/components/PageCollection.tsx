@@ -384,7 +384,7 @@ export default function PageCollection(props: PageCollectionProps) {
   };
 
   const openFullPage = async () => {
-    await browser.tabs.create({ url: browser.runtime.getURL("/app.html") });
+    await browser.tabs.create({ url: browser.runtime.getURL("/index.html") });
     // Close the side panel if we're in one
     if (props.showExpandButton) {
       window.close();
