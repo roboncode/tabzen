@@ -210,6 +210,42 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                     Without an API key, pages are grouped by domain
                   </p>
                 </div>
+                <div class="pt-4 space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-sm text-foreground">Auto-tag pages on capture</p>
+                      <p class="text-xs text-muted-foreground mt-0.5">Generate tags when pages are saved</p>
+                    </div>
+                    <button
+                      class={`w-10 h-6 rounded-full transition-colors ${
+                        s().autoTagging ? "bg-sky-500" : "bg-muted/60"
+                      }`}
+                      onClick={() => save({ autoTagging: !s().autoTagging })}
+                      disabled={!s().openRouterApiKey}
+                    >
+                      <div class={`w-4 h-4 rounded-full bg-white mx-1 transition-transform ${
+                        s().autoTagging ? "translate-x-4" : "translate-x-0"
+                      }`} />
+                    </button>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-sm text-foreground">Auto-generate chapters for videos</p>
+                      <p class="text-xs text-muted-foreground mt-0.5">Create chapter headings from video transcripts</p>
+                    </div>
+                    <button
+                      class={`w-10 h-6 rounded-full transition-colors ${
+                        s().autoChapters ? "bg-sky-500" : "bg-muted/60"
+                      }`}
+                      onClick={() => save({ autoChapters: !s().autoChapters })}
+                      disabled={!s().openRouterApiKey}
+                    >
+                      <div class={`w-4 h-4 rounded-full bg-white mx-1 transition-transform ${
+                        s().autoChapters ? "translate-x-4" : "translate-x-0"
+                      }`} />
+                    </button>
+                  </div>
+                </div>
                 <div class="pt-2">
                   <TemplateManager />
                 </div>
