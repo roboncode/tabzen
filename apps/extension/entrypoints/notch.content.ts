@@ -126,17 +126,18 @@ export default defineContentScript({
 
       .toast {
         position: fixed;
-        ${side}: 40px;
+        ${side}: 44px;
         top: ${positionY}%;
         transform: translateY(-50%) translateX(${side === "right" ? "20px" : "-20px"});
-        background: rgba(22, 22, 24, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: #1e1e22;
+        border: 1px solid rgba(255, 255, 255, 0.12);
         border-radius: 10px;
         padding: 10px 14px;
         pointer-events: auto;
         opacity: 0;
         transition: opacity 0.3s ease, transform 0.3s ease;
         max-width: 220px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.1);
       }
 
       .toast.visible {
@@ -171,14 +172,15 @@ export default defineContentScript({
         ${side}: 44px;
         top: ${positionY}%;
         transform: translateY(-50%);
-        background: rgba(22, 22, 24, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: #1e1e22;
+        border: 1px solid rgba(255, 255, 255, 0.12);
         border-radius: 12px;
         padding: 14px 16px;
         pointer-events: auto;
         max-width: 240px;
         opacity: 0;
         transition: opacity 0.3s ease;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.1);
       }
 
       .tooltip.visible {
