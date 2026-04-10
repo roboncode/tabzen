@@ -240,27 +240,6 @@ export default function ProductsView(props: ProductsViewProps) {
     );
   };
 
-  const CompactCard = (product: ProductWithOG) => (
-    <a
-      href={linkFor(product)}
-      target="_blank"
-      class="flex items-start gap-3 p-3 bg-muted/10 rounded-lg no-underline hover:bg-muted/20 transition-colors group/mention cursor-pointer"
-    >
-      <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center text-xs font-semibold text-muted-foreground/60">
-        {product.name.charAt(0)}
-      </div>
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2">
-          <span class="text-sm font-medium text-foreground/80 group-hover/mention:text-sky-400 transition-colors">{product.name}</span>
-          <span class="text-[11px] text-muted-foreground/40">{product.type}</span>
-        </div>
-        <Show when={product.description}>
-          <p class="text-xs text-muted-foreground/60 mt-0.5 leading-relaxed">{product.description}</p>
-        </Show>
-      </div>
-    </a>
-  );
-
   return (
     <div class="px-2 pb-12">
       {/* Loading state */}
@@ -271,36 +250,16 @@ export default function ProductsView(props: ProductsViewProps) {
       <Show when={allLoaded()}>
         <div class="flex flex-col gap-8">
           <For each={sections()}>
-            {(section) => {
-              const linked = () => section.items.filter((p) => p.url);
-              const unlinked = () => section.items.filter((p) => !p.url);
-
-              return (
-                <div>
-                  <div class="text-xs font-semibold text-foreground/90 mb-3">{section.context}</div>
-
-                  {/* Items with thumbnails — card grid */}
-                  <Show when={linked().length > 0}>
-                    <div class="grid grid-cols-2 gap-x-4 gap-y-6">
-                      <For each={linked()}>
-                        {(product, i) => ProductCard(product, i())}
-                      </For>
-                    </div>
-                  </Show>
-
-                  {/* Items without URLs — compact list */}
-                  <Show when={unlinked().length > 0}>
-                    <div class={linked().length > 0 ? "mt-4" : ""}>
-                      <div class="flex flex-col gap-2">
-                        <For each={unlinked()}>
-                          {(product) => CompactCard(product)}
-                        </For>
-                      </div>
-                    </div>
-                  </Show>
+            {(section) => (
+              <div>
+                <div class="text-xs font-semibold text-foreground/90 mb-3">{section.context}</div>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-6">
+                  <For each={section.items}>
+                    {(product, i) => ProductCard(product, i())}
+                  </For>
                 </div>
-              );
-            }}
+              </div>
+            )}
           </For>
         </div>
       </Show>
