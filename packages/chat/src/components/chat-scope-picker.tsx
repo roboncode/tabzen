@@ -1,4 +1,4 @@
-import { splitProps, Show } from 'solid-js';
+import { splitProps, Show, For } from 'solid-js';
 import { cn } from '../utils/cn';
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '../ui/dropdown';
 import { Button } from '../ui/button';
@@ -27,15 +27,19 @@ export function ChatScopePicker(props: ChatScopePickerProps) {
         <DropdownItem onSelect={() => local.onScopeChange(undefined)}>All Content</DropdownItem>
         <Show when={local.availableAuthors?.length}>
           <div class="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground/60">Authors</div>
-          {local.availableAuthors!.map((author) => (
-            <DropdownItem onSelect={() => local.onScopeChange({ authors: [author] })}>{author}</DropdownItem>
-          ))}
+          <For each={local.availableAuthors}>
+            {(author) => (
+              <DropdownItem onSelect={() => local.onScopeChange({ authors: [author] })}>{author}</DropdownItem>
+            )}
+          </For>
         </Show>
         <Show when={local.availableTags?.length}>
           <div class="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground/60">Tags</div>
-          {local.availableTags!.map((tag) => (
-            <DropdownItem onSelect={() => local.onScopeChange({ tags: [tag] })}>{tag}</DropdownItem>
-          ))}
+          <For each={local.availableTags}>
+            {(tag) => (
+              <DropdownItem onSelect={() => local.onScopeChange({ tags: [tag] })}>{tag}</DropdownItem>
+            )}
+          </For>
         </Show>
       </DropdownContent>
     </Dropdown>

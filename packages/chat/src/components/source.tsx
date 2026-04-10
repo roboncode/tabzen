@@ -1,6 +1,6 @@
 import { type JSX, createContext, useContext, Show, splitProps } from 'solid-js';
 import { cn } from '../utils/cn';
-import { HoverCard } from '../ui/hover-card';
+import { HoverCardRoot, HoverCardTrigger, HoverCardContent } from '../ui/hover-card';
 
 // --- Context ---
 
@@ -35,7 +35,9 @@ function Source(props: SourceProps) {
 
   return (
     <SourceContext.Provider value={{ get href() { return props.href; }, get domain() { return domain(); } }}>
-      {props.children}
+      <HoverCardRoot openDelay={150} closeDelay={0}>
+        {props.children}
+      </HoverCardRoot>
     </SourceContext.Provider>
   );
 }
@@ -53,27 +55,29 @@ function SourceTrigger(props: SourceTriggerProps) {
   const labelToShow = () => props.label ?? ctx.domain.replace('www.', '');
 
   return (
-    <a
-      href={ctx.href}
-      target="_blank"
-      rel="noopener noreferrer"
-      class={cn(
-        'bg-muted text-muted-foreground hover:bg-muted-foreground/30 hover:text-primary inline-flex h-5 max-w-32 items-center gap-1 overflow-hidden rounded-full py-0 text-xs no-underline transition-colors duration-150',
-        props.showFavicon ? 'pr-2 pl-1' : 'px-1',
-        props.class
-      )}
-    >
-      <Show when={props.showFavicon}>
-        <img
-          src={`https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(ctx.href)}`}
-          alt="favicon"
-          width={14}
-          height={14}
-          class="size-3.5 rounded-full"
-        />
-      </Show>
-      <span class="truncate tabular-nums text-center font-normal">{labelToShow()}</span>
-    </a>
+    <HoverCardTrigger>
+      <a
+        href={ctx.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        class={cn(
+          'bg-muted text-muted-foreground hover:bg-muted-foreground/30 hover:text-primary inline-flex h-5 max-w-32 items-center gap-1 overflow-hidden rounded-full py-0 text-xs no-underline transition-colors duration-150',
+          props.showFavicon ? 'pr-2 pl-1' : 'px-1',
+          props.class
+        )}
+      >
+        <Show when={props.showFavicon}>
+          <img
+            src={`https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(ctx.href)}`}
+            alt="favicon"
+            width={14}
+            height={14}
+            class="size-3.5 rounded-full"
+          />
+        </Show>
+        <span class="truncate tabular-nums text-center font-normal">{labelToShow()}</span>
+      </a>
+    </HoverCardTrigger>
   );
 }
 
@@ -88,7 +92,7 @@ export interface SourceContentProps {
 function SourceContent(props: SourceContentProps) {
   const ctx = useSourceContext();
   return (
-    <div class={cn('w-80 p-0 shadow-xs', props.class)}>
+    <HoverCardContent class={cn('w-80 p-0 shadow-xs', props.class)}>
       <a
         href={ctx.href}
         target="_blank"
@@ -112,7 +116,7 @@ function SourceContent(props: SourceContentProps) {
           {props.description}
         </div>
       </a>
-    </div>
+    </HoverCardContent>
   );
 }
 

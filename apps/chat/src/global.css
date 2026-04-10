@@ -172,6 +172,11 @@ body {
   margin: 0;
 }
 
+/* Inline code styling within prose */
+.prose code:not(pre code) {
+  @apply bg-primary-foreground/10 rounded-sm px-1 font-mono text-sm;
+}
+
 /* Custom scrollbar for sidebar and scroll areas */
 .scrollbar-thin {
   scrollbar-width: thin;
