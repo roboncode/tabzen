@@ -55,7 +55,7 @@ export default defineContentScript({
         top: ${positionY}%;
         transform: translateY(-50%);
         width: 12px;
-        height: 56px;
+        height: 40px;
         background: linear-gradient(135deg, rgba(14, 165, 233, 0.5), rgba(99, 102, 241, 0.5));
         ${side === "right" ? "border-radius: 8px 0 0 8px;" : "border-radius: 0 8px 8px 0;"}
         cursor: pointer;
