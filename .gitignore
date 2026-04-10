@@ -52,3 +52,6 @@ Thumbs.db
 
 # VitePress cache
 apps/docs/.vitepress/cache/
+
+# Misc
+reference/
