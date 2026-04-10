@@ -296,7 +296,24 @@ export default defineBackground(() => {
 
   // --- Message handler ---
   browser.runtime.onMessage.addListener(
-    (message: MessageRequest, sender, sendResponse) => {
+    (message: any, sender, sendResponse) => {
+      // Handle untyped messages from content scripts
+      if (message.type === "OPEN_EXTENSION_PAGE" && message.url) {
+        (async () => {
+          const appUrl = browser.runtime.getURL("/index.html");
+          const existing = await browser.tabs.query({ url: `${appUrl}*` });
+          if (existing.length > 0 && existing[0].id) {
+            await browser.tabs.update(existing[0].id, { url: message.url, active: true });
+            if (existing[0].windowId) {
+              await browser.windows.update(existing[0].windowId, { focused: true });
+            }
+          } else {
+            await browser.tabs.create({ url: message.url });
+          }
+          sendResponse({ type: "SUCCESS" });
+        })();
+        return true;
+      }
       handleMessage(message, sender).then(sendResponse);
       return true;
     },

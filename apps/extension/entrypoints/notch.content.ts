@@ -290,11 +290,20 @@ export default defineContentScript({
       toastText.textContent = message;
       if (pageId) {
         toastLink.style.display = "inline-block";
-        toastLink.onclick = (e) => {
+        toastLink.onclick = async (e) => {
           e.preventDefault();
-          const url = browser.runtime.getURL(`/index.html#/page/${pageId}`);
-          window.open(url, "_blank");
           hideToast();
+          // Use background to open/focus the SPA tab (content scripts can't reliably open extension URLs)
+          const appUrl = browser.runtime.getURL("/index.html");
+          try {
+            await browser.runtime.sendMessage({
+              type: "OPEN_EXTENSION_PAGE",
+              url: `${appUrl}#/page/${pageId}`,
+            });
+          } catch {
+            // Fallback
+            window.open(`${appUrl}#/page/${pageId}`, "_blank");
+          }
         };
       } else {
         toastLink.style.display = "none";
