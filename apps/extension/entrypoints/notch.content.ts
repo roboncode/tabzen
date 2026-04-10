@@ -28,9 +28,9 @@ export default defineContentScript({
     // Detect if page background is light or dark
     function isPageLight(): boolean {
       try {
-        const bg = getComputedStyle(document.body).backgroundColor;
+        const bg = getComputedStyle(document.documentElement).backgroundColor || getComputedStyle(document.body).backgroundColor;
         const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-        if (!match) return true; // default to light if transparent/unparseable
+        if (!match) return true;
         const [, r, g, b] = match.map(Number);
         const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
         return luminance > 0.5;
@@ -38,7 +38,7 @@ export default defineContentScript({
         return true;
       }
     }
-    const pageIsLight = isPageLight();
+    let pageIsLight = isPageLight();
     let isSaved = false;
     let savedPageId: string | undefined;
 
@@ -71,18 +71,18 @@ export default defineContentScript({
         transform: translateY(-50%);
         width: 16px;
         height: 40px;
-        background: ${pageIsLight ? "rgba(30, 30, 34, 0.85)" : "rgba(255, 255, 255, 0.85)"};
-        border: 1px solid ${pageIsLight ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.2)"};
+        background: var(--tz-notch-bg);
+        border: 1px solid var(--tz-notch-border);
         ${side === "right" ? `border-right: none; border-radius: 8px 0 0 8px;` : `border-left: none; border-radius: 0 8px 8px 0;`}
         cursor: pointer;
-        transition: width 0.2s ease, background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+        transition: width 0.2s ease, background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         opacity: 0.85;
         pointer-events: auto;
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        box-shadow: ${pageIsLight ? "-2px 0 8px rgba(0, 0, 0, 0.2)" : "-2px 0 8px rgba(255, 255, 255, 0.1)"};
+        box-shadow: var(--tz-notch-shadow);
       }
 
       .notch.saved {
@@ -93,16 +93,16 @@ export default defineContentScript({
       .notch:hover {
         width: 40px;
         opacity: 1;
-        box-shadow: ${pageIsLight ? "-2px 0 14px rgba(0, 0, 0, 0.3)" : "-2px 0 14px rgba(255, 255, 255, 0.15)"};
+        box-shadow: var(--tz-notch-shadow-hover);
       }
 
       .notch-icon {
         width: 16px;
         height: 16px;
         opacity: 0;
-        transition: opacity 0.2s ease;
+        transition: opacity 0.2s ease, color 0.2s ease;
         flex-shrink: 0;
-        color: ${pageIsLight ? "white" : "#1e1e22"};
+        color: var(--tz-notch-icon);
       }
 
       .notch.saved .notch-icon {
@@ -245,6 +245,36 @@ export default defineContentScript({
     shadow.appendChild(toast);
 
     document.body.appendChild(host);
+
+    // --- Theme Detection & Live Update ---
+    function applyTheme(light: boolean) {
+      host.style.setProperty("--tz-notch-bg", light ? "rgba(30, 30, 34, 0.85)" : "rgba(255, 255, 255, 0.85)");
+      host.style.setProperty("--tz-notch-border", light ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.2)");
+      host.style.setProperty("--tz-notch-shadow", light ? "-2px 0 8px rgba(0, 0, 0, 0.2)" : "-2px 0 8px rgba(255, 255, 255, 0.1)");
+      host.style.setProperty("--tz-notch-shadow-hover", light ? "-2px 0 14px rgba(0, 0, 0, 0.3)" : "-2px 0 14px rgba(255, 255, 255, 0.15)");
+      host.style.setProperty("--tz-notch-icon", light ? "white" : "#1e1e22");
+    }
+    applyTheme(pageIsLight);
+
+    // Watch for theme changes (class/attribute toggles on html/body)
+    const themeObserver = new MutationObserver(() => {
+      const nowLight = isPageLight();
+      if (nowLight !== pageIsLight) {
+        pageIsLight = nowLight;
+        applyTheme(pageIsLight);
+      }
+    });
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme", "data-color-scheme", "style"] });
+    themeObserver.observe(document.body, { attributes: true, attributeFilter: ["class", "data-theme", "data-color-scheme", "style"] });
+
+    // Also listen for system theme changes
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      const nowLight = isPageLight();
+      if (nowLight !== pageIsLight) {
+        pageIsLight = nowLight;
+        applyTheme(pageIsLight);
+      }
+    });
 
     // --- Toast Logic ---
     let toastTimer: ReturnType<typeof setTimeout> | null = null;
