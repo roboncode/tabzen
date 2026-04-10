@@ -68,7 +68,6 @@ export default defineBackground(() => {
         lastSyncedAt: new Date().toISOString(),
       });
       lastSyncedAt = new Date().toISOString();
-      console.log("[TabZen] Sync pushed", data.pages.length, "pages");
       // Clear any previous sync error on success
       const currentSettings = await getSettings();
       if (currentSettings.syncError) {
@@ -112,7 +111,6 @@ export default defineBackground(() => {
       }
 
       if (!remoteTimestamp || remoteTimestamp <= lastSyncedAt) {
-        console.log("[TabZen] Sync check: server has no new data");
         return;
       }
 
@@ -122,7 +120,6 @@ export default defineBackground(() => {
         const pages = remote.pages.map((t) => ({ ...t, starred: t.starred ?? false }));
         await importData({ pages, groups: remote.groups, captures: remote.captures });
         lastSyncedAt = remote.lastSyncedAt;
-        console.log("[TabZen] Sync pulled", pages.length, "pages");
         if (remote.aiTemplates?.length) {
           const { putTemplates } = await import("@/lib/db");
           await putTemplates(remote.aiTemplates);
@@ -170,7 +167,6 @@ export default defineBackground(() => {
         }
       }
       if (updated > 0) {
-        console.log(`[TabZen] Backfilled creator for ${updated} pages`);
         notifyDataChanged();
       }
     } catch (e) {
@@ -199,7 +195,6 @@ export default defineBackground(() => {
     // Generate device ID if missing
     if (!settings.deviceId) {
       updates.deviceId = uuidv4();
-      console.log("[TabZen] Generated device ID:", updates.deviceId);
     }
 
     // Auto-detect source label on first run
@@ -212,10 +207,9 @@ export default defineBackground(() => {
             : navigator.userAgent.includes("Brave") ? "Brave"
             : "Chrome";
           updates.sourceLabel = `${browserName} - ${userInfo.email}`;
-          console.log("[TabZen] Auto-detected source label:", updates.sourceLabel);
         }
-      } catch (e) {
-        console.log("[TabZen] Could not detect profile email, using default");
+      } catch {
+        // Could not detect profile email, using default
       }
     }
 
@@ -351,11 +345,7 @@ export default defineBackground(() => {
 
   async function handleCaptureAllTabs(): Promise<MessageResponse> {
     try {
-      console.log("[TabZen] Building capture preview...");
       const preview = await buildCapturePreview();
-      console.log("[TabZen] Preview built:", preview.pages.length, "pages,", preview.groups.length, "groups");
-      console.log("[TabZen] Groups:", preview.groups.map((g) => `${g.groupName} (${g.pageIds.length})`));
-      console.log("[TabZen] Pages with groupIds:", preview.pages.filter((p) => p.groupId).length, "/", preview.pages.length);
       return { type: "CAPTURE_PREVIEW", data: preview };
     } catch (e) {
       console.error("[TabZen] Capture preview error:", e);
@@ -386,12 +376,7 @@ export default defineBackground(() => {
     captureData: CapturePreviewData,
   ): Promise<MessageResponse> {
     try {
-      console.log("[TabZen] Confirming capture:", captureData.pages.length, "pages");
-      console.log("[TabZen] Pages groupIds check:", captureData.pages.map((p) => ({ id: p.id.slice(0, 8), groupId: p.groupId?.slice(0, 8) || "EMPTY" })));
       await confirmCapture(captureData);
-      const savedPages = await getAllPages();
-      const savedGroups = await getAllGroups();
-      console.log("[TabZen] After save - DB has", savedPages.length, "pages,", savedGroups.length, "groups");
       return { type: "SUCCESS" };
     } catch (e) {
       console.error("[TabZen] Confirm capture error:", e);
@@ -590,7 +575,6 @@ export default defineBackground(() => {
     // 1. Try open browser tab first (best quality — gets JS-rendered content)
     const openTabs = await browser.tabs.query({ url: page.url });
     if (openTabs.length > 0 && openTabs[0].id) {
-      console.log("[TabZen] Re-extracting from open tab:", page.url);
       try {
         result = await extractPageContent(openTabs[0].id, page.url);
       } catch (e) {
@@ -600,7 +584,6 @@ export default defineBackground(() => {
 
     // 2. Fall back to fetch (works without tab open)
     if (!result) {
-      console.log("[TabZen] Re-extracting via fetch:", page.url);
       result = await extractPageContentViaFetch(page.url);
     }
 
@@ -627,12 +610,6 @@ export default defineBackground(() => {
     try {
       const settings = await getSettings();
       const activeToken = settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken;
-      console.log("[TabZen] Sync Now:", {
-        syncEnabled: settings.syncEnabled,
-        syncEnv: settings.syncEnv,
-        hasToken: !!activeToken,
-        tokenPreview: activeToken?.slice(0, 8),
-      });
 
       if (!activeToken) {
         return { type: "ERROR", message: "No sync token configured" };
@@ -641,7 +618,6 @@ export default defineBackground(() => {
       // Push local data + settings
       const data = await getAllData();
       let pushed = data.pages.length;
-      console.log("[TabZen] Pushing", pushed, "pages,", data.groups.length, "groups,", data.captures.length, "captures");
 
       // Encrypt API key if present
       let encryptedApiKey: string | null = null;
@@ -659,8 +635,6 @@ export default defineBackground(() => {
         },
         lastSyncedAt: new Date().toISOString(),
       });
-      console.log("[TabZen] Manual sync: pushed", pushed, "pages + settings");
-
       // Then pull remote data
       let pulled = 0;
       const remote = await pullSync("1970-01-01T00:00:00Z");
@@ -669,7 +643,6 @@ export default defineBackground(() => {
           const pages = remote.pages.map((p) => ({ ...p, starred: p.starred ?? false }));
           const result = await importData({ pages, groups: remote.groups, captures: remote.captures });
           pulled = result.imported;
-          console.log("[TabZen] Manual sync: pulled", pulled, "new pages");
           if (pulled > 0) {
             browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
             await updateBadge();
@@ -691,7 +664,6 @@ export default defineBackground(() => {
           }
           if (Object.keys(updates).length > 0) {
             await updateSettings(updates);
-            console.log("[TabZen] Applied synced settings:", Object.keys(updates));
           }
         }
 
@@ -815,8 +787,6 @@ export default defineBackground(() => {
       await updateBadge();
       notifyDataChanged();
 
-      console.log(`[TabZen] Quick capture: saved ${pages.length} pages in ${newGroups.length} new groups (${byDomain.size - newGroups.length} reused)`);
-
       // Pass 2: Background enrichment (metadata + creator + publishedAt)
       (async () => {
         let enriched = 0;
@@ -855,7 +825,6 @@ export default defineBackground(() => {
                         contentType: "transcript",
                         contentFetchedAt: new Date().toISOString(),
                       });
-                      console.log(`[TabZen] Transcript extracted for ${page.url} (${result.segments.length} segments)`);
                     }
                   }
                 } catch (e) {
@@ -879,7 +848,6 @@ export default defineBackground(() => {
                         contentType: "markdown",
                         contentFetchedAt: new Date().toISOString(),
                       });
-                      console.log(`[TabZen] Content extracted for ${page.url} (${result.content.length} chars)`);
                     }
                   }
                 } catch (e) {
@@ -890,7 +858,6 @@ export default defineBackground(() => {
           } catch {}
         }
         if (enriched > 0) {
-          console.log(`[TabZen] Enriched ${enriched}/${pages.length} pages with metadata`);
           notifyDataChanged();
         }
 
@@ -921,7 +888,6 @@ export default defineBackground(() => {
               }
             }
             if (tagged > 0) {
-              console.log(`[TabZen] Tagged ${tagged} pages`);
               notifyDataChanged();
             }
           } catch (e) {

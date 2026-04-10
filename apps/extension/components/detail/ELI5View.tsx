@@ -101,12 +101,7 @@ const CONCEPT_COLORS = [
 ];
 
 export default function ELI5View(props: ELI5ViewProps) {
-  const parsed = () => {
-    const result = parseELI5(props.content);
-    console.log("[ELI5] parsed:", result);
-    console.log("[ELI5] imageTerms:", result?.imageTerms);
-    return result;
-  };
+  const parsed = () => parseELI5(props.content);
   const [images, setImages] = createSignal<Record<string, string>>({});
 
   // Fetch Wikipedia images for the image terms

@@ -135,14 +135,6 @@ export default function DetailPage(props: DetailPageProps) {
     const silentActions = pending.flatMap((m) =>
       m.actions.filter((a) => a.behavior === "silent"),
     );
-    console.log(
-      "[TabZen Migration] Page contentVersion:",
-      props.page.contentVersion,
-      "| pending migrations:",
-      pending.length,
-      "| silent re-extract:",
-      silentActions.some((a) => a.type === "re-extract-content"),
-    );
     if (silentActions.some((a) => a.type === "re-extract-content")) {
       handleReExtract();
     }
@@ -189,8 +181,6 @@ export default function DetailPage(props: DetailPageProps) {
         getAllTemplates(),
         getDocumentsForPage(props.page.id),
       ]);
-      console.log("[TabZen AI] Loaded templates:", tmpl.length, "enabled:", tmpl.filter((t) => t.isEnabled).length);
-      console.log("[TabZen AI] Loaded docs for page:", docs.length);
       setTemplates(tmpl.filter((t) => t.isEnabled));
       setDocuments(docs);
       setDocsLoaded(true);

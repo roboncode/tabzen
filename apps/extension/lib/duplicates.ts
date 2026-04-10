@@ -1,3 +1,5 @@
+import { getDomain } from "./domains";
+
 const UTM_PARAMS = [
   "utm_source",
   "utm_medium",
@@ -33,14 +35,6 @@ export function buildUrlSet(urls: string[]): Set<string> {
   return new Set(urls.map(normalizeUrl));
 }
 
-export function getDomain(url: string): string {
-  try {
-    return new URL(url).hostname.replace("www.", "");
-  } catch {
-    return "";
-  }
-}
-
 export function shouldSkipUrl(url: string, blockedDomains: string[]): boolean {
   try {
     const u = new URL(url);
@@ -53,7 +47,7 @@ export function shouldSkipUrl(url: string, blockedDomains: string[]): boolean {
   return isDomainBlocked(url, blockedDomains);
 }
 
-export function isDomainBlocked(url: string, blockedDomains: string[]): boolean {
+function isDomainBlocked(url: string, blockedDomains: string[]): boolean {
   if (!blockedDomains.length) return false;
   const domain = getDomain(url);
   return blockedDomains.some((blocked) => {
