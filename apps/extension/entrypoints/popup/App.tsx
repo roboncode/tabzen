@@ -5,6 +5,20 @@ import { shouldSkipUrl } from "@/lib/duplicates";
 import { getSettings } from "@/lib/settings";
 import { getDomain } from "@/lib/domains";
 
+async function openOrFocusSPA(hash: string = "") {
+  const appUrl = browser.runtime.getURL("/app.html");
+  const existing = await browser.tabs.query({ url: `${appUrl}*` });
+  if (existing.length > 0 && existing[0].id) {
+    await browser.tabs.update(existing[0].id, { url: `${appUrl}#${hash}`, active: true });
+    if (existing[0].windowId) {
+      await browser.windows.update(existing[0].windowId, { focused: true });
+    }
+  } else {
+    await browser.tabs.create({ url: `${appUrl}#${hash}` });
+  }
+  window.close();
+}
+
 export default function App() {
   const [capturing, setCapturing] = createSignal(false);
   const [captureResult, setCaptureResult] = createSignal<{
@@ -110,10 +124,7 @@ export default function App() {
     if (saved()) {
       const pageId = savedPageId();
       if (pageId) {
-        browser.tabs.create({
-          url: browser.runtime.getURL(`/app.html#/page/${pageId}`),
-        });
-        window.close();
+        await openOrFocusSPA(`/page/${pageId}`);
       }
     } else {
       const tab = activeTab();
@@ -150,8 +161,7 @@ export default function App() {
   };
 
   const openFullPage = () => {
-    browser.tabs.create({ url: browser.runtime.getURL("/app.html") });
-    window.close();
+    openOrFocusSPA("/");
   };
 
   return (
@@ -181,12 +191,7 @@ export default function App() {
           <p class="text-xs text-red-300 flex-1">{syncError()}</p>
           <button
             class="text-xs text-red-300 hover:text-red-200 transition-colors flex-shrink-0"
-            onClick={() => {
-              browser.tabs.create({
-                url: browser.runtime.getURL("/app.html#/settings"),
-              });
-              window.close();
-            }}
+            onClick={() => openOrFocusSPA("/settings")}
           >
             Fix
           </button>
@@ -205,12 +210,7 @@ export default function App() {
           </p>
           <button
             class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => {
-              browser.tabs.create({
-                url: browser.runtime.getURL("/app.html#/settings"),
-              });
-              window.close();
-            }}
+            onClick={() => openOrFocusSPA("/settings")}
           >
             <SettingsIcon size={12} />
             Manage blocked domains
@@ -328,7 +328,7 @@ export default function App() {
                   : "bg-muted/30 text-muted-foreground/60 group-hover/card:text-foreground group-hover/card:bg-sky-400 group-hover/card:text-sky-950"
               }`}
             >
-              {saved() ? "View Details \u2192" : "Save Tab"}
+              {saved() ? "View Details \u2192" : "Save Page"}
             </div>
           </button>
         )}
