@@ -51,33 +51,33 @@ export default defineContentScript({
 
       .notch {
         position: fixed;
-        ${side}: 0;
+        ${side}: 2px;
         top: ${positionY}%;
         transform: translateY(-50%);
-        width: 6px;
-        height: 40px;
-        background: var(--notch-bg);
-        ${side === "right" ? "border-radius: 6px 0 0 6px;" : "border-radius: 0 6px 6px 0;"}
+        width: 12px;
+        height: 56px;
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.5), rgba(99, 102, 241, 0.5));
+        ${side === "right" ? "border-radius: 8px 0 0 8px;" : "border-radius: 0 8px 8px 0;"}
         cursor: pointer;
-        transition: width 0.2s ease, background 0.2s ease, opacity 0.2s ease;
-        opacity: 0.6;
+        transition: width 0.2s ease, background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+        opacity: 0.7;
         pointer-events: auto;
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        --notch-bg: rgba(22, 22, 24, 0.8);
-        --notch-bg-saved: linear-gradient(135deg, #0ea5e9, #6366f1);
+        box-shadow: -2px 0 8px rgba(14, 165, 233, 0.15);
       }
 
       .notch.saved {
-        background: var(--notch-bg-saved);
-        opacity: 0.7;
+        background: linear-gradient(135deg, #0ea5e9, #6366f1);
+        opacity: 0.85;
       }
 
       .notch:hover {
-        width: 32px;
+        width: 36px;
         opacity: 1;
+        box-shadow: -2px 0 12px rgba(14, 165, 233, 0.3);
       }
 
       .notch-icon {
