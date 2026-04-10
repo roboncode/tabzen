@@ -195,6 +195,7 @@ export default function DetailHeader(props: DetailHeaderProps) {
       </span>
 
       {/* Right: Collections | separator | Kebab */}
+      <div class="w-6 flex-shrink-0" />
       <button
         onClick={props.onBack}
         class="text-sm text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
