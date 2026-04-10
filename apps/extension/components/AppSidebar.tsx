@@ -30,12 +30,12 @@ export default function AppSidebar(props: AppSidebarProps) {
   return (
     <div class="h-full overflow-y-auto scrollbar-hide">
       {/* App name — matches detail page DocumentNav */}
-      <div class="h-16 flex items-center px-10">
+      <div class="h-16 flex items-center px-5">
         <span class="text-sm font-bold text-foreground">Tab Zen</span>
       </div>
-      <div class="mx-10 border-b-3 border-muted-foreground/10" />
+      <div class="mx-5 border-b-3 border-muted-foreground/10" />
 
-      <div class="flex flex-col gap-0.5 px-10 pt-6">
+      <div class="flex flex-col gap-0.5 px-5 pt-6">
         {/* All domains */}
         <button
           class={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors ${
