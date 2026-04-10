@@ -1,17 +1,17 @@
 import { v4 as uuidv4 } from "uuid";
 import {
-  getAllTabs,
+  getAllPages,
   getAllGroups,
   getAllData,
-  addTabs,
+  addPages,
   addGroups,
   addCapture,
-  updateTab,
-  getTab,
-  getTabByUrl,
-  searchTabs,
+  updatePage,
+  getPage,
+  getPageByUrl,
+  searchPages,
   importData,
-  purgeDeletedTabs,
+  purgeDeletedPages,
   getAllTags,
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
@@ -24,7 +24,7 @@ import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
 import { encrypt, decrypt } from "@/lib/crypto";
 import { updateSettings } from "@/lib/settings";
 import type {
-  Tab,
+  Page,
   Group,
   Capture,
   CapturePreviewData,
@@ -60,7 +60,7 @@ export default defineBackground(() => {
 
       const data = await getAllData();
       await pushSync({
-        tabs: data.tabs,
+        pages: data.pages,
         groups: data.groups,
         captures: data.captures,
         aiTemplates: data.aiTemplates,
@@ -68,7 +68,7 @@ export default defineBackground(() => {
         lastSyncedAt: new Date().toISOString(),
       });
       lastSyncedAt = new Date().toISOString();
-      console.log("[TabZen] Sync pushed", data.tabs.length, "tabs");
+      console.log("[TabZen] Sync pushed", data.pages.length, "pages");
       // Clear any previous sync error on success
       const currentSettings = await getSettings();
       if (currentSettings.syncError) {
@@ -118,11 +118,11 @@ export default defineBackground(() => {
 
       // Server has newer data, do a full pull
       const remote = await pullSync(lastSyncedAt);
-      if (remote && (remote.tabs.length || remote.groups.length || remote.captures.length)) {
-        const tabs = remote.tabs.map((t) => ({ ...t, starred: t.starred ?? false }));
-        await importData({ tabs, groups: remote.groups, captures: remote.captures });
+      if (remote && (remote.pages.length || remote.groups.length || remote.captures.length)) {
+        const pages = remote.pages.map((t) => ({ ...t, starred: t.starred ?? false }));
+        await importData({ pages, groups: remote.groups, captures: remote.captures });
         lastSyncedAt = remote.lastSyncedAt;
-        console.log("[TabZen] Sync pulled", tabs.length, "tabs");
+        console.log("[TabZen] Sync pulled", pages.length, "pages");
         if (remote.aiTemplates?.length) {
           const { putTemplates } = await import("@/lib/db");
           await putTemplates(remote.aiTemplates);
@@ -150,27 +150,27 @@ export default defineBackground(() => {
     }
   }
 
-  // Auto-purge soft-deleted tabs older than 30 days on startup
-  purgeDeletedTabs(30).catch((e) => console.warn("[TabZen] Auto-purge failed:", e));
+  // Auto-purge soft-deleted pages older than 30 days on startup
+  purgeDeletedPages(30).catch((e) => console.warn("[TabZen] Auto-purge failed:", e));
   seedTemplatesIfNeeded().catch((e) => console.warn("[TabZen] Template seed failed:", e));
 
-  // Backfill creator field for existing tabs that don't have one
+  // Backfill creator field for existing pages that don't have one
   (async () => {
     try {
       const { extractCreator } = await import("@/lib/domains");
-      const tabs = await getAllTabs();
+      const pages = await getAllPages();
       let updated = 0;
-      for (const tab of tabs) {
-        if (!tab.creator) {
-          const creator = extractCreator(tab);
+      for (const page of pages) {
+        if (!page.creator) {
+          const creator = extractCreator(page);
           if (creator) {
-            await updateTab(tab.id, { creator });
+            await updatePage(page.id, { creator });
             updated++;
           }
         }
       }
       if (updated > 0) {
-        console.log(`[TabZen] Backfilled creator for ${updated} tabs`);
+        console.log(`[TabZen] Backfilled creator for ${updated} pages`);
         notifyDataChanged();
       }
     } catch (e) {
@@ -235,8 +235,8 @@ export default defineBackground(() => {
       return;
     }
 
-    const existingTabs = await getAllTabs();
-    const existingUrls = buildUrlSet(existingTabs.map((t) => t.url));
+    const existingPages = await getAllPages();
+    const existingUrls = buildUrlSet(existingPages.map((p) => p.url));
 
     const openTabs = await browser.tabs.query({});
     let uncaptured = 0;
@@ -294,7 +294,7 @@ export default defineBackground(() => {
   browser.commands.onCommand.addListener(async (command) => {
     if (command === "capture-all-tabs") {
       const preview = await buildCapturePreview();
-      if (preview.tabs.length > 0) {
+      if (preview.pages.length > 0) {
         await confirmCapture(preview);
       }
     }
@@ -314,24 +314,24 @@ export default defineBackground(() => {
     switch (message.type) {
       case "CAPTURE_ALL_TABS":
         return handleCaptureAllTabs();
-      case "CAPTURE_SINGLE_TAB":
-        return handleCaptureSingleTab(message.tabId);
+      case "CAPTURE_PAGE":
+        return handleCapturePage(message.tabId);
       case "CONFIRM_CAPTURE":
         return handleConfirmCapture(message.captureData);
       case "GET_UNCAPTURED_COUNT":
         return handleGetUncapturedCount();
-      case "SEARCH_TABS":
-        return handleSearchTabs(message.query);
+      case "SEARCH_PAGES":
+        return handleSearchPages(message.query);
       case "AI_SEARCH":
         return handleAISearch(message.query);
-      case "OPEN_TAB":
-        return handleOpenTab(message.tabId);
+      case "OPEN_PAGE":
+        return handleOpenPage(message.pageId);
       case "GET_TRANSCRIPT":
-        return handleGetTranscript(message.tabId);
+        return handleGetTranscript(message.pageId);
       case "GET_CONTENT":
-        return handleGetContent(message.tabId);
+        return handleGetContent(message.pageId);
       case "RE_EXTRACT_CONTENT":
-        return handleReExtractContent(message.tabId);
+        return handleReExtractContent(message.pageId);
       case "SYNC_NOW":
         return handleSyncNow();
       case "QUICK_CAPTURE":
@@ -353,9 +353,9 @@ export default defineBackground(() => {
     try {
       console.log("[TabZen] Building capture preview...");
       const preview = await buildCapturePreview();
-      console.log("[TabZen] Preview built:", preview.tabs.length, "tabs,", preview.groups.length, "groups");
-      console.log("[TabZen] Groups:", preview.groups.map((g) => `${g.groupName} (${g.tabIds.length})`));
-      console.log("[TabZen] Tabs with groupIds:", preview.tabs.filter((t) => t.groupId).length, "/", preview.tabs.length);
+      console.log("[TabZen] Preview built:", preview.pages.length, "pages,", preview.groups.length, "groups");
+      console.log("[TabZen] Groups:", preview.groups.map((g) => `${g.groupName} (${g.pageIds.length})`));
+      console.log("[TabZen] Pages with groupIds:", preview.pages.filter((p) => p.groupId).length, "/", preview.pages.length);
       return { type: "CAPTURE_PREVIEW", data: preview };
     } catch (e) {
       console.error("[TabZen] Capture preview error:", e);
@@ -363,7 +363,7 @@ export default defineBackground(() => {
     }
   }
 
-  async function handleCaptureSingleTab(
+  async function handleCapturePage(
     browserTabId: number,
   ): Promise<MessageResponse> {
     try {
@@ -386,12 +386,12 @@ export default defineBackground(() => {
     captureData: CapturePreviewData,
   ): Promise<MessageResponse> {
     try {
-      console.log("[TabZen] Confirming capture:", captureData.tabs.length, "tabs");
-      console.log("[TabZen] Tabs groupIds check:", captureData.tabs.map((t) => ({ id: t.id.slice(0, 8), groupId: t.groupId?.slice(0, 8) || "EMPTY" })));
+      console.log("[TabZen] Confirming capture:", captureData.pages.length, "pages");
+      console.log("[TabZen] Pages groupIds check:", captureData.pages.map((p) => ({ id: p.id.slice(0, 8), groupId: p.groupId?.slice(0, 8) || "EMPTY" })));
       await confirmCapture(captureData);
-      const savedTabs = await getAllTabs();
+      const savedPages = await getAllPages();
       const savedGroups = await getAllGroups();
-      console.log("[TabZen] After save - DB has", savedTabs.length, "tabs,", savedGroups.length, "groups");
+      console.log("[TabZen] After save - DB has", savedPages.length, "pages,", savedGroups.length, "groups");
       return { type: "SUCCESS" };
     } catch (e) {
       console.error("[TabZen] Confirm capture error:", e);
@@ -401,8 +401,8 @@ export default defineBackground(() => {
 
   async function handleGetUncapturedCount(): Promise<MessageResponse> {
     const settings = await getSettings();
-    const existingTabs = await getAllTabs();
-    const existingUrls = buildUrlSet(existingTabs.map((t) => t.url));
+    const existingPages = await getAllPages();
+    const existingUrls = buildUrlSet(existingPages.map((p) => p.url));
     const openTabs = await browser.tabs.query({});
     let count = 0;
     for (const tab of openTabs) {
@@ -418,9 +418,9 @@ export default defineBackground(() => {
     return { type: "UNCAPTURED_COUNT", count };
   }
 
-  async function handleSearchTabs(query: string): Promise<MessageResponse> {
-    const tabs = await searchTabs(query);
-    return { type: "SEARCH_RESULTS", tabs };
+  async function handleSearchPages(query: string): Promise<MessageResponse> {
+    const pages = await searchPages(query);
+    return { type: "SEARCH_RESULTS", pages };
   }
 
   async function handleAISearch(query: string): Promise<MessageResponse> {
@@ -429,30 +429,30 @@ export default defineBackground(() => {
       if (!settings.openRouterApiKey) {
         return { type: "ERROR", message: "OpenRouter API key not configured" };
       }
-      const allTabs = await getAllTabs();
-      const tabData = allTabs.map((t) => ({
-        id: t.id,
-        title: t.title,
-        url: t.url,
-        description: t.ogDescription || t.metaDescription,
-        notes: t.notes,
+      const allPages = await getAllPages();
+      const pageData = allPages.map((p) => ({
+        id: p.id,
+        title: p.title,
+        url: p.url,
+        description: p.ogDescription || p.metaDescription,
+        notes: p.notes,
       }));
       const matchingIds = await aiSearch(
         settings.openRouterApiKey,
         settings.aiModel,
         query,
-        tabData,
+        pageData,
       );
-      const results = allTabs.filter((t) => matchingIds.includes(t.id));
-      return { type: "SEARCH_RESULTS", tabs: results };
+      const results = allPages.filter((p) => matchingIds.includes(p.id));
+      return { type: "SEARCH_RESULTS", pages: results };
     } catch (e) {
       return { type: "ERROR", message: String(e) };
     }
   }
 
-  async function handleOpenTab(tabId: string): Promise<MessageResponse> {
-    const tab = await getTab(tabId);
-    if (!tab) return { type: "ERROR", message: "Tab not found" };
+  async function handleOpenPage(pageId: string): Promise<MessageResponse> {
+    const page = await getPage(pageId);
+    if (!page) return { type: "ERROR", message: "Page not found" };
 
     const settings = await getSettings();
     if (settings.openMode === "current-tab") {
@@ -465,50 +465,50 @@ export default defineBackground(() => {
       );
 
       if (targetTab?.id) {
-        await browser.tabs.update(targetTab.id, { url: tab.url, active: true });
+        await browser.tabs.update(targetTab.id, { url: page.url, active: true });
       } else {
-        await browser.tabs.create({ url: tab.url });
+        await browser.tabs.create({ url: page.url });
       }
     } else {
-      await browser.tabs.create({ url: tab.url });
+      await browser.tabs.create({ url: page.url });
     }
-    await updateTab(tabId, {
-      viewCount: tab.viewCount + 1,
+    await updatePage(pageId, {
+      viewCount: page.viewCount + 1,
       lastViewedAt: new Date().toISOString(),
     });
     notifyDataChanged();
 
-    const updated = await getTab(tabId);
-    return { type: "TAB_OPENED", tab: updated! };
+    const updated = await getPage(pageId);
+    return { type: "PAGE_OPENED", page: updated! };
   }
 
-  async function handleGetTranscript(tabId: string): Promise<MessageResponse> {
-    const tab = await getTab(tabId);
-    if (!tab) return { type: "ERROR", message: "Tab not found" };
+  async function handleGetTranscript(pageId: string): Promise<MessageResponse> {
+    const page = await getPage(pageId);
+    if (!page) return { type: "ERROR", message: "Page not found" };
 
-    // 1. Check if transcript is already stored locally on the tab record
-    if (tab.transcript) {
-      return { type: "TRANSCRIPT", transcript: tab.transcript };
+    // 1. Check if transcript is already stored locally on the page record
+    if (page.transcript) {
+      return { type: "TRANSCRIPT", transcript: page.transcript };
     }
 
     // 2. Try extracting from open browser tab using executeScript
-    const openTabs = await browser.tabs.query({ url: tab.url });
+    const openTabs = await browser.tabs.query({ url: page.url });
     if (openTabs.length > 0 && openTabs[0].id) {
       try {
         const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
-        const result = await extractYouTubeTranscript(openTabs[0].id, tab.url);
+        const result = await extractYouTubeTranscript(openTabs[0].id, page.url);
         if (result?.hasTranscript) {
-          const { addTab } = await import("@/lib/db");
-          await addTab({
-            ...tab,
+          const { addPage } = await import("@/lib/db");
+          await addPage({
+            ...page,
             transcript: result.segments,
-            contentKey: `transcripts/${tab.id}`,
+            contentKey: `transcripts/${page.id}`,
             contentType: "transcript",
             contentFetchedAt: new Date().toISOString(),
           });
 
           const { storeTranscriptToApi } = await import("@/lib/content-api");
-          storeTranscriptToApi(tab.id, result.segments).catch(() => {});
+          storeTranscriptToApi(page.id, result.segments).catch(() => {});
 
           notifyDataChanged();
           return { type: "TRANSCRIPT", transcript: result.segments };
@@ -525,18 +525,18 @@ export default defineBackground(() => {
       return { type: "TRANSCRIPT", transcript: null };
     }
     const { fetchTranscriptFromApi, storeTranscriptToApi } = await import("@/lib/content-api");
-    const segments = await fetchTranscriptFromApi(tab.url);
+    const segments = await fetchTranscriptFromApi(page.url);
     if (segments) {
-      const { addTab } = await import("@/lib/db");
-      await addTab({
-        ...tab,
+      const { addPage } = await import("@/lib/db");
+      await addPage({
+        ...page,
         transcript: segments,
-        contentKey: `transcripts/${tab.id}`,
+        contentKey: `transcripts/${page.id}`,
         contentType: "transcript",
         contentFetchedAt: new Date().toISOString(),
       });
 
-      storeTranscriptToApi(tab.id, segments).catch(() => {});
+      storeTranscriptToApi(page.id, segments).catch(() => {});
       notifyDataChanged();
       return { type: "TRANSCRIPT", transcript: segments };
     }
@@ -544,27 +544,27 @@ export default defineBackground(() => {
     return { type: "TRANSCRIPT", transcript: null };
   }
 
-  async function handleGetContent(tabId: string): Promise<MessageResponse> {
-    const tab = await getTab(tabId);
-    if (!tab) return { type: "ERROR", message: "Tab not found" };
+  async function handleGetContent(pageId: string): Promise<MessageResponse> {
+    const page = await getPage(pageId);
+    if (!page) return { type: "ERROR", message: "Page not found" };
 
     // 1. Check if content is already stored locally
-    if (tab.content) {
-      return { type: "CONTENT", content: tab.content };
+    if (page.content) {
+      return { type: "CONTENT", content: page.content };
     }
 
     // 2. Try extracting from open browser tab
-    const openTabs = await browser.tabs.query({ url: tab.url });
+    const openTabs = await browser.tabs.query({ url: page.url });
     if (openTabs.length > 0 && openTabs[0].id) {
       try {
         const { extractPageContent } = await import("@/lib/page-extract");
-        const result = await extractPageContent(openTabs[0].id, tab.url);
+        const result = await extractPageContent(openTabs[0].id, page.url);
         if (result) {
-          const { addTab } = await import("@/lib/db");
-          await addTab({
-            ...tab,
+          const { addPage } = await import("@/lib/db");
+          await addPage({
+            ...page,
             content: result.content,
-            contentKey: `content/${tab.id}`,
+            contentKey: `content/${page.id}`,
             contentType: "markdown",
             contentFetchedAt: new Date().toISOString(),
           });
@@ -579,20 +579,20 @@ export default defineBackground(() => {
     return { type: "CONTENT", content: null };
   }
 
-  async function handleReExtractContent(tabId: string): Promise<MessageResponse> {
-    const tab = await getTab(tabId);
-    if (!tab) return { type: "ERROR", message: "Tab not found" };
+  async function handleReExtractContent(pageId: string): Promise<MessageResponse> {
+    const page = await getPage(pageId);
+    if (!page) return { type: "ERROR", message: "Page not found" };
 
     const { extractPageContent, extractPageContentViaFetch, CURRENT_CONTENT_VERSION } = await import("@/lib/page-extract");
 
     let result = null;
 
     // 1. Try open browser tab first (best quality — gets JS-rendered content)
-    const openTabs = await browser.tabs.query({ url: tab.url });
+    const openTabs = await browser.tabs.query({ url: page.url });
     if (openTabs.length > 0 && openTabs[0].id) {
-      console.log("[TabZen] Re-extracting from open tab:", tab.url);
+      console.log("[TabZen] Re-extracting from open tab:", page.url);
       try {
-        result = await extractPageContent(openTabs[0].id, tab.url);
+        result = await extractPageContent(openTabs[0].id, page.url);
       } catch (e) {
         console.warn("[TabZen] executeScript re-extraction failed, trying fetch:", e);
       }
@@ -600,20 +600,20 @@ export default defineBackground(() => {
 
     // 2. Fall back to fetch (works without tab open)
     if (!result) {
-      console.log("[TabZen] Re-extracting via fetch:", tab.url);
-      result = await extractPageContentViaFetch(tab.url);
+      console.log("[TabZen] Re-extracting via fetch:", page.url);
+      result = await extractPageContentViaFetch(page.url);
     }
 
     if (!result) {
       return { type: "ERROR", message: "Could not extract content from this page" };
     }
 
-    // Update the tab with new content and version
-    const { addTab } = await import("@/lib/db");
-    await addTab({
-      ...tab,
+    // Update the page with new content and version
+    const { addPage } = await import("@/lib/db");
+    await addPage({
+      ...page,
       content: result.content,
-      contentKey: `content/${tab.id}`,
+      contentKey: `content/${page.id}`,
       contentType: "markdown",
       contentFetchedAt: new Date().toISOString(),
       contentVersion: CURRENT_CONTENT_VERSION,
@@ -640,8 +640,8 @@ export default defineBackground(() => {
 
       // Push local data + settings
       const data = await getAllData();
-      let pushed = data.tabs.length;
-      console.log("[TabZen] Pushing", pushed, "tabs,", data.groups.length, "groups,", data.captures.length, "captures");
+      let pushed = data.pages.length;
+      console.log("[TabZen] Pushing", pushed, "pages,", data.groups.length, "groups,", data.captures.length, "captures");
 
       // Encrypt API key if present
       let encryptedApiKey: string | null = null;
@@ -650,7 +650,7 @@ export default defineBackground(() => {
       }
 
       await pushSync({
-        tabs: data.tabs,
+        pages: data.pages,
         groups: data.groups,
         captures: data.captures,
         settings: {
@@ -659,17 +659,17 @@ export default defineBackground(() => {
         },
         lastSyncedAt: new Date().toISOString(),
       });
-      console.log("[TabZen] Manual sync: pushed", pushed, "tabs + settings");
+      console.log("[TabZen] Manual sync: pushed", pushed, "pages + settings");
 
       // Then pull remote data
       let pulled = 0;
       const remote = await pullSync("1970-01-01T00:00:00Z");
       if (remote) {
-        if (remote.tabs.length || remote.groups.length || remote.captures.length) {
-          const tabs = remote.tabs.map((t) => ({ ...t, starred: t.starred ?? false }));
-          const result = await importData({ tabs, groups: remote.groups, captures: remote.captures });
+        if (remote.pages.length || remote.groups.length || remote.captures.length) {
+          const pages = remote.pages.map((p) => ({ ...p, starred: p.starred ?? false }));
+          const result = await importData({ pages, groups: remote.groups, captures: remote.captures });
           pulled = result.imported;
-          console.log("[TabZen] Manual sync: pulled", pulled, "new tabs");
+          console.log("[TabZen] Manual sync: pulled", pulled, "new pages");
           if (pulled > 0) {
             browser.runtime.sendMessage({ type: "DATA_CHANGED" }).catch(() => {});
             await updateBadge();
@@ -709,8 +709,8 @@ export default defineBackground(() => {
   async function handleQuickCapture(): Promise<MessageResponse> {
     try {
       const settings = await getSettings();
-      const existingTabs = await getAllTabs();
-      const existingUrls = buildUrlSet(existingTabs.map((t) => t.url));
+      const existingPages = await getAllPages();
+      const existingUrls = buildUrlSet(existingPages.map((p) => p.url));
       const openTabs = await browser.tabs.query({});
       const captureId = uuidv4();
 
@@ -737,27 +737,27 @@ export default defineBackground(() => {
       // Pass 1: Instant save with basic data + domain grouping
       // Reuse existing non-archived groups for the same domain
       const existingGroups = await getAllGroups();
-      const byDomain = new Map<string, { groupId: string; tabs: Tab[]; isExisting: boolean }>();
+      const byDomain = new Map<string, { groupId: string; pages: Page[]; isExisting: boolean }>();
 
       // Pre-populate with existing groups
       for (const g of existingGroups) {
         if (!g.archived && !byDomain.has(g.name)) {
-          byDomain.set(g.name, { groupId: g.id, tabs: [], isExisting: true });
+          byDomain.set(g.name, { groupId: g.id, pages: [], isExisting: true });
         }
       }
 
-      const tabs: Tab[] = newBrowserTabs.map((bt) => {
+      const pages: Page[] = newBrowserTabs.map((bt) => {
         const domain = (() => {
           try { return new URL(bt.url!).hostname.replace("www.", ""); }
           catch { return "Other"; }
         })();
 
         if (!byDomain.has(domain)) {
-          byDomain.set(domain, { groupId: uuidv4(), tabs: [], isExisting: false });
+          byDomain.set(domain, { groupId: uuidv4(), pages: [], isExisting: false });
         }
         const group = byDomain.get(domain)!;
 
-        const tab: Tab = {
+        const page: Page = {
           id: uuidv4(),
           url: bt.url!,
           title: bt.title || "Untitled",
@@ -785,13 +785,13 @@ export default defineBackground(() => {
           contentType: null,
           contentFetchedAt: null,
         };
-        group.tabs.push(tab);
-        return tab;
+        group.pages.push(page);
+        return page;
       });
 
       // Only create groups that don't already exist
       const newGroups: Group[] = Array.from(byDomain.entries())
-        .filter(([, { isExisting, tabs }]) => !isExisting && tabs.length > 0)
+        .filter(([, { isExisting, pages }]) => !isExisting && pages.length > 0)
         .map(([domain, { groupId }], i) => ({
           id: groupId,
           name: domain,
@@ -804,28 +804,28 @@ export default defineBackground(() => {
         id: captureId,
         capturedAt: new Date().toISOString(),
         sourceLabel: settings.sourceLabel,
-        tabCount: tabs.length,
+        tabCount: pages.length,
       };
 
       await addCapture(capture);
       if (newGroups.length > 0) {
         await addGroups(newGroups);
       }
-      await addTabs(tabs);
+      await addPages(pages);
       await updateBadge();
       notifyDataChanged();
 
-      console.log(`[TabZen] Quick capture: saved ${tabs.length} tabs in ${newGroups.length} new groups (${byDomain.size - newGroups.length} reused)`);
+      console.log(`[TabZen] Quick capture: saved ${pages.length} pages in ${newGroups.length} new groups (${byDomain.size - newGroups.length} reused)`);
 
       // Pass 2: Background enrichment (metadata + creator + publishedAt)
       (async () => {
         let enriched = 0;
-        for (const tab of tabs) {
+        for (const page of pages) {
           try {
-            const browserTab = newBrowserTabs.find((bt) => bt.url === tab.url);
+            const browserTab = newBrowserTabs.find((bt) => bt.url === page.url);
             if (browserTab?.id) {
-              const meta = await fetchMetadata(browserTab.id, tab.url);
-              const updates: Partial<Tab> = {};
+              const meta = await fetchMetadata(browserTab.id, page.url);
+              const updates: Partial<Page> = {};
               if (meta.ogTitle) updates.ogTitle = meta.ogTitle;
               if (meta.ogDescription) updates.ogDescription = meta.ogDescription;
               if (meta.ogImage) updates.ogImage = meta.ogImage;
@@ -835,93 +835,93 @@ export default defineBackground(() => {
               if (meta.creatorUrl) updates.creatorUrl = meta.creatorUrl;
               if (meta.publishedAt) updates.publishedAt = meta.publishedAt;
               if (Object.keys(updates).length > 0) {
-                await updateTab(tab.id, updates);
+                await updatePage(page.id, updates);
                 enriched++;
               }
 
               // Extract transcript for YouTube videos
-              if (isYouTubeWatchUrl(tab.url)) {
+              if (isYouTubeWatchUrl(page.url)) {
                 try {
                   const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
-                  const result = await extractYouTubeTranscript(browserTab.id, tab.url);
+                  const result = await extractYouTubeTranscript(browserTab.id, page.url);
                   if (result?.hasTranscript) {
-                    const currentTab = await getTab(tab.id);
-                    if (currentTab) {
-                      const { addTab } = await import("@/lib/db");
-                      await addTab({
-                        ...currentTab,
+                    const currentPage = await getPage(page.id);
+                    if (currentPage) {
+                      const { addPage } = await import("@/lib/db");
+                      await addPage({
+                        ...currentPage,
                         transcript: result.segments,
-                        contentKey: `transcripts/${tab.id}`,
+                        contentKey: `transcripts/${page.id}`,
                         contentType: "transcript",
                         contentFetchedAt: new Date().toISOString(),
                       });
-                      console.log(`[TabZen] Transcript extracted for ${tab.url} (${result.segments.length} segments)`);
+                      console.log(`[TabZen] Transcript extracted for ${page.url} (${result.segments.length} segments)`);
                     }
                   }
                 } catch (e) {
-                  console.warn("[TabZen] Transcript extraction failed for", tab.url, e);
+                  console.warn("[TabZen] Transcript extraction failed for", page.url, e);
                 }
               }
 
               // Extract content for non-YouTube pages
-              if (!isYouTubeWatchUrl(tab.url)) {
+              if (!isYouTubeWatchUrl(page.url)) {
                 try {
                   const { extractPageContent } = await import("@/lib/page-extract");
-                  const result = await extractPageContent(browserTab.id, tab.url);
+                  const result = await extractPageContent(browserTab.id, page.url);
                   if (result) {
-                    const currentTab = await getTab(tab.id);
-                    if (currentTab) {
-                      const { addTab } = await import("@/lib/db");
-                      await addTab({
-                        ...currentTab,
+                    const currentPage = await getPage(page.id);
+                    if (currentPage) {
+                      const { addPage } = await import("@/lib/db");
+                      await addPage({
+                        ...currentPage,
                         content: result.content,
-                        contentKey: `content/${tab.id}`,
+                        contentKey: `content/${page.id}`,
                         contentType: "markdown",
                         contentFetchedAt: new Date().toISOString(),
                       });
-                      console.log(`[TabZen] Content extracted for ${tab.url} (${result.content.length} chars)`);
+                      console.log(`[TabZen] Content extracted for ${page.url} (${result.content.length} chars)`);
                     }
                   }
                 } catch (e) {
-                  console.warn("[TabZen] Content extraction failed for", tab.url, e);
+                  console.warn("[TabZen] Content extraction failed for", page.url, e);
                 }
               }
             }
           } catch {}
         }
         if (enriched > 0) {
-          console.log(`[TabZen] Enriched ${enriched}/${tabs.length} tabs with metadata`);
+          console.log(`[TabZen] Enriched ${enriched}/${pages.length} pages with metadata`);
           notifyDataChanged();
         }
 
         // Pass 3: AI tagging (if API key configured)
         if (settings.openRouterApiKey) {
           try {
-            const enrichedTabs = await Promise.all(
-              tabs.map(async (t) => (await getTab(t.id)) || t),
+            const enrichedPages = await Promise.all(
+              pages.map(async (p) => (await getPage(p.id)) || p),
             );
             const allTags = await getAllTags();
             const existingTagNames = allTags.map((t) => t.tag);
             const tagResults = await generateTags(
               settings.openRouterApiKey,
               settings.aiModel,
-              enrichedTabs.map((t) => ({
-                id: t.id,
-                title: t.ogTitle || t.title,
-                url: t.url,
-                description: t.ogDescription || t.metaDescription,
+              enrichedPages.map((p) => ({
+                id: p.id,
+                title: p.ogTitle || p.title,
+                url: p.url,
+                description: p.ogDescription || p.metaDescription,
               })),
               existingTagNames,
             );
             let tagged = 0;
             for (const result of tagResults) {
               if (result.tags?.length) {
-                await updateTab(result.id, { tags: result.tags });
+                await updatePage(result.id, { tags: result.tags });
                 tagged++;
               }
             }
             if (tagged > 0) {
-              console.log(`[TabZen] Tagged ${tagged} tabs`);
+              console.log(`[TabZen] Tagged ${tagged} pages`);
               notifyDataChanged();
             }
           } catch (e) {
@@ -931,7 +931,7 @@ export default defineBackground(() => {
 
       })();
 
-      return { type: "QUICK_CAPTURE_DONE", saved: tabs.length, skipped: candidateTabs.length - newBrowserTabs.length };
+      return { type: "QUICK_CAPTURE_DONE", saved: pages.length, skipped: candidateTabs.length - newBrowserTabs.length };
     } catch (e) {
       console.error("[TabZen] Quick capture error:", e);
       return { type: "ERROR", message: String(e) };
@@ -1035,11 +1035,11 @@ export default defineBackground(() => {
   async function handleIsUrlSaved(url: string): Promise<MessageResponse> {
     try {
       // Try original URL first (DB stores original), then normalized
-      let tab = await getTabByUrl(url);
-      if (!tab) {
-        tab = await getTabByUrl(normalizeUrl(url));
+      let page = await getPageByUrl(url);
+      if (!page) {
+        page = await getPageByUrl(normalizeUrl(url));
       }
-      return { type: "URL_SAVED", saved: !!tab, tabId: tab?.id };
+      return { type: "URL_SAVED", saved: !!page, pageId: page?.id };
     } catch {
       return { type: "URL_SAVED", saved: false };
     }
@@ -1198,8 +1198,8 @@ export default defineBackground(() => {
 
   async function buildCapturePreview(): Promise<CapturePreviewData> {
     const settings = await getSettings();
-    const existingTabs = await getAllTabs();
-    const existingUrls = buildUrlSet(existingTabs.map((t) => t.url));
+    const existingPages = await getAllPages();
+    const existingUrls = buildUrlSet(existingPages.map((p) => p.url));
     const openTabs = await browser.tabs.query({});
     const captureId = uuidv4();
 
@@ -1220,10 +1220,10 @@ export default defineBackground(() => {
       return true;
     });
 
-    const tabsWithMeta: Tab[] = await Promise.all(
+    const pagesWithMeta: Page[] = await Promise.all(
       newBrowserTabs.map(async (bt) => {
         const meta = await fetchMetadata(bt.id!, bt.url!);
-        const tabId = uuidv4();
+        const pageId = uuidv4();
 
         // Extract transcript for YouTube videos, or page content for other pages
         let transcriptSegments: TranscriptSegment[] | null = null;
@@ -1253,8 +1253,8 @@ export default defineBackground(() => {
 
         const hasTranscript = transcriptSegments && transcriptSegments.length > 0;
         const hasContent = !!markdownContent;
-        const tab: Tab = {
-          id: tabId,
+        const page: Page = {
+          id: pageId,
           url: bt.url!,
           title: bt.title || "Untitled",
           favicon: bt.favIconUrl || "",
@@ -1277,100 +1277,100 @@ export default defineBackground(() => {
           starred: false,
           deletedAt: null,
           groupId: "",
-          contentKey: hasTranscript ? `transcripts/${tabId}` : hasContent ? `content/${tabId}` : null,
+          contentKey: hasTranscript ? `transcripts/${pageId}` : hasContent ? `content/${pageId}` : null,
           contentType: hasTranscript ? "transcript" : hasContent ? "markdown" : null,
           contentFetchedAt: (hasTranscript || hasContent) ? new Date().toISOString() : null,
           contentVersion: (hasTranscript || hasContent) ? CURRENT_CONTENT_VERSION : undefined,
           transcript: hasTranscript ? transcriptSegments! : undefined,
           content: hasContent ? markdownContent! : undefined,
         };
-        return tab;
+        return page;
       }),
     );
 
-    let aiGroups: { groupName: string; tabIds: string[] }[];
+    let aiGroups: { groupName: string; pageIds: string[] }[];
     {
-      aiGroups = groupByDomain(tabsWithMeta);
+      aiGroups = groupByDomain(pagesWithMeta);
     }
 
-    // Build a lookup of valid tab IDs for fast matching
-    const validTabIds = new Set(tabsWithMeta.map((t) => t.id));
+    // Build a lookup of valid page IDs for fast matching
+    const validPageIds = new Set(pagesWithMeta.map((p) => p.id));
 
-    // Assign group IDs to tabs, tracking which tabs got assigned
-    const assignedTabIds = new Set<string>();
-    const groupObjects: { groupName: string; groupId: string; tabIds: string[] }[] = [];
+    // Assign group IDs to pages, tracking which pages got assigned
+    const assignedPageIds = new Set<string>();
+    const groupObjects: { groupName: string; groupId: string; pageIds: string[] }[] = [];
 
     for (const g of aiGroups) {
       const groupId = uuidv4();
-      const matchedTabIds: string[] = [];
-      for (const tabId of g.tabIds) {
-        if (validTabIds.has(tabId)) {
-          const tab = tabsWithMeta.find((t) => t.id === tabId);
-          if (tab) {
-            tab.groupId = groupId;
-            assignedTabIds.add(tabId);
-            matchedTabIds.push(tabId);
+      const matchedPageIds: string[] = [];
+      for (const pageId of g.pageIds) {
+        if (validPageIds.has(pageId)) {
+          const page = pagesWithMeta.find((p) => p.id === pageId);
+          if (page) {
+            page.groupId = groupId;
+            assignedPageIds.add(pageId);
+            matchedPageIds.push(pageId);
           }
         }
       }
-      if (matchedTabIds.length > 0) {
-        groupObjects.push({ groupName: g.groupName, groupId, tabIds: matchedTabIds });
+      if (matchedPageIds.length > 0) {
+        groupObjects.push({ groupName: g.groupName, groupId, pageIds: matchedPageIds });
       }
     }
 
-    // Catch any unassigned tabs (AI missed them or returned wrong IDs)
-    const unassigned = tabsWithMeta.filter((t) => !assignedTabIds.has(t.id));
+    // Catch any unassigned pages (AI missed them or returned wrong IDs)
+    const unassigned = pagesWithMeta.filter((p) => !assignedPageIds.has(p.id));
     if (unassigned.length > 0) {
       const otherGroupId = uuidv4();
-      for (const tab of unassigned) {
-        tab.groupId = otherGroupId;
+      for (const page of unassigned) {
+        page.groupId = otherGroupId;
       }
       groupObjects.push({
         groupName: "Other",
         groupId: otherGroupId,
-        tabIds: unassigned.map((t) => t.id),
+        pageIds: unassigned.map((p) => p.id),
       });
     }
 
     return {
       captureId,
-      groups: groupObjects.map((g) => ({ groupName: g.groupName, tabIds: g.tabIds })),
-      tabs: tabsWithMeta,
+      groups: groupObjects.map((g) => ({ groupName: g.groupName, pageIds: g.pageIds })),
+      pages: pagesWithMeta,
     };
   }
 
   function groupByDomain(
-    tabs: Tab[],
-  ): { groupName: string; tabIds: string[] }[] {
+    pages: Page[],
+  ): { groupName: string; pageIds: string[] }[] {
     const byDomain = new Map<string, string[]>();
-    for (const tab of tabs) {
+    for (const page of pages) {
       try {
-        const domain = new URL(tab.url).hostname.replace("www.", "");
+        const domain = new URL(page.url).hostname.replace("www.", "");
         const list = byDomain.get(domain) || [];
-        list.push(tab.id);
+        list.push(page.id);
         byDomain.set(domain, list);
       } catch {
         const list = byDomain.get("Other") || [];
-        list.push(tab.id);
+        list.push(page.id);
         byDomain.set("Other", list);
       }
     }
-    return Array.from(byDomain.entries()).map(([domain, tabIds]) => ({
+    return Array.from(byDomain.entries()).map(([domain, pageIds]) => ({
       groupName: domain,
-      tabIds,
+      pageIds,
     }));
   }
 
   async function confirmCapture(preview: CapturePreviewData): Promise<void> {
     const settings = await getSettings();
 
-    // Build groups from the tabs' groupIds (already assigned in buildCapturePreview)
+    // Build groups from the pages' groupIds (already assigned in buildCapturePreview)
     const groupIdToName = new Map<string, string>();
     for (const g of preview.groups) {
-      for (const tabId of g.tabIds) {
-        const tab = preview.tabs.find((t) => t.id === tabId);
-        if (tab && tab.groupId) {
-          groupIdToName.set(tab.groupId, g.groupName);
+      for (const pageId of g.pageIds) {
+        const page = preview.pages.find((p) => p.id === pageId);
+        if (page && page.groupId) {
+          groupIdToName.set(page.groupId, g.groupName);
           break;
         }
       }
@@ -1390,12 +1390,12 @@ export default defineBackground(() => {
       id: preview.captureId,
       capturedAt: new Date().toISOString(),
       sourceLabel: settings.sourceLabel,
-      tabCount: preview.tabs.length,
+      tabCount: preview.pages.length,
     };
 
     await addCapture(capture);
     await addGroups(groups);
-    await addTabs(preview.tabs);
+    await addPages(preview.pages);
     await updateBadge();
     notifyDataChanged();
   }
@@ -1407,13 +1407,13 @@ export default defineBackground(() => {
     favicon: string,
   ): Promise<void> {
     const settings = await getSettings();
-    const existingTabs = await getAllTabs();
-    const existingUrls = buildUrlSet(existingTabs.map((t) => t.url));
+    const existingPages = await getAllPages();
+    const existingUrls = buildUrlSet(existingPages.map((p) => p.url));
 
     if (isDuplicate(url, existingUrls)) return;
 
     const meta = await fetchMetadata(browserTabId, url);
-    const tabId = uuidv4();
+    const pageId = uuidv4();
 
     // Try to find an existing non-archived group for this domain
     const domain = (() => {
@@ -1466,8 +1466,8 @@ export default defineBackground(() => {
     const hasTranscript = transcriptSegments && transcriptSegments.length > 0;
     const hasContent = !!markdownContent;
 
-    const tab: Tab = {
-      id: tabId,
+    const page: Page = {
+      id: pageId,
       url,
       title,
       favicon,
@@ -1483,7 +1483,7 @@ export default defineBackground(() => {
       starred: false,
       deletedAt: null,
       groupId,
-      contentKey: hasTranscript ? `transcripts/${tabId}` : hasContent ? `content/${tabId}` : null,
+      contentKey: hasTranscript ? `transcripts/${pageId}` : hasContent ? `content/${pageId}` : null,
       contentType: hasTranscript ? "transcript" : hasContent ? "markdown" : null,
       contentFetchedAt: (hasTranscript || hasContent) ? new Date().toISOString() : null,
       contentVersion: (hasTranscript || hasContent) ? CURRENT_CONTENT_VERSION : undefined,
@@ -1511,7 +1511,7 @@ export default defineBackground(() => {
       await addGroups([group]);
     }
 
-    await addTabs([tab]);
+    await addPages([page]);
     notifyDataChanged();
   }
 });
