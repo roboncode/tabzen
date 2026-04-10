@@ -3,6 +3,7 @@
 const SLUG_TO_ID: Record<string, string> = {
   "content": "content",
   "custom": "custom",
+  "summary": "builtin-summary",
   "key-points": "builtin-key-points",
   "action-items": "builtin-action-items",
   "eli5": "builtin-eli5",

@@ -77,7 +77,7 @@ async function getDB(): Promise<IDBPDatabase<TabZenDB>> {
 
       if (oldVersion < 3) {
         const docStore = tx.objectStore("aiDocuments");
-        // Delete old index name from v2 (TypeScript schema already has the new name)
+        // Delete old index and create new one for renamed field
         if ((docStore as any).indexNames.contains("by-tabId")) {
           (docStore as any).deleteIndex("by-tabId");
         }
@@ -85,7 +85,28 @@ async function getDB(): Promise<IDBPDatabase<TabZenDB>> {
       }
     },
   });
+
+  // Migrate existing AIDocument records: rename tabId → pageId (post-upgrade)
+  await migrateDocumentPageIds(dbInstance);
+
   return dbInstance;
+}
+
+/** Rename tabId → pageId on any AIDocument records left from before the v3 schema change. */
+async function migrateDocumentPageIds(db: IDBPDatabase<TabZenDB>): Promise<void> {
+  const tx = db.transaction("aiDocuments", "readwrite");
+  const store = tx.store;
+  let cursor = await store.openCursor();
+  while (cursor) {
+    const record = cursor.value as any;
+    if (record.tabId && !record.pageId) {
+      record.pageId = record.tabId;
+      delete record.tabId;
+      await cursor.update(record as AIDocument);
+    }
+    cursor = await cursor.continue();
+  }
+  await tx.done;
 }
 
 export async function addPage(page: Page): Promise<void> {
