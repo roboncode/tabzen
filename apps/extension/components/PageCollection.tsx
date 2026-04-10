@@ -434,7 +434,7 @@ export default function PageCollection(props: PageCollectionProps) {
         tags={tagIndex()}
         onInit={(api) => { searchBarApi = api; }}
       />
-      <div class="flex items-center gap-2 px-4 pb-4">
+      <div class="flex items-center gap-2 px-4 pt-1 pb-4">
         <div class="flex-1 overflow-x-auto scrollbar-hide">
           <FilterPills active={filter()} onChange={setFilter} />
         </div>
