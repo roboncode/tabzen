@@ -18,6 +18,9 @@ export default defineConfig({
       "*://*.youtube.com/*",
       "<all_urls>",
     ],
+    side_panel: {
+      default_path: "app.html",
+    },
     commands: {
       _execute_side_panel: {
         suggested_key: { default: "Ctrl+Shift+Z", mac: "Command+Shift+Z" },
