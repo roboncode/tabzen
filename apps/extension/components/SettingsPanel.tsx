@@ -92,7 +92,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
         <UserMenu />
       </div>
 
-      <div class="flex gap-1.5 px-4 py-2.5 overflow-x-auto scrollbar-hide max-w-2xl mx-auto">
+      <div class="flex gap-1.5 px-4 pt-4 pb-2.5 overflow-x-auto scrollbar-hide max-w-2xl mx-auto">
         {(
           [
             ["general", "General"],
