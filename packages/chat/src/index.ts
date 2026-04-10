@@ -27,18 +27,34 @@ export { Separator } from './ui/separator';
 export { Dialog, DialogTrigger, DialogContent } from './ui/dialog';
 
 // Layer 3: AI/Feature Components
-export { ChatContainer, useChatContainer } from './components/chat-container';
+export {
+  ChatContainer, ChatContainerRoot, ChatContainerContent, ChatContainerScrollAnchor,
+  useChatContainer,
+} from './components/chat-container';
 export { Message, MessageAvatar, MessageContent, MessageActions, MessageAction } from './components/message';
-export { PromptInput } from './components/prompt-input';
+export {
+  PromptInput, PromptInputTextarea, PromptInputActions, PromptInputAction,
+  usePromptInput,
+} from './components/prompt-input';
 export { ResponseStream } from './components/response-stream';
 export { Markdown } from './components/markdown';
-export { CodeBlock } from './components/code-block';
+export { CodeBlock, CodeBlockCode, CodeBlockGroup } from './components/code-block';
 export { Loader } from './components/loader';
+export type { LoaderVariant, LoaderSize, LoaderProps } from './components/loader';
+export {
+  CircularLoader, ClassicLoader, PulseLoader, PulseDotLoader,
+  DotsLoader, TypingLoader, WaveLoader, BarsLoader,
+  TerminalLoader, TextBlinkLoader, TextShimmerLoader, TextDotsLoader,
+} from './components/loader';
 export { FeedbackBar } from './components/feedback-bar';
-export { ChainOfThought, ChainOfThoughtStep, ChainOfThoughtTrigger, ChainOfThoughtItemContent } from './components/chain-of-thought';
-export { Source, SourceTrigger, SourceList } from './components/source';
+export {
+  ChainOfThought, ChainOfThoughtStep, ChainOfThoughtTrigger,
+  ChainOfThoughtContent, ChainOfThoughtItem,
+} from './components/chain-of-thought';
+export { Source, SourceTrigger, SourceContent, SourceList } from './components/source';
 export { PromptSuggestion } from './components/prompt-suggestion';
 export { ScrollButton } from './components/scroll-button';
+export { TextShimmer } from './components/text-shimmer';
 export { Checkpoint, CheckpointIcon, CheckpointTrigger } from './components/checkpoint';
 export type { CheckpointProps, CheckpointIconProps, CheckpointTriggerProps } from './components/checkpoint';
 export {

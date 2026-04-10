@@ -15,18 +15,64 @@ export function useChatContainer() {
   return ctx;
 }
 
-export interface ChatContainerProps extends JSX.HTMLAttributes<HTMLDivElement> {
+// --- ChatContainerRoot ---
+
+export interface ChatContainerRootProps extends JSX.HTMLAttributes<HTMLDivElement> {
   children: JSX.Element;
 }
 
-export function ChatContainer(props: ChatContainerProps) {
+function ChatContainerRoot(props: ChatContainerRootProps) {
   const [local, rest] = splitProps(props, ['children', 'class']);
   const { ref, isAtBottom, scrollToBottom } = useStickToBottom();
   return (
     <ChatContainerContext.Provider value={{ isAtBottom, scrollToBottom }}>
-      <div ref={ref} class={cn('flex flex-1 flex-col overflow-y-auto', local.class)} {...rest}>
+      <div
+        ref={ref}
+        class={cn('flex overflow-y-auto', local.class)}
+        role="log"
+        {...rest}
+      >
         {local.children}
       </div>
     </ChatContainerContext.Provider>
   );
 }
+
+// --- ChatContainerContent ---
+
+export interface ChatContainerContentProps extends JSX.HTMLAttributes<HTMLDivElement> {
+  children: JSX.Element;
+}
+
+function ChatContainerContent(props: ChatContainerContentProps) {
+  const [local, rest] = splitProps(props, ['children', 'class']);
+  return (
+    <div class={cn('flex w-full flex-col', local.class)} {...rest}>
+      {local.children}
+    </div>
+  );
+}
+
+// --- ChatContainerScrollAnchor ---
+
+export interface ChatContainerScrollAnchorProps extends JSX.HTMLAttributes<HTMLDivElement> {
+  ref?: HTMLDivElement | ((el: HTMLDivElement) => void);
+}
+
+function ChatContainerScrollAnchor(props: ChatContainerScrollAnchorProps) {
+  const [local, rest] = splitProps(props, ['class']);
+  return (
+    <div
+      class={cn('h-px w-full shrink-0 scroll-mt-4', local.class)}
+      aria-hidden="true"
+      {...rest}
+    />
+  );
+}
+
+export {
+  ChatContainerRoot as ChatContainer,
+  ChatContainerRoot,
+  ChatContainerContent,
+  ChatContainerScrollAnchor,
+};

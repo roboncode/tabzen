@@ -1,36 +1,125 @@
-import { type JSX, splitProps, Show } from 'solid-js';
+import { type JSX, createContext, useContext, Show, splitProps } from 'solid-js';
 import { cn } from '../utils/cn';
 import { HoverCard } from '../ui/hover-card';
-import { Badge } from '../ui/badge';
 
-export interface SourceTriggerProps { label: string; index?: number; class?: string; }
-export function SourceTrigger(props: SourceTriggerProps) {
+// --- Context ---
+
+interface SourceContextValue {
+  href: string;
+  domain: string;
+}
+
+const SourceContext = createContext<SourceContextValue>();
+
+function useSourceContext() {
+  const ctx = useContext(SourceContext);
+  if (!ctx) throw new Error('Source.* must be used inside <Source>');
+  return ctx;
+}
+
+// --- Source (Root) ---
+
+export interface SourceProps {
+  href: string;
+  children: JSX.Element;
+}
+
+function Source(props: SourceProps) {
+  const domain = () => {
+    try {
+      return new URL(props.href).hostname;
+    } catch {
+      return props.href.split('/').pop() || props.href;
+    }
+  };
+
   return (
-    <Badge variant="citation" class={cn('text-[11px]', props.class)}>
-      <Show when={props.index !== undefined} fallback={props.label}>
-        <span class="font-semibold">{props.index}</span>
+    <SourceContext.Provider value={{ get href() { return props.href; }, get domain() { return domain(); } }}>
+      {props.children}
+    </SourceContext.Provider>
+  );
+}
+
+// --- SourceTrigger ---
+
+export interface SourceTriggerProps {
+  label?: string | number;
+  showFavicon?: boolean;
+  class?: string;
+}
+
+function SourceTrigger(props: SourceTriggerProps) {
+  const ctx = useSourceContext();
+  const labelToShow = () => props.label ?? ctx.domain.replace('www.', '');
+
+  return (
+    <a
+      href={ctx.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      class={cn(
+        'bg-muted text-muted-foreground hover:bg-muted-foreground/30 hover:text-primary inline-flex h-5 max-w-32 items-center gap-1 overflow-hidden rounded-full py-0 text-xs no-underline transition-colors duration-150',
+        props.showFavicon ? 'pr-2 pl-1' : 'px-1',
+        props.class
+      )}
+    >
+      <Show when={props.showFavicon}>
+        <img
+          src={`https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(ctx.href)}`}
+          alt="favicon"
+          width={14}
+          height={14}
+          class="size-3.5 rounded-full"
+        />
       </Show>
-    </Badge>
+      <span class="truncate tabular-nums text-center font-normal">{labelToShow()}</span>
+    </a>
   );
 }
 
-export interface SourceContentProps { title: string; description?: string; url?: string; timestamp?: string; }
-export interface SourceProps { trigger: SourceTriggerProps; content: SourceContentProps; onClick?: () => void; class?: string; }
+// --- SourceContent ---
 
-export function Source(props: SourceProps) {
-  const [local] = splitProps(props, ['trigger', 'content', 'onClick', 'class']);
+export interface SourceContentProps {
+  title: string;
+  description: string;
+  class?: string;
+}
+
+function SourceContent(props: SourceContentProps) {
+  const ctx = useSourceContext();
   return (
-    <HoverCard trigger={<span onClick={local.onClick} class="cursor-pointer"><SourceTrigger {...local.trigger} /></span>} class={local.class}>
-      <div class="space-y-1.5">
-        <p class="text-sm font-medium text-foreground">{local.content.title}</p>
-        <Show when={local.content.description}><p class="text-xs text-muted-foreground line-clamp-3">{local.content.description}</p></Show>
-        <Show when={local.content.timestamp}><p class="text-xs text-muted-foreground">@ {local.content.timestamp}</p></Show>
-        <Show when={local.content.url}><p class="text-xs text-citation truncate">{local.content.url}</p></Show>
-      </div>
-    </HoverCard>
+    <div class={cn('w-80 p-0 shadow-xs', props.class)}>
+      <a
+        href={ctx.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex flex-col gap-2 p-3"
+      >
+        <div class="flex items-center gap-1.5">
+          <img
+            src={`https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(ctx.href)}`}
+            alt="favicon"
+            class="size-4 rounded-full"
+            width={16}
+            height={16}
+          />
+          <div class="text-primary truncate text-sm">
+            {ctx.domain.replace('www.', '')}
+          </div>
+        </div>
+        <div class="line-clamp-2 text-sm font-medium">{props.title}</div>
+        <div class="text-muted-foreground line-clamp-2 text-sm">
+          {props.description}
+        </div>
+      </a>
+    </div>
   );
 }
 
-export function SourceList(props: { children: JSX.Element; class?: string }) {
+// --- SourceList (convenience) ---
+
+function SourceList(props: { children: JSX.Element; class?: string }) {
   return <div class={cn('flex flex-wrap gap-1.5 mt-3', props.class)}>{props.children}</div>;
 }
+
+export { Source, SourceTrigger, SourceContent, SourceList };
