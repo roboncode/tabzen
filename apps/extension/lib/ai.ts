@@ -1,4 +1,5 @@
 import type { AIGroupSuggestion } from "./types";
+import type { TranscriptSegment } from "@tab-zen/shared";
 
 interface OpenRouterMessage {
   role: "system" | "user" | "assistant";
@@ -168,7 +169,7 @@ Rules:
 export async function generateChapters(
   apiKey: string,
   model: string,
-  segments: { text: string; startMs: number; durationMs: number }[],
+  segments: TranscriptSegment[],
 ): Promise<{ title: string; startMs: number }[]> {
   const lines: string[] = [];
   for (const seg of segments) {

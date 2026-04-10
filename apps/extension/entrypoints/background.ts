@@ -19,7 +19,7 @@ import { normalizeUrl, buildUrlSet, isDuplicate, shouldSkipUrl } from "@/lib/dup
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { CURRENT_CONTENT_VERSION } from "@/lib/page-extract";
 import type { TranscriptSegment } from "@tab-zen/shared";
-import { aiSearch, generateTags } from "@/lib/ai";
+import { aiSearch, generateTags, generateChapters } from "@/lib/ai";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
 import { encrypt, decrypt } from "@/lib/crypto";
 import { updateSettings } from "@/lib/settings";
@@ -862,7 +862,7 @@ export default defineBackground(() => {
         }
 
         // Pass 3: AI tagging (if API key configured)
-        if (settings.openRouterApiKey) {
+        if (settings.autoTagging && settings.openRouterApiKey) {
           try {
             const enrichedPages = await Promise.all(
               pages.map(async (p) => (await getPage(p.id)) || p),
@@ -893,6 +893,26 @@ export default defineBackground(() => {
           } catch (e) {
             console.warn("[TabZen] AI tagging failed:", e);
           }
+        }
+
+        // Pass 4: AI chapters for video transcripts
+        if (settings.autoChapters && settings.openRouterApiKey) {
+          try {
+            for (const p of pages) {
+              const freshPage = await getPage(p.id);
+              if (freshPage?.contentType === "transcript" && freshPage.transcript?.length && !freshPage.chapters?.length) {
+                const chapters = await generateChapters(
+                  settings.openRouterApiKey,
+                  settings.aiModel,
+                  freshPage.transcript,
+                );
+                if (chapters?.length) {
+                  await updatePage(p.id, { chapters });
+                }
+              }
+            }
+            notifyDataChanged();
+          } catch {}
         }
 
       })();
@@ -1481,7 +1501,7 @@ export default defineBackground(() => {
     notifyDataChanged();
 
     // AI tagging (async, non-blocking)
-    if (settings.openRouterApiKey) {
+    if (settings.autoTagging && settings.openRouterApiKey) {
       (async () => {
         try {
           const allTags = await getAllTags();
@@ -1498,6 +1518,23 @@ export default defineBackground(() => {
             }
           }
           notifyDataChanged();
+        } catch {}
+      })();
+    }
+
+    // AI chapters (async, non-blocking)
+    if (settings.autoChapters && settings.openRouterApiKey && hasTranscript) {
+      (async () => {
+        try {
+          const chapters = await generateChapters(
+            settings.openRouterApiKey,
+            settings.aiModel,
+            transcriptSegments!,
+          );
+          if (chapters?.length) {
+            await updatePage(pageId, { chapters });
+            notifyDataChanged();
+          }
         } catch {}
       })();
     }
