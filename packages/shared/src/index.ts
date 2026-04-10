@@ -1,1 +1,1 @@
-export type { Tab, Group, Capture, SyncPayload, TranscriptSegment, Migration, MigrationAction, AITemplate, AIDocument } from "./types";
+export type { Page, Group, Capture, SyncPayload, TranscriptSegment, Migration, MigrationAction, AITemplate, AIDocument } from "./types";

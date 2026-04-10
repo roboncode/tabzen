@@ -1,4 +1,4 @@
-export interface Tab {
+export interface Page {
   id: string;
   url: string;
   title: string;
@@ -57,7 +57,7 @@ export interface Capture {
 }
 
 export interface SyncPayload {
-  tabs: Tab[];
+  pages: Page[];
   groups: Group[];
   captures: Capture[];
   aiTemplates?: AITemplate[];
@@ -88,7 +88,7 @@ export interface AITemplate {
 
 export interface AIDocument {
   id: string;
-  tabId: string;
+  pageId: string;
   templateId: string;
   content: string;
   generatedAt: string;
