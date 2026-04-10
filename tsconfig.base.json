@@ -8,6 +8,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "baseUrl": ".",
     "paths": {
       "@tab-zen/shared": ["packages/shared/src/index.ts"],
       "@tab-zen/content-types": ["packages/content-types/src/index.ts"]
