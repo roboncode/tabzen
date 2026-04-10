@@ -53,5 +53,8 @@ Thumbs.db
 # VitePress cache
 apps/docs/.vitepress/cache/
 
+# Storybook
+storybook-static/
+
 # Misc
 reference/

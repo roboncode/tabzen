@@ -12,7 +12,10 @@
     "deploy:youtube": "nx run content-youtube:workers:deploy",
     "deploy:tiktok": "nx run content-tiktok:workers:deploy",
     "dev:docs": "nx run docs:dev",
-    "build:docs": "nx run docs:build"
+    "build:docs": "nx run docs:build",
+    "dev:chat": "nx run chat-app:dev",
+    "build:chat": "nx run chat-app:build",
+    "storybook:chat": "pnpm --filter @tab-zen/chat storybook"
   },
   "devDependencies": {
     "nx": "^21.0.0"
