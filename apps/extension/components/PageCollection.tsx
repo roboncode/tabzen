@@ -1,4 +1,5 @@
 import { createSignal, createMemo, onMount, onCleanup, For, Show } from "solid-js";
+import { useNavigate } from "@solidjs/router";
 import { Maximize2, PanelRight, Settings as SettingsIcon, Menu, X, ExternalLink, ArrowRight, Trash2, Star, StickyNote, Calendar, Archive, Inbox } from "lucide-solid";
 import EmptyBlock from "./EmptyBlock";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
@@ -40,6 +41,7 @@ interface PageCollectionProps {
 }
 
 export default function PageCollection(props: PageCollectionProps) {
+  const navigate = useNavigate();
   const [filter, setFilter] = createSignal<Settings["activeFilter"]>("all");
   const [deviceFilter, setDeviceFilter] = createSignal<string>("all");
   const [domainFilter, setDomainFilter] = createSignal<string | null>(null);
@@ -594,8 +596,7 @@ export default function PageCollection(props: PageCollectionProps) {
                     onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
                     onTagClick={handleTagClick}
                     onExpandPage={(page) => {
-                      const detailUrl = browser.runtime.getURL(`/app.html#/page/${page.id}`);
-                      window.open(detailUrl, "_blank");
+                      navigate(`/page/${page.id}`);
                     }}
                   />
                 )}
@@ -646,8 +647,7 @@ export default function PageCollection(props: PageCollectionProps) {
               onRestore={handleRestore}
               onHardDelete={handleHardDelete}
               onExpandPage={(page) => {
-                const detailUrl = browser.runtime.getURL(`/app.html#/page/${page.id}`);
-                window.open(detailUrl, "_blank");
+                navigate(`/page/${page.id}`);
               }}
               isTrash
             />
@@ -686,8 +686,7 @@ export default function PageCollection(props: PageCollectionProps) {
                         onDelete={handleDelete}
                         onBlockDomain={handleBlockDomain}
                         onExpandPage={(page) => {
-                          const detailUrl = browser.runtime.getURL(`/app.html#/page/${page.id}`);
-                          window.open(detailUrl, "_blank");
+                          navigate(`/page/${page.id}`);
                         }}
                       />
                     </Show>

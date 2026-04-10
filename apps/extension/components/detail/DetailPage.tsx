@@ -2,11 +2,14 @@ import {
   createSignal,
   createMemo,
   createEffect,
+  on,
   Show,
   For,
   onMount,
   onCleanup,
 } from "solid-js";
+import { useNavigate, useParams } from "@solidjs/router";
+import { slugToSectionId, sectionIdToSlug } from "@/lib/routes";
 import type { Page } from "@/lib/types";
 import type { TranscriptSegment } from "@tab-zen/shared";
 import { formatTimestamp } from "./TranscriptView";
@@ -52,9 +55,13 @@ import { X, ChevronDown, List } from "lucide-solid";
 
 interface DetailPageProps {
   page: Page;
+  initialSection?: string;
 }
 
 export default function DetailPage(props: DetailPageProps) {
+  const params = useParams<{ pageId: string; section?: string }>();
+  const navigate = useNavigate();
+
   const [transcriptSegments, setTranscriptSegments] = createSignal<
     TranscriptSegment[]
   >(props.page.transcript || []);
@@ -74,13 +81,26 @@ export default function DetailPage(props: DetailPageProps) {
   const [tocEntries, setTocEntries] = createSignal<TocEntry[]>([]);
   const [tocDropdownOpen, setTocDropdownOpen] = createSignal(false);
 
+  const initialSectionId = slugToSectionId(props.initialSection || params.section);
   const [templates, setTemplates] = createSignal<AITemplate[]>([]);
   const [documents, setDocuments] = createSignal<AIDocument[]>([]);
-  const [activeSection, setActiveSection] = createSignal<string>("content");
+  const [activeSection, setActiveSection] = createSignal<string>(initialSectionId);
   const [generatingIds, setGeneratingIds] = createSignal<Set<string>>(new Set());
   const [customGenerating, setCustomGenerating] = createSignal(false);
   const [customResult, setCustomResult] = createSignal<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
+
+  // Sync active section changes to the URL
+  createEffect(on(activeSection, (section) => {
+    const slug = sectionIdToSlug(section);
+    const basePath = `/page/${props.page.id}`;
+    const targetPath = slug === "content" ? basePath : `${basePath}/${slug}`;
+    const currentSlug = params.section || "content";
+    const newSlug = slug === "content" ? "content" : slug;
+    if (currentSlug !== newSlug) {
+      navigate(targetPath, { replace: true });
+    }
+  }, { defer: true }));
 
   // Regeneration: track pending results that need user approval
   // Maps templateId -> { oldDoc, newDoc } for keep/discard flow
@@ -225,7 +245,7 @@ export default function DetailPage(props: DetailPageProps) {
   };
 
   const handleBack = () => {
-    window.close();
+    navigate("/");
   };
 
   const handleToggleStar = async () => {
@@ -251,7 +271,7 @@ export default function DetailPage(props: DetailPageProps) {
   const handleDelete = async () => {
     await softDeletePage(currentPage().id);
     notifyChanged();
-    window.close();
+    navigate("/");
   };
 
 
