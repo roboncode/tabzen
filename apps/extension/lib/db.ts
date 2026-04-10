@@ -49,7 +49,7 @@ let dbInstance: IDBPDatabase<TabZenDB> | null = null;
 async function getDB(): Promise<IDBPDatabase<TabZenDB>> {
   if (dbInstance) return dbInstance;
   dbInstance = await openDB<TabZenDB>("tab-zen", 3, {
-    upgrade(db, oldVersion) {
+    upgrade(db, oldVersion, _newVersion, tx) {
       if (oldVersion < 1) {
         const tabStore = db.createObjectStore("tabs", { keyPath: "id" });
         tabStore.createIndex("by-url", "url");
@@ -76,15 +76,12 @@ async function getDB(): Promise<IDBPDatabase<TabZenDB>> {
       }
 
       if (oldVersion < 3) {
-        const docStore = db.objectStoreNames.contains("aiDocuments")
-          ? (db as any).transaction.objectStore("aiDocuments")
-          : null;
-        if (docStore) {
-          if (docStore.indexNames.contains("by-tabId")) {
-            docStore.deleteIndex("by-tabId");
-          }
-          docStore.createIndex("by-pageId", "pageId");
+        const docStore = tx.objectStore("aiDocuments");
+        // Delete old index name from v2 (TypeScript schema already has the new name)
+        if ((docStore as any).indexNames.contains("by-tabId")) {
+          (docStore as any).deleteIndex("by-tabId");
         }
+        docStore.createIndex("by-pageId", "pageId");
       }
     },
   });
