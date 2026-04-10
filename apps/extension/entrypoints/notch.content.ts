@@ -86,7 +86,7 @@ export default defineContentScript({
       }
 
       .notch.saved {
-        background: linear-gradient(135deg, #0ea5e9, #6366f1);
+        background: linear-gradient(135deg, #38bdf8, #0284c7);
         border-color: rgba(14, 165, 233, 0.3);
       }
 
