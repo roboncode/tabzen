@@ -176,105 +176,132 @@ export default function ProductsView(props: ProductsViewProps) {
     });
   };
 
-  const linked = () => enriched().filter((p) => p.url);
-  const unlinked = () => enriched().filter((p) => !p.url);
+  // Group by context in priority order
+  const SECTION_ORDER = ["Recommended", "Sponsored", "Compared", "Mentioned"] as const;
+
+  const sections = () => {
+    const items = enriched();
+    return SECTION_ORDER
+      .map((context) => ({
+        context,
+        items: items.filter((p) => p.context === context),
+      }))
+      .filter((s) => s.items.length > 0);
+  };
+
+  const linkFor = (product: ProductWithOG) =>
+    product.url || `https://www.google.com/search?q=${encodeURIComponent(product.name)}`;
+
+  const ProductCard = (product: ProductWithOG, index: number) => {
+    const domain = product.url ? getDomain(product.url) : null;
+
+    return (
+      <a
+        href={linkFor(product)}
+        target="_blank"
+        class="no-underline cursor-pointer group"
+      >
+        {/* Thumbnail */}
+        <div class="aspect-video rounded-xl overflow-hidden bg-muted/40 mb-3">
+          <Show
+            when={product.ogImage && !failedImages().has(product.ogImage!)}
+            fallback={
+              <ProductPlaceholder name={product.name} favicon={product.favicon} index={index} />
+            }
+          >
+            <img
+              src={product.ogImage!}
+              alt=""
+              loading="lazy"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+              onError={() => markImageFailed(product.ogImage!)}
+            />
+          </Show>
+        </div>
+
+        {/* Info */}
+        <div class="flex gap-3">
+          <Show when={product.favicon}>
+            <img src={product.favicon!} alt="" class="w-5 h-5 rounded-full flex-shrink-0 mt-0.5" />
+          </Show>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-sm font-medium text-foreground leading-snug line-clamp-2 group-hover:text-sky-400">
+              {product.name}
+            </h3>
+            <Show when={product.description}>
+              <p class="text-xs text-muted-foreground mt-0.5 line-clamp-2">{product.description}</p>
+            </Show>
+            <Show when={domain}>
+              <div class="text-xs text-muted-foreground/60 mt-1">{domain}</div>
+            </Show>
+          </div>
+        </div>
+      </a>
+    );
+  };
+
+  const CompactCard = (product: ProductWithOG) => (
+    <a
+      href={linkFor(product)}
+      target="_blank"
+      class="flex items-start gap-3 p-3 bg-muted/10 rounded-lg no-underline hover:bg-muted/20 transition-colors group/mention cursor-pointer"
+    >
+      <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center text-xs font-semibold text-muted-foreground/60">
+        {product.name.charAt(0)}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-medium text-foreground/80 group-hover/mention:text-sky-400 transition-colors">{product.name}</span>
+          <span class="text-[11px] text-muted-foreground/40">{product.type}</span>
+        </div>
+        <Show when={product.description}>
+          <p class="text-xs text-muted-foreground/60 mt-0.5 leading-relaxed">{product.description}</p>
+        </Show>
+      </div>
+    </a>
+  );
 
   return (
     <div class="px-2 pb-12">
-      {/* Loading state — skeleton until all lookups complete */}
+      {/* Loading state */}
       <Show when={!allLoaded()}>
         <ProductsSkeleton />
       </Show>
 
-      {/* Linked products — card grid */}
-      <Show when={allLoaded() && linked().length > 0}>
-        <div class="grid grid-cols-2 gap-x-4 gap-y-6">
-          <For each={linked()}>
-            {(product, i) => {
-              const domain = product.url ? getDomain(product.url) : null;
+      <Show when={allLoaded()}>
+        <div class="flex flex-col gap-8">
+          <For each={sections()}>
+            {(section) => {
+              const linked = () => section.items.filter((p) => p.url);
+              const unlinked = () => section.items.filter((p) => !p.url);
 
               return (
-                <a
-                  href={product.url || "#"}
-                  target="_blank"
-                  class="no-underline cursor-pointer group"
-                  onClick={(e) => { if (!product.url) e.preventDefault(); }}
-                >
-                  {/* Thumbnail */}
-                  <div class="aspect-video rounded-xl overflow-hidden bg-muted/40 mb-3 relative">
-                    <Show
-                      when={product.ogImage && !failedImages().has(product.ogImage!)}
-                      fallback={
-                        <ProductPlaceholder name={product.name} favicon={product.favicon} index={i()} />
-                      }
-                    >
-                      <img
-                        src={product.ogImage!}
-                        alt=""
-                        loading="lazy"
-                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                        onError={() => markImageFailed(product.ogImage!)}
-                      />
-                    </Show>
-                    <div class="absolute top-2 right-2">
-                      <span class="px-2 py-0.5 rounded-full text-[11px] font-medium backdrop-blur-sm bg-black/60 text-white/70">
-                        {product.context}
-                      </span>
-                    </div>
-                  </div>
+                <div>
+                  <div class="text-xs font-semibold text-foreground/90 mb-3">{section.context}</div>
 
-                  {/* Info */}
-                  <div class="flex gap-3">
-                    <Show when={product.favicon}>
-                      <img src={product.favicon!} alt="" class="w-5 h-5 rounded-full flex-shrink-0 mt-0.5" />
-                    </Show>
-                    <div class="flex-1 min-w-0">
-                      <h3 class="text-sm font-medium text-foreground leading-snug line-clamp-2 group-hover:text-sky-400">
-                        {product.name}
-                      </h3>
-                      <Show when={product.description}>
-                        <p class="text-xs text-muted-foreground mt-0.5 line-clamp-2">{product.description}</p>
-                      </Show>
-                      <Show when={domain}>
-                        <div class="text-xs text-muted-foreground/60 mt-1">{domain}</div>
-                      </Show>
+                  {/* Items with thumbnails — card grid */}
+                  <Show when={linked().length > 0}>
+                    <div class="grid grid-cols-2 gap-x-4 gap-y-6">
+                      <For each={linked()}>
+                        {(product, i) => ProductCard(product, i())}
+                      </For>
                     </div>
-                  </div>
-                </a>
+                  </Show>
+
+                  {/* Items without URLs — compact list */}
+                  <Show when={unlinked().length > 0}>
+                    <div class={linked().length > 0 ? "mt-4" : ""}>
+                      <div class="flex flex-col gap-2">
+                        <For each={unlinked()}>
+                          {(product) => CompactCard(product)}
+                        </For>
+                      </div>
+                    </div>
+                  </Show>
+                </div>
               );
             }}
           </For>
-        </div>
-      </Show>
-
-      {/* Unlinked mentions — compact cards */}
-      <Show when={allLoaded() && unlinked().length > 0}>
-        <div class={linked().length > 0 ? "mt-8" : ""}>
-          <div class="text-xs font-semibold text-foreground/90 mb-3">Also mentioned</div>
-          <div class="flex flex-col gap-2">
-            <For each={unlinked()}>
-              {(product) => (
-                <a
-                  href={`https://www.google.com/search?q=${encodeURIComponent(product.name)}`}
-                  target="_blank"
-                  class="flex items-start gap-3 p-3 bg-muted/10 rounded-lg no-underline hover:bg-muted/20 transition-colors group/mention cursor-pointer"
-                >
-                  <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center text-xs font-semibold text-muted-foreground/60">
-                    {product.name.charAt(0)}
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm font-medium text-foreground/80 group-hover/mention:text-sky-400 transition-colors">{product.name}</span>
-                      <span class="text-[11px] text-muted-foreground/40">{product.type}</span>
-                    </div>
-                    <Show when={product.description}>
-                      <p class="text-xs text-muted-foreground/60 mt-0.5 leading-relaxed">{product.description}</p>
-                    </Show>
-                  </div>
-                </a>
-              )}
-            </For>
-          </div>
         </div>
       </Show>
     </div>
