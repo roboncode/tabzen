@@ -28,6 +28,7 @@ export interface Page {
   contentVersion?: number;
   transcript?: TranscriptSegment[];
   content?: string;
+  chapters?: { title: string; startMs: number }[];
 }
 
 export interface MigrationAction {
