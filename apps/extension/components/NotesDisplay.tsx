@@ -89,7 +89,7 @@ export default function NotesDisplay(props: NotesDisplayProps) {
       {/* Notes editor modal */}
       <Show when={editing()}>
         <NotesEditor
-          tab={props.page}
+          page={props.page}
           onSave={handleSave}
           onClose={() => setEditing(false)}
         />
