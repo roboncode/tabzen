@@ -1,4 +1,4 @@
-import type { Tab, Group, Capture, SyncPayload } from "@tab-zen/shared";
+import type { Page, Group, Capture, SyncPayload } from "@tab-zen/shared";
 
 export class SyncService {
   constructor(
@@ -50,34 +50,34 @@ export class SyncService {
   async push(token: string, body: SyncPayload): Promise<void> {
     const now = new Date().toISOString();
 
-    if (body.tabs?.length) {
-      for (const tab of body.tabs) {
+    if (body.pages?.length) {
+      for (const page of body.pages) {
         await this.db
           .prepare(
             `INSERT OR REPLACE INTO tabs (id, url, title, favicon, og_title, og_description, og_image, meta_description, notes, view_count, last_viewed_at, captured_at, source_label, device_id, archived, starred, group_id, content_key, content_type, content_fetched_at, updated_at, sync_token)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .bind(
-            tab.id,
-            tab.url,
-            tab.title,
-            tab.favicon || "",
-            tab.ogTitle,
-            tab.ogDescription,
-            tab.ogImage,
-            tab.metaDescription,
-            tab.notes,
-            tab.viewCount || 0,
-            tab.lastViewedAt,
-            tab.capturedAt,
-            tab.sourceLabel || "",
-            tab.deviceId || "",
-            tab.archived ? 1 : 0,
-            tab.starred ? 1 : 0,
-            tab.groupId,
-            tab.contentKey,
-            tab.contentType,
-            tab.contentFetchedAt,
+            page.id,
+            page.url,
+            page.title,
+            page.favicon || "",
+            page.ogTitle,
+            page.ogDescription,
+            page.ogImage,
+            page.metaDescription,
+            page.notes,
+            page.viewCount || 0,
+            page.lastViewedAt,
+            page.capturedAt,
+            page.sourceLabel || "",
+            page.deviceId || "",
+            page.archived ? 1 : 0,
+            page.starred ? 1 : 0,
+            page.groupId,
+            page.contentKey,
+            page.contentType,
+            page.contentFetchedAt,
             now,
             token,
           )
@@ -156,7 +156,7 @@ export class SyncService {
       .first();
 
     return {
-      tabs: tabs.results.map(this.mapTab),
+      pages: tabs.results.map(this.mapPage),
       groups: groups.results.map(this.mapGroup),
       captures: captures.results.map(this.mapCapture),
       settings: settingsRow
@@ -169,7 +169,7 @@ export class SyncService {
     };
   }
 
-  private mapTab(row: Record<string, unknown>): Tab {
+  private mapPage(row: Record<string, unknown>): Page {
     return {
       id: row.id as string,
       url: row.url as string,
