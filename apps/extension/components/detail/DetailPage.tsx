@@ -860,9 +860,9 @@ export default function DetailPage(props: DetailPageProps) {
                 </For>
               </div>
 
-              {/* Narrow: related pages at bottom of content (when sidebar hidden) */}
+              {/* Narrow: related pages footer (when sidebar hidden) */}
               <Show when={hideRightNav() && relatedPages().length > 0}>
-                <div class="px-2 pb-8 mt-4">
+                <div class="bg-[#161618] rounded-t-xl px-6 py-6 mt-8">
                   <div class="text-xs font-semibold text-foreground/90 mb-3">Related</div>
                   <div class="flex flex-col gap-3">
                     <For each={relatedPages()}>
