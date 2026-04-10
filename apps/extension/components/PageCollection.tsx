@@ -382,7 +382,7 @@ export default function PageCollection(props: PageCollectionProps) {
   };
 
   const openFullPage = async () => {
-    await browser.tabs.create({ url: browser.runtime.getURL("/tabs.html") });
+    await browser.tabs.create({ url: browser.runtime.getURL("/app.html") });
     // Close the side panel if we're in one
     if (props.showExpandButton) {
       window.close();
@@ -553,7 +553,7 @@ export default function PageCollection(props: PageCollectionProps) {
                 <For each={filteredPages()}>
                   {(page) => (
                     <NoteCard
-                      tab={page}
+                      page={page}
                       onOpen={handleOpenPage}
                       onEditNotes={setEditingPage}
                     />
@@ -594,7 +594,7 @@ export default function PageCollection(props: PageCollectionProps) {
                     onSelectCreator={(d, c) => { setDomainFilter(d); setCreatorFilter(c); }}
                     onTagClick={handleTagClick}
                     onExpandPage={(page) => {
-                      const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${page.id}`);
+                      const detailUrl = browser.runtime.getURL(`/app.html#/page/${page.id}`);
                       window.open(detailUrl, "_blank");
                     }}
                   />
@@ -646,7 +646,7 @@ export default function PageCollection(props: PageCollectionProps) {
               onRestore={handleRestore}
               onHardDelete={handleHardDelete}
               onExpandPage={(page) => {
-                const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${page.id}`);
+                const detailUrl = browser.runtime.getURL(`/app.html#/page/${page.id}`);
                 window.open(detailUrl, "_blank");
               }}
               isTrash
@@ -686,7 +686,7 @@ export default function PageCollection(props: PageCollectionProps) {
                         onDelete={handleDelete}
                         onBlockDomain={handleBlockDomain}
                         onExpandPage={(page) => {
-                          const detailUrl = browser.runtime.getURL(`/detail.html?tabId=${page.id}`);
+                          const detailUrl = browser.runtime.getURL(`/app.html#/page/${page.id}`);
                           window.open(detailUrl, "_blank");
                         }}
                       />

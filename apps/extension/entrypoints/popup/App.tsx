@@ -97,33 +97,33 @@ export default function App() {
     async (url) => {
       const response = await sendMessage({ type: "IS_URL_SAVED", url });
       if (response.type === "URL_SAVED" && response.saved) {
-        return { saved: true, tabId: response.tabId };
+        return { saved: true, pageId: response.pageId };
       }
       return { saved: false };
     },
   );
 
   const saved = () => justSaved() || !!savedStatus()?.saved;
-  const savedTabId = () => savedStatus()?.tabId;
+  const savedPageId = () => savedStatus()?.pageId;
 
   const handleCardClick = async () => {
     if (saved()) {
-      const tabId = savedTabId();
-      if (tabId) {
+      const pageId = savedPageId();
+      if (pageId) {
         browser.tabs.create({
-          url: browser.runtime.getURL(`/detail.html?tabId=${tabId}`),
+          url: browser.runtime.getURL(`/app.html#/page/${pageId}`),
         });
         window.close();
       }
     } else {
       const tab = activeTab();
       if (tab?.id) {
-        const saveResponse = await sendMessage({ type: "CAPTURE_SINGLE_TAB", tabId: tab.id });
+        const saveResponse = await sendMessage({ type: "CAPTURE_PAGE", tabId: tab.id });
         if (saveResponse.type === "ERROR") return;
-        // Look up the saved tab ID so we can link to details
+        // Look up the saved page ID so we can link to details
         const response = await sendMessage({ type: "IS_URL_SAVED", url: tab.url });
         if (response.type === "URL_SAVED" && response.saved) {
-          mutateSavedStatus({ saved: true, tabId: response.tabId });
+          mutateSavedStatus({ saved: true, pageId: response.pageId });
         }
         setJustSaved(true);
         refetchCount();
@@ -150,7 +150,7 @@ export default function App() {
   };
 
   const openFullPage = () => {
-    browser.tabs.create({ url: browser.runtime.getURL("/tabs.html") });
+    browser.tabs.create({ url: browser.runtime.getURL("/app.html") });
     window.close();
   };
 
@@ -183,7 +183,7 @@ export default function App() {
             class="text-xs text-red-300 hover:text-red-200 transition-colors flex-shrink-0"
             onClick={() => {
               browser.tabs.create({
-                url: browser.runtime.getURL("/tabs.html?settings=true"),
+                url: browser.runtime.getURL("/app.html#/settings"),
               });
               window.close();
             }}
@@ -207,7 +207,7 @@ export default function App() {
             class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => {
               browser.tabs.create({
-                url: browser.runtime.getURL("/tabs.html?settings=true"),
+                url: browser.runtime.getURL("/app.html#/settings"),
               });
               window.close();
             }}

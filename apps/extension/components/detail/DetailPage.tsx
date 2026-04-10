@@ -115,7 +115,7 @@ export default function DetailPage(props: DetailPageProps) {
       m.actions.filter((a) => a.behavior === "silent"),
     );
     console.log(
-      "[TabZen Migration] Tab contentVersion:",
+      "[TabZen Migration] Page contentVersion:",
       props.page.contentVersion,
       "| pending migrations:",
       pending.length,

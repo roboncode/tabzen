@@ -4,15 +4,15 @@ import { getDomain, getFaviconUrl } from "@/lib/domains";
 import Avatar from "./Avatar";
 
 interface NoteCardProps {
-  tab: Page;
-  onOpen: (tab: Page) => void;
-  onEditNotes: (tab: Page) => void;
+  page: Page;
+  onOpen: (page: Page) => void;
+  onEditNotes: (page: Page) => void;
 }
 
 export default function NoteCard(props: NoteCardProps) {
-  const domain = createMemo(() => getDomain(props.tab.url) || props.tab.url);
+  const domain = createMemo(() => getDomain(props.page.url) || props.page.url);
 
-  const faviconSrc = createMemo(() => getFaviconUrl(props.tab));
+  const faviconSrc = createMemo(() => getFaviconUrl(props.page));
 
   return (
     <div class="group">
@@ -21,23 +21,23 @@ export default function NoteCard(props: NoteCardProps) {
         class="bg-muted/30 rounded-xl p-4 cursor-pointer hover:bg-muted/40 transition-colors"
         onClick={(e) => {
           e.stopPropagation();
-          props.onEditNotes(props.tab);
+          props.onEditNotes(props.page);
         }}
       >
         <p class="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-          {props.tab.notes}
+          {props.page.notes}
         </p>
       </div>
 
-      {/* Tab context - secondary, below the note */}
+      {/* Page context - secondary, below the note */}
       <div
         class="flex items-center gap-2.5 mt-2.5 px-1 cursor-pointer"
-        onClick={() => props.onOpen(props.tab)}
+        onClick={() => props.onOpen(props.page)}
       >
         <Avatar src={faviconSrc()} size="md" />
         <div class="flex-1 min-w-0">
           <p class="text-xs text-muted-foreground truncate hover:text-foreground transition-colors">
-            {props.tab.ogTitle || props.tab.title}
+            {props.page.ogTitle || props.page.title}
           </p>
           <p class="text-xs text-muted-foreground/60 truncate">{domain()}</p>
         </div>

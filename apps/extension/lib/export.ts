@@ -1,10 +1,10 @@
 import { getAllData, importData } from "./db";
-import type { Tab, Group, Capture } from "./types";
+import type { Page, Group, Capture } from "./types";
 
 interface ExportData {
   version: 1;
   exportedAt: string;
-  tabs: Tab[];
+  pages: Page[];
   groups: Group[];
   captures: Capture[];
 }
@@ -28,17 +28,17 @@ export async function importFromJson(jsonString: string): Promise<{ imported: nu
 }
 
 export async function exportAsHtmlBookmarks(): Promise<string> {
-  const { tabs, groups } = await getAllData();
+  const { pages, groups } = await getAllData();
   const groupMap = new Map<string, Group>();
   for (const g of groups) {
     groupMap.set(g.id, g);
   }
 
-  const tabsByGroup = new Map<string, Tab[]>();
-  for (const tab of tabs) {
-    const list = tabsByGroup.get(tab.groupId) || [];
-    list.push(tab);
-    tabsByGroup.set(tab.groupId, list);
+  const pagesByGroup = new Map<string, Page[]>();
+  for (const page of pages) {
+    const list = pagesByGroup.get(page.groupId) || [];
+    list.push(page);
+    pagesByGroup.set(page.groupId, list);
   }
 
   let html = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
@@ -50,13 +50,13 @@ export async function exportAsHtmlBookmarks(): Promise<string> {
 <H1>Tab Zen Export</H1>
 <DL><p>\n`;
 
-  for (const [groupId, groupTabs] of tabsByGroup) {
+  for (const [groupId, groupPages] of pagesByGroup) {
     const group = groupMap.get(groupId);
     const name = group?.name || "Ungrouped";
     html += `    <DT><H3>${escapeHtml(name)}</H3>\n`;
     html += `    <DL><p>\n`;
-    for (const tab of groupTabs) {
-      html += `        <DT><A HREF="${escapeHtml(tab.url)}">${escapeHtml(tab.title)}</A>\n`;
+    for (const page of groupPages) {
+      html += `        <DT><A HREF="${escapeHtml(page.url)}">${escapeHtml(page.title)}</A>\n`;
     }
     html += `    </DL><p>\n`;
   }

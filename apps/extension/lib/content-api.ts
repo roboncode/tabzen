@@ -46,7 +46,7 @@ export async function fetchTranscriptFromApi(url: string): Promise<TranscriptSeg
 /**
  * Store transcript to the API's R2 storage.
  */
-export async function storeTranscriptToApi(tabId: string, segments: TranscriptSegment[]): Promise<string | null> {
+export async function storeTranscriptToApi(pageId: string, segments: TranscriptSegment[]): Promise<string | null> {
   const settings = await getSettings();
   const baseUrl = settings.syncEnv === "local" ? settings.syncLocalUrl : settings.syncUrl;
   const token = settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken;
@@ -60,7 +60,7 @@ export async function storeTranscriptToApi(tabId: string, segments: TranscriptSe
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`,
       },
-      body: JSON.stringify({ tabId, segments }),
+      body: JSON.stringify({ pageId, segments }),
     });
 
     if (!response.ok) return null;
@@ -76,7 +76,7 @@ export async function storeTranscriptToApi(tabId: string, segments: TranscriptSe
 /**
  * Retrieve transcript from the API's R2 storage.
  */
-export async function getTranscriptFromApi(tabId: string): Promise<TranscriptSegment[] | null> {
+export async function getTranscriptFromApi(pageId: string): Promise<TranscriptSegment[] | null> {
   const settings = await getSettings();
   const baseUrl = settings.syncEnv === "local" ? settings.syncLocalUrl : settings.syncUrl;
   const token = settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken;
@@ -84,7 +84,7 @@ export async function getTranscriptFromApi(tabId: string): Promise<TranscriptSeg
   if (!token) return null;
 
   try {
-    const response = await fetch(`${baseUrl}/content/transcript/${tabId}`, {
+    const response = await fetch(`${baseUrl}/content/transcript/${pageId}`, {
       headers: { "Authorization": `Bearer ${token}` },
     });
 

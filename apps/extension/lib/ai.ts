@@ -35,28 +35,28 @@ async function callOpenRouter(
   return data.choices[0].message.content;
 }
 
-export async function groupTabsWithAI(
+export async function groupPagesWithAI(
   apiKey: string,
   model: string,
-  tabs: { id: string; title: string; url: string; description: string | null }[],
+  pages: { id: string; title: string; url: string; description: string | null }[],
 ): Promise<AIGroupSuggestion[]> {
-  const tabList = tabs
+  const pageList = pages
     .map((t) => `- [${t.id}] "${t.title}" (${t.url})${t.description ? ` — ${t.description}` : ""}`)
     .join("\n");
 
   const messages: OpenRouterMessage[] = [
     {
       role: "system",
-      content: `You are a tab organizer. Given a list of browser tabs, group them into meaningful categories. Return JSON with this exact structure:
-{"groups": [{"groupName": "Category Name", "tabIds": ["id1", "id2"]}]}
+      content: `You are a page organizer. Given a list of saved pages, group them into meaningful categories. Return JSON with this exact structure:
+{"groups": [{"groupName": "Category Name", "pageIds": ["id1", "id2"]}]}
 Rules:
-- Create 2-8 groups depending on tab diversity
+- Create 2-8 groups depending on page diversity
 - Group names should be descriptive but concise (2-4 words)
-- Every tab must be assigned to exactly one group
+- Every page must be assigned to exactly one group
 - Group by topic/purpose, not by domain (unless domain IS the topic)
-- If tabs are very similar, use a specific name (e.g., "React Tutorials" not "YouTube Videos")`,
+- If pages are very similar, use a specific name (e.g., "React Tutorials" not "YouTube Videos")`,
     },
-    { role: "user", content: `Group these tabs:\n${tabList}` },
+    { role: "user", content: `Group these pages:\n${pageList}` },
   ];
 
   const response = await callOpenRouter(apiKey, model, messages);
@@ -68,9 +68,9 @@ export async function aiSearch(
   apiKey: string,
   model: string,
   query: string,
-  tabs: { id: string; title: string; url: string; description: string | null; notes: string | null }[],
+  pages: { id: string; title: string; url: string; description: string | null; notes: string | null }[],
 ): Promise<string[]> {
-  const tabList = tabs
+  const pageList = pages
     .map(
       (t) =>
         `- [${t.id}] "${t.title}" (${t.url})${t.description ? ` — ${t.description}` : ""}${t.notes ? ` [Notes: ${t.notes}]` : ""}`,
@@ -80,14 +80,14 @@ export async function aiSearch(
   const messages: OpenRouterMessage[] = [
     {
       role: "system",
-      content: `You are a search assistant for a tab collection. Given a natural language query and a list of saved tabs, return the IDs of tabs that match the query. Return JSON: {"matchingTabIds": ["id1", "id2"]}. Return an empty array if nothing matches. Rank by relevance — most relevant first.`,
+      content: `You are a search assistant for a page collection. Given a natural language query and a list of saved pages, return the IDs of pages that match the query. Return JSON: {"matchingPageIds": ["id1", "id2"]}. Return an empty array if nothing matches. Rank by relevance — most relevant first.`,
     },
-    { role: "user", content: `Query: "${query}"\n\nTabs:\n${tabList}` },
+    { role: "user", content: `Query: "${query}"\n\nPages:\n${pageList}` },
   ];
 
   const response = await callOpenRouter(apiKey, model, messages);
   const parsed = JSON.parse(response);
-  return parsed.matchingTabIds;
+  return parsed.matchingPageIds;
 }
 
 export async function generateDocument(
@@ -138,26 +138,26 @@ export async function generateDocument(
 export async function generateTags(
   apiKey: string,
   model: string,
-  tabs: { id: string; title: string; url: string; description: string | null }[],
+  pages: { id: string; title: string; url: string; description: string | null }[],
   existingTags?: string[],
 ): Promise<{ id: string; tags: string[] }[]> {
-  const tabList = tabs
+  const pageList = pages
     .map((t) => `- [${t.id}] "${t.title}" (${t.url})${t.description ? ` — ${t.description}` : ""}`)
     .join("\n");
 
   const messages: OpenRouterMessage[] = [
     {
       role: "system",
-      content: `You are a content tagger. Given a list of browser tabs, generate 2-5 relevant hashtags for each tab. Return JSON: {"tags": [{"id": "tab-id", "tags": ["tag1", "tag2"]}]}
+      content: `You are a content tagger. Given a list of saved pages, generate 2-5 relevant hashtags for each page. Return JSON: {"tags": [{"id": "page-id", "tags": ["tag1", "tag2"]}]}
 Rules:
 - Tags should be lowercase, no spaces, no # prefix
 - Use specific descriptive tags (e.g., "react", "server-components", "tutorial")
 - Avoid generic tags like "video", "website", "article"
 - Tags should help categorize content by topic, technology, or theme
 - ${existingTags && existingTags.length > 0 ? `Prefer reusing these existing tags when appropriate: ${existingTags.join(", ")}` : "Create descriptive, specific tags"}
-- Reuse the same tag across tabs when the content overlaps`,
+- Reuse the same tag across pages when the content overlaps`,
     },
-    { role: "user", content: `Tag these tabs:\n${tabList}` },
+    { role: "user", content: `Tag these pages:\n${pageList}` },
   ];
 
   const response = await callOpenRouter(apiKey, model, messages);

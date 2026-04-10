@@ -1,4 +1,4 @@
-import type { Tab } from "./types";
+import type { Page } from "./types";
 
 const SOCIAL_PLATFORMS = new Set([
   "youtube.com",
@@ -14,9 +14,9 @@ const SOCIAL_PLATFORMS = new Set([
   "bsky.app",
 ]);
 
-export function getFaviconUrl(tab: { favicon: string; url: string }): string {
-  if (tab.favicon && !tab.favicon.startsWith("chrome://")) return tab.favicon;
-  const domain = getDomain(tab.url);
+export function getFaviconUrl(page: { favicon: string; url: string }): string {
+  if (page.favicon && !page.favicon.startsWith("chrome://")) return page.favicon;
+  const domain = getDomain(page.url);
   if (!domain) return "";
   return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
 }
@@ -33,14 +33,14 @@ export function isSocialPlatform(domain: string): boolean {
   return SOCIAL_PLATFORMS.has(domain);
 }
 
-export function extractCreator(tab: Tab): string | null {
+export function extractCreator(page: Page): string | null {
   // Use stored creator if available (extracted at capture time from DOM)
-  if (tab.creator) return tab.creator;
+  if (page.creator) return page.creator;
 
-  const domain = getDomain(tab.url);
+  const domain = getDomain(page.url);
 
   try {
-    const u = new URL(tab.url);
+    const u = new URL(page.url);
 
     if (domain === "youtube.com") {
       // YouTube: try /@handle or /channel/ or /c/ patterns from URL
@@ -54,8 +54,8 @@ export function extractCreator(tab: Tab): string | null {
       // The channel isn't in the standard title, but sometimes the
       // OG description has channel context. Try to extract from title
       // by removing the " - YouTube" suffix and any "(123) " prefix
-      if (tab.title) {
-        let title = tab.title;
+      if (page.title) {
+        let title = page.title;
         // Remove " - YouTube" suffix
         title = title.replace(/\s*-\s*YouTube\s*$/, "");
         // Remove notification count prefix like "(123) "
@@ -75,7 +75,7 @@ export function extractCreator(tab: Tab): string | null {
       }
 
       // Try OG description - some YouTube descriptions start with channel context
-      if (tab.ogDescription) {
+      if (page.ogDescription) {
         // YouTube OG descriptions often have channel info embedded
         // but format varies too much to reliably extract
       }
@@ -128,7 +128,7 @@ export interface DomainInfo {
   creators: { name: string; count: number; avatar: string | null }[];
 }
 
-export function buildDomainIndex(tabs: Tab[]): DomainInfo[] {
+export function buildDomainIndex(pages: Page[]): DomainInfo[] {
   const domainMap = new Map<string, {
     count: number;
     favicon: string;
@@ -136,34 +136,34 @@ export function buildDomainIndex(tabs: Tab[]): DomainInfo[] {
     creators: Map<string, { count: number; avatar: string | null }>;
   }>();
 
-  for (const tab of tabs) {
-    if (tab.deletedAt || tab.archived) continue;
+  for (const page of pages) {
+    if (page.deletedAt || page.archived) continue;
 
-    const domain = getDomain(tab.url);
+    const domain = getDomain(page.url);
     if (!domain) continue;
 
     let entry = domainMap.get(domain);
     if (!entry) {
       entry = {
         count: 0,
-        favicon: tab.favicon || "",
+        favicon: page.favicon || "",
         isSocial: isSocialPlatform(domain),
         creators: new Map(),
       };
       domainMap.set(domain, entry);
     }
     entry.count++;
-    if (!entry.favicon && tab.favicon) entry.favicon = tab.favicon;
+    if (!entry.favicon && page.favicon) entry.favicon = page.favicon;
 
     if (entry.isSocial) {
-      const creator = extractCreator(tab);
+      const creator = extractCreator(page);
       if (creator) {
         const existing = entry.creators.get(creator);
         if (existing) {
           existing.count++;
-          if (!existing.avatar && tab.creatorAvatar) existing.avatar = tab.creatorAvatar;
+          if (!existing.avatar && page.creatorAvatar) existing.avatar = page.creatorAvatar;
         } else {
-          entry.creators.set(creator, { count: 1, avatar: tab.creatorAvatar || null });
+          entry.creators.set(creator, { count: 1, avatar: page.creatorAvatar || null });
         }
       }
     }
