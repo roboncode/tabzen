@@ -287,17 +287,19 @@ export default function TranscriptView(props: TranscriptViewProps) {
                         <For each={section.paragraphs}>
                           {(para, pi) => (
                             <div class="group/para">
-                              <a
-                                href={getTimestampUrl(props.videoUrl, para.startMs)}
-                                target="_blank"
-                                class="flex items-center gap-3 mb-3 text-muted-foreground/25 hover:text-sky-500 group-hover/para:text-muted-foreground/40 transition-all"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <span class="text-xl font-extralight tracking-tight">
-                                  {formatTimestamp(para.startMs)}
-                                </span>
-                                <div class="h-px flex-1 bg-current" />
-                              </a>
+                              <Show when={pi() > 0}>
+                                <a
+                                  href={getTimestampUrl(props.videoUrl, para.startMs)}
+                                  target="_blank"
+                                  class="flex items-center gap-3 mb-3 text-muted-foreground/25 hover:text-sky-500 group-hover/para:text-muted-foreground/40 transition-all"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <span class="text-xl font-extralight tracking-tight">
+                                    {formatTimestamp(para.startMs)}
+                                  </span>
+                                  <div class="h-px flex-1 bg-current" />
+                                </a>
+                              </Show>
                               <ParagraphText segments={para.segments} videoUrl={props.videoUrl} dropCap={pi() === 0 && para.startsWithSentence} onSegmentHover={handleSegmentHover} />
                             </div>
                           )}
