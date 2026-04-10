@@ -1,17 +1,17 @@
-import type { CapturePreviewData, Tab } from "./types";
+import type { CapturePreviewData, Page } from "./types";
 
 export type MessageRequest =
   | { type: "CAPTURE_ALL_TABS" }
-  | { type: "CAPTURE_SINGLE_TAB"; tabId: number }
+  | { type: "CAPTURE_PAGE"; tabId: number }
   | { type: "CONFIRM_CAPTURE"; captureData: CapturePreviewData }
   | { type: "GET_UNCAPTURED_COUNT" }
-  | { type: "SEARCH_TABS"; query: string }
+  | { type: "SEARCH_PAGES"; query: string }
   | { type: "AI_SEARCH"; query: string }
-  | { type: "OPEN_TAB"; tabId: string }
+  | { type: "OPEN_PAGE"; pageId: string }
   | { type: "GET_METADATA"; url: string }
-  | { type: "GET_TRANSCRIPT"; tabId: string }
-  | { type: "GET_CONTENT"; tabId: string }
-  | { type: "RE_EXTRACT_CONTENT"; tabId: string }
+  | { type: "GET_TRANSCRIPT"; pageId: string }
+  | { type: "GET_CONTENT"; pageId: string }
+  | { type: "RE_EXTRACT_CONTENT"; pageId: string }
   | { type: "SYNC_NOW" }
   | { type: "QUICK_CAPTURE" }
   | { type: "IS_URL_SAVED"; url: string }
@@ -21,8 +21,8 @@ export type MessageRequest =
 export type MessageResponse =
   | { type: "CAPTURE_PREVIEW"; data: CapturePreviewData }
   | { type: "UNCAPTURED_COUNT"; count: number }
-  | { type: "SEARCH_RESULTS"; tabs: Tab[] }
-  | { type: "TAB_OPENED"; tab: Tab }
+  | { type: "SEARCH_RESULTS"; pages: Page[] }
+  | { type: "PAGE_OPENED"; page: Page }
   | { type: "METADATA"; ogTitle: string | null; ogDescription: string | null; ogImage: string | null; metaDescription: string | null }
   | { type: "TRANSCRIPT"; transcript: { text: string; startMs: number; durationMs: number }[] | null }
   | { type: "CONTENT"; content: string | null }
@@ -30,7 +30,7 @@ export type MessageResponse =
   | { type: "SUCCESS" }
   | { type: "SYNC_COMPLETE"; pushed: number; pulled: number }
   | { type: "QUICK_CAPTURE_DONE"; saved: number; skipped: number }
-  | { type: "URL_SAVED"; saved: boolean; tabId?: string }
+  | { type: "URL_SAVED"; saved: boolean; pageId?: string }
   | { type: "PRODUCT_LOOKUP"; url: string | null; image: string | null; description: string | null }
   | { type: "WIKI_IMAGE"; url: string | null };
 
