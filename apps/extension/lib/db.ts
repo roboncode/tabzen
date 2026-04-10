@@ -1,10 +1,10 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type { Tab, Group, Capture, AITemplate, AIDocument } from "./types";
+import type { Page, Group, Capture, AITemplate, AIDocument } from "./types";
 
 interface TabZenDB extends DBSchema {
   tabs: {
     key: string;
-    value: Tab;
+    value: Page;
     indexes: {
       "by-url": string;
       "by-groupId": string;
@@ -38,7 +38,7 @@ interface TabZenDB extends DBSchema {
     key: string;
     value: AIDocument;
     indexes: {
-      "by-tabId": string;
+      "by-pageId": string;
       "by-templateId": string;
     };
   };
@@ -48,7 +48,7 @@ let dbInstance: IDBPDatabase<TabZenDB> | null = null;
 
 async function getDB(): Promise<IDBPDatabase<TabZenDB>> {
   if (dbInstance) return dbInstance;
-  dbInstance = await openDB<TabZenDB>("tab-zen", 2, {
+  dbInstance = await openDB<TabZenDB>("tab-zen", 3, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         const tabStore = db.createObjectStore("tabs", { keyPath: "id" });
@@ -73,88 +73,100 @@ async function getDB(): Promise<IDBPDatabase<TabZenDB>> {
         docStore.createIndex("by-tabId", "tabId");
         docStore.createIndex("by-templateId", "templateId");
       }
+
+      if (oldVersion < 3) {
+        const docStore = db.objectStoreNames.contains("aiDocuments")
+          ? (db as any).transaction.objectStore("aiDocuments")
+          : null;
+        if (docStore) {
+          if (docStore.indexNames.contains("by-tabId")) {
+            docStore.deleteIndex("by-tabId");
+          }
+          docStore.createIndex("by-pageId", "pageId");
+        }
+      }
     },
   });
   return dbInstance;
 }
 
-export async function addTab(tab: Tab): Promise<void> {
+export async function addPage(page: Page): Promise<void> {
   const db = await getDB();
-  await db.put("tabs", tab);
+  await db.put("tabs", page);
 }
 
-export async function addTabs(tabs: Tab[]): Promise<void> {
+export async function addPages(pages: Page[]): Promise<void> {
   const db = await getDB();
   const tx = db.transaction("tabs", "readwrite");
-  for (const tab of tabs) {
-    tx.store.put(tab);
+  for (const page of pages) {
+    tx.store.put(page);
   }
   await tx.done;
 }
 
-export async function getTab(id: string): Promise<Tab | undefined> {
+export async function getPage(id: string): Promise<Page | undefined> {
   const db = await getDB();
   return db.get("tabs", id);
 }
 
-export async function getAllTabs(): Promise<Tab[]> {
+export async function getAllPages(): Promise<Page[]> {
   const db = await getDB();
   return db.getAll("tabs");
 }
 
-export async function getTabsByGroup(groupId: string): Promise<Tab[]> {
+export async function getPagesByGroup(groupId: string): Promise<Page[]> {
   const db = await getDB();
   return db.getAllFromIndex("tabs", "by-groupId", groupId);
 }
 
-export async function getTabByUrl(url: string): Promise<Tab | undefined> {
+export async function getPageByUrl(url: string): Promise<Page | undefined> {
   const db = await getDB();
-  const tabs = await db.getAllFromIndex("tabs", "by-url", url);
-  return tabs[0];
+  const pages = await db.getAllFromIndex("tabs", "by-url", url);
+  return pages[0];
 }
 
-export async function updateTab(id: string, updates: Partial<Tab>): Promise<void> {
+export async function updatePage(id: string, updates: Partial<Page>): Promise<void> {
   const db = await getDB();
-  const tab = await db.get("tabs", id);
-  if (tab) {
-    await db.put("tabs", { ...tab, ...updates });
+  const page = await db.get("tabs", id);
+  if (page) {
+    await db.put("tabs", { ...page, ...updates });
   }
 }
 
-export async function hardDeleteTab(id: string): Promise<void> {
+export async function hardDeletePage(id: string): Promise<void> {
   const db = await getDB();
   await db.delete("tabs", id);
 }
 
-export async function softDeleteTab(id: string): Promise<void> {
+export async function softDeletePage(id: string): Promise<void> {
   const db = await getDB();
-  const tab = await db.get("tabs", id);
-  if (tab) {
-    await db.put("tabs", { ...tab, deletedAt: new Date().toISOString() });
+  const page = await db.get("tabs", id);
+  if (page) {
+    await db.put("tabs", { ...page, deletedAt: new Date().toISOString() });
   }
 }
 
-export async function restoreTab(id: string): Promise<void> {
+export async function restorePage(id: string): Promise<void> {
   const db = await getDB();
-  const tab = await db.get("tabs", id);
-  if (tab) {
-    await db.put("tabs", { ...tab, deletedAt: null });
+  const page = await db.get("tabs", id);
+  if (page) {
+    await db.put("tabs", { ...page, deletedAt: null });
   }
 }
 
-export async function purgeDeletedTabs(olderThanDays: number): Promise<void> {
+export async function purgeDeletedPages(olderThanDays: number): Promise<void> {
   const db = await getDB();
   const all = await db.getAll("tabs");
   const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000).toISOString();
   const toDelete = all.filter((t) => t.deletedAt && t.deletedAt < cutoff);
   const tx = db.transaction("tabs", "readwrite");
-  for (const tab of toDelete) {
-    tx.store.delete(tab.id);
+  for (const page of toDelete) {
+    tx.store.delete(page.id);
   }
   await tx.done;
 }
 
-export async function searchTabs(query: string): Promise<Tab[]> {
+export async function searchPages(query: string): Promise<Page[]> {
   const db = await getDB();
   const all = await db.getAll("tabs");
   const lower = query.toLowerCase();
@@ -163,20 +175,20 @@ export async function searchTabs(query: string): Promise<Tab[]> {
   if (lower.startsWith("#")) {
     const tag = lower.slice(1).trim();
     if (!tag) return all;
-    return all.filter((t) =>
-      t.tags?.some((tg) => tg.toLowerCase().includes(tag)),
+    return all.filter((page) =>
+      page.tags?.some((tg) => tg.toLowerCase().includes(tag)),
     );
   }
 
   return all.filter(
-    (t) =>
-      t.title.toLowerCase().includes(lower) ||
-      t.url.toLowerCase().includes(lower) ||
-      t.ogDescription?.toLowerCase().includes(lower) ||
-      t.ogTitle?.toLowerCase().includes(lower) ||
-      t.metaDescription?.toLowerCase().includes(lower) ||
-      t.notes?.toLowerCase().includes(lower) ||
-      t.tags?.some((tg) => tg.toLowerCase().includes(lower)),
+    (page) =>
+      page.title.toLowerCase().includes(lower) ||
+      page.url.toLowerCase().includes(lower) ||
+      page.ogDescription?.toLowerCase().includes(lower) ||
+      page.ogTitle?.toLowerCase().includes(lower) ||
+      page.metaDescription?.toLowerCase().includes(lower) ||
+      page.notes?.toLowerCase().includes(lower) ||
+      page.tags?.some((tg) => tg.toLowerCase().includes(lower)),
   );
 }
 
@@ -184,9 +196,9 @@ export async function getAllTags(): Promise<{ tag: string; count: number }[]> {
   const db = await getDB();
   const all = await db.getAll("tabs");
   const tagCounts = new Map<string, number>();
-  for (const tab of all) {
-    if (tab.deletedAt || !tab.tags) continue;
-    for (const tag of tab.tags) {
+  for (const page of all) {
+    if (page.deletedAt || !page.tags) continue;
+    for (const tag of page.tags) {
       tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
     }
   }
@@ -256,20 +268,20 @@ export async function clearProfileData(deviceId: string): Promise<void> {
   const db = await getDB();
   const tx = db.transaction(["tabs", "groups", "captures"], "readwrite");
 
-  // Delete tabs belonging to this device
-  const allTabs = await tx.objectStore("tabs").getAll();
+  // Delete pages belonging to this device
+  const allPages = await tx.objectStore("tabs").getAll();
   const groupIds = new Set<string>();
   const captureIds = new Set<string>();
-  for (const tab of allTabs) {
-    if (tab.deviceId === deviceId) {
-      groupIds.add(tab.groupId);
-      await tx.objectStore("tabs").delete(tab.id);
+  for (const page of allPages) {
+    if (page.deviceId === deviceId) {
+      groupIds.add(page.groupId);
+      await tx.objectStore("tabs").delete(page.id);
     }
   }
 
-  // Delete groups that only had tabs from this device
-  const remainingTabs = await tx.objectStore("tabs").getAll();
-  const usedGroupIds = new Set(remainingTabs.map((t) => t.groupId));
+  // Delete groups that only had pages from this device
+  const remainingPages = await tx.objectStore("tabs").getAll();
+  const usedGroupIds = new Set(remainingPages.map((p) => p.groupId));
   const allGroups = await tx.objectStore("groups").getAll();
   for (const group of allGroups) {
     if (groupIds.has(group.id) && !usedGroupIds.has(group.id)) {
@@ -302,24 +314,24 @@ export async function clearAllData(): Promise<void> {
 }
 
 export async function getAllData(): Promise<{
-  tabs: Tab[];
+  pages: Page[];
   groups: Group[];
   captures: Capture[];
   aiTemplates: AITemplate[];
   aiDocuments: AIDocument[];
 }> {
   const db = await getDB();
-  const [tabs, groups, captures, aiTemplates, aiDocuments] = await Promise.all([
+  const [pages, groups, captures, aiTemplates, aiDocuments] = await Promise.all([
     db.getAll("tabs"),
     db.getAll("groups"),
     db.getAll("captures"),
     db.getAll("aiTemplates"),
     db.getAll("aiDocuments"),
   ]);
-  return { tabs, groups, captures, aiTemplates, aiDocuments };
+  return { pages, groups, captures, aiTemplates, aiDocuments };
 }
 
-export async function importData(data: { tabs: Tab[]; groups: Group[]; captures: Capture[] }): Promise<{ imported: number; skipped: number }> {
+export async function importData(data: { pages: Page[]; groups: Group[]; captures: Capture[] }): Promise<{ imported: number; skipped: number }> {
   const db = await getDB();
   let imported = 0;
   let skipped = 0;
@@ -340,12 +352,12 @@ export async function importData(data: { tabs: Tab[]; groups: Group[]; captures:
     }
   }
 
-  for (const tab of data.tabs) {
-    const existingByUrl = await tx.objectStore("tabs").index("by-url").get(tab.url);
+  for (const page of data.pages) {
+    const existingByUrl = await tx.objectStore("tabs").index("by-url").get(page.url);
     if (existingByUrl) {
       skipped++;
     } else {
-      await tx.objectStore("tabs").put(tab);
+      await tx.objectStore("tabs").put(page);
       imported++;
     }
   }
@@ -388,29 +400,29 @@ export async function deleteTemplate(id: string): Promise<void> {
 
 // --- AI Documents ---
 
-export async function getDocumentsForTab(tabId: string): Promise<AIDocument[]> {
+export async function getDocumentsForPage(pageId: string): Promise<AIDocument[]> {
   const db = await getDB();
-  return db.getAllFromIndex("aiDocuments", "by-tabId", tabId);
+  return db.getAllFromIndex("aiDocuments", "by-pageId", pageId);
 }
 
-export async function getDocument(tabId: string, templateId: string): Promise<AIDocument | undefined> {
+export async function getDocument(pageId: string, templateId: string): Promise<AIDocument | undefined> {
   const db = await getDB();
-  const docs = await db.getAllFromIndex("aiDocuments", "by-tabId", tabId);
+  const docs = await db.getAllFromIndex("aiDocuments", "by-pageId", pageId);
   return docs.find((d) => d.templateId === templateId);
 }
 
 export async function putDocument(doc: AIDocument): Promise<void> {
   const db = await getDB();
-  const existing = await getDocument(doc.tabId, doc.templateId);
+  const existing = await getDocument(doc.pageId, doc.templateId);
   if (existing) {
     await db.delete("aiDocuments", existing.id);
   }
   await db.put("aiDocuments", doc);
 }
 
-export async function deleteDocumentsForTab(tabId: string): Promise<void> {
+export async function deleteDocumentsForPage(pageId: string): Promise<void> {
   const db = await getDB();
-  const docs = await db.getAllFromIndex("aiDocuments", "by-tabId", tabId);
+  const docs = await db.getAllFromIndex("aiDocuments", "by-pageId", pageId);
   const tx = db.transaction("aiDocuments", "readwrite");
   for (const doc of docs) {
     tx.store.delete(doc.id);
