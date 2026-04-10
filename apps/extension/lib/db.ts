@@ -70,7 +70,8 @@ async function getDB(): Promise<IDBPDatabase<TabZenDB>> {
         templateStore.createIndex("by-sortOrder", "sortOrder");
 
         const docStore = db.createObjectStore("aiDocuments", { keyPath: "id" });
-        docStore.createIndex("by-tabId", "tabId");
+        // v2 creates with old field name; v3 migration below renames the index
+        (docStore as any).createIndex("by-tabId", "tabId");
         docStore.createIndex("by-templateId", "templateId");
       }
 
