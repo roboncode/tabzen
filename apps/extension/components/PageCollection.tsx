@@ -512,7 +512,7 @@ export default function PageCollection(props: PageCollectionProps) {
           <div class="mx-4 mt-3 flex items-center justify-between bg-sky-500 rounded-lg px-5 py-3 gap-6">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium text-white">Add to collection?</p>
-              <p class="text-xs text-white/70 mt-0.5 truncate">{pastedUrl()}</p>
+              <p class="text-xs text-white mt-0.5 truncate">{pastedUrl()}</p>
             </div>
             <div class="flex items-center gap-4 flex-shrink-0">
               <button
