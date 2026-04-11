@@ -1448,13 +1448,16 @@ export default defineBackground(() => {
       if (isYouTubeWatchUrl(url)) {
         try {
           const { extractYouTubeTranscriptDirect } = await import("@/lib/youtube-extract");
+          console.log("[TabZen] CAPTURE_URL: Extracting YouTube transcript for", url);
           const result = await extractYouTubeTranscriptDirect(url);
+          console.log("[TabZen] CAPTURE_URL: YouTube result:", result?.hasTranscript, "segments:", result?.segments?.length);
           if (result?.hasTranscript) {
             transcriptSegments = result.segments;
-            // Use YouTube metadata if HTTP metadata was sparse
             if (!meta.ogTitle && result.title) meta.ogTitle = result.title;
           }
-        } catch {}
+        } catch (e) {
+          console.error("[TabZen] CAPTURE_URL: YouTube extraction failed:", e);
+        }
       } else {
         try {
           const { extractPageContentViaFetch } = await import("@/lib/page-extract");
@@ -1463,7 +1466,9 @@ export default defineBackground(() => {
             markdownContent = result.content;
             if (!meta.ogTitle && result.title) meta.ogTitle = result.title;
           }
-        } catch {}
+        } catch (e) {
+          console.error("[TabZen] CAPTURE_URL: Content extraction failed:", e);
+        }
       }
 
       const hasTranscript = transcriptSegments && transcriptSegments.length > 0;

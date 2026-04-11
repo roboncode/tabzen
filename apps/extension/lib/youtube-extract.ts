@@ -50,9 +50,11 @@ export async function extractYouTubeTranscriptDirect(
       },
     );
 
+    console.log("[TabZen] YT Direct: player response status:", playerRes.status);
     if (!playerRes.ok) return null;
 
     const playerJson = await playerRes.json();
+    console.log("[TabZen] YT Direct: has videoDetails:", !!playerJson?.videoDetails, "has captions:", !!playerJson?.captions);
     const vd = playerJson?.videoDetails;
     const title = vd?.title || "";
     const channel = vd?.author || "Unknown";
