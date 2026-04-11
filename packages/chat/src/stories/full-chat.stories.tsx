@@ -249,7 +249,7 @@ export const Default: Story = {
           {/* Chat Messages — scrollable */}
           <div class="relative flex-1 overflow-y-auto">
             <ChatContainer class="h-full">
-              <ChatContainerContent class="space-y-0 px-5 py-8">
+              <ChatContainerContent class="space-y-0 px-5 pt-8 pb-24">
                 {/* User message 1 */}
                 <Message class="mx-auto flex w-full max-w-3xl flex-col gap-2 px-6 items-end">
                   <div class="group flex flex-col items-end gap-1">
