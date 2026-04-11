@@ -33,17 +33,19 @@ export async function extractYouTubeTranscriptDirect(
   if (!videoId) return null;
 
   try {
-    // Use YouTube's public InnerTube API key
-    const apiKey = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
-
+    // Use InnerTube API without an API key — works from service worker context
     const playerRes = await fetch(
-      `https://www.youtube.com/youtubei/v1/player?key=${apiKey}`,
+      "https://www.youtube.com/youtubei/v1/player?prettyPrint=false",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           context: {
-            client: { clientName: "ANDROID", clientVersion: "20.10.38" },
+            client: {
+              clientName: "WEB",
+              clientVersion: "2.20250101.00.00",
+              hl: "en",
+            },
           },
           videoId,
         }),
