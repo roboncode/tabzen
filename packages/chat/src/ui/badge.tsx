@@ -5,7 +5,7 @@ import { cn } from '../utils/cn';
 const badgeVariants = cva('inline-flex items-center rounded-full text-xs font-medium', {
   variants: {
     variant: {
-      default: 'bg-muted text-muted-foreground',
+      default: 'bg-muted text-muted-foreground px-2 py-0.5',
       count: 'bg-muted text-muted-foreground min-w-5 h-5 justify-center px-1.5',
       citation: 'bg-primary text-primary-foreground px-1.5 py-0.5 cursor-pointer',
     },
