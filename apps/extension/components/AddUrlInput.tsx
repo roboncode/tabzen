@@ -65,7 +65,7 @@ export default function AddUrlInput() {
         )}
       </Show>
       <Show when={!result()}>
-        <div class="flex items-center bg-muted/40 rounded-full px-3 py-1.5 gap-2 flex-1">
+        <div class="flex items-center bg-muted/40 rounded-full px-3 py-1 gap-2 flex-1">
           <input
             class="bg-transparent text-sm text-foreground outline-none flex-1 min-w-0 placeholder:text-muted-foreground/50"
             placeholder="Paste URL..."
@@ -80,7 +80,7 @@ export default function AddUrlInput() {
           >
             <Show when={isValidUrl(url())}>
               <button
-                class="w-7 h-7 rounded-full flex items-center justify-center text-foreground hover:bg-muted/40 cursor-pointer transition-colors flex-shrink-0"
+                class="w-6 h-6 rounded-full flex items-center justify-center text-foreground hover:bg-muted/40 cursor-pointer transition-colors flex-shrink-0"
                 onClick={handleSubmit}
               >
                 <Plus size={18} />
