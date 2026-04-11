@@ -2,6 +2,9 @@ import type { Preview } from 'storybook-solidjs-vite';
 import './styles.css';
 
 const preview: Preview = {
+  parameters: {
+    layout: 'fullscreen',
+  },
   globalTypes: {
     theme: {
       description: 'Toggle light/dark theme',
