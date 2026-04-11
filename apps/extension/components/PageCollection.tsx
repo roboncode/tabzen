@@ -145,6 +145,15 @@ export default function PageCollection(props: PageCollectionProps) {
     };
     document.addEventListener("paste", handlePaste);
     onCleanup(() => document.removeEventListener("paste", handlePaste));
+
+    // Escape to dismiss paste banner
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && pastedUrl()) {
+        setPastedUrl(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    onCleanup(() => document.removeEventListener("keydown", handleKeyDown));
   });
 
   const filteredGroups = createMemo(() => {
