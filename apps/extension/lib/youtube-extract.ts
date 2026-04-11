@@ -23,8 +23,8 @@ interface PageExtractData {
 }
 
 /**
- * Extract YouTube transcript directly via InnerTube API — no tab needed.
- * Works from the background script or any context without a browser tab.
+ * Extract YouTube transcript by opening a background tab, extracting data, then closing it.
+ * Used when no tab is already open for the URL (e.g., CAPTURE_URL from paste).
  */
 export async function extractYouTubeTranscriptDirect(
   url: string,
@@ -32,71 +32,44 @@ export async function extractYouTubeTranscriptDirect(
   const videoId = extractVideoId(url);
   if (!videoId) return null;
 
+  let tabId: number | undefined;
+
   try {
-    // Use InnerTube API without an API key — works from service worker context
-    // First try: fetch the YouTube watch page HTML to extract data
-    const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
+    console.log("[TabZen] YT Direct: opening background tab for", url);
+    const tab = await browser.tabs.create({ url, active: false });
+    tabId = tab.id;
+
+    if (!tabId) return null;
+
+    // Wait for the page to finish loading
+    await new Promise<void>((resolve) => {
+      const listener = (id: number, info: any) => {
+        if (id === tabId && info.status === "complete") {
+          browser.tabs.onUpdated.removeListener(listener);
+          resolve();
+        }
+      };
+      browser.tabs.onUpdated.addListener(listener);
+      // Timeout after 15 seconds
+      setTimeout(() => {
+        browser.tabs.onUpdated.removeListener(listener);
+        resolve();
+      }, 15000);
     });
 
-    if (!pageRes.ok) {
-      console.log("[TabZen] YT Direct: page fetch failed:", pageRes.status);
-      return null;
-    }
-
-    const html = await pageRes.text();
-
-    // Extract initial player response from HTML
-    const playerMatch = html.match(/var ytInitialPlayerResponse\s*=\s*(\{.+?\});/s);
-    if (!playerMatch) {
-      console.log("[TabZen] YT Direct: no ytInitialPlayerResponse found in HTML");
-      return null;
-    }
-
-    let playerJson: any;
-    try {
-      playerJson = JSON.parse(playerMatch[1]);
-    } catch {
-      console.log("[TabZen] YT Direct: failed to parse ytInitialPlayerResponse");
-      return null;
-    }
-
-    const playerRes = { ok: true, status: 200 };
-
-    console.log("[TabZen] YT Direct: has videoDetails:", !!playerJson?.videoDetails, "has captions:", !!playerJson?.captions);
-    const vd = playerJson?.videoDetails;
-    const title = vd?.title || "";
-    const channel = vd?.author || "Unknown";
-    const duration = parseInt(vd?.lengthSeconds || "0", 10);
-    const description = vd?.shortDescription || "";
-
-    const captionTracks =
-      playerJson?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-
-    if (!captionTracks || captionTracks.length === 0) {
-      return { title, channel, duration, videoId, description, segments: [], hasTranscript: false };
-    }
-
-    // Pick best caption track (prefer manual English, then auto English, then first)
-    let track = captionTracks.find((t: any) => t.languageCode === "en" && t.kind !== "asr");
-    if (!track) track = captionTracks.find((t: any) => t.languageCode === "en");
-    if (!track) track = captionTracks[0];
-
-    const baseUrl = track.baseUrl.replace(/&fmt=[^&]+/, "");
-    const xmlRes = await fetch(baseUrl);
-    const xmlText = await xmlRes.text();
-
-    if (!xmlText || xmlText.length === 0) {
-      return { title, channel, duration, videoId, description, segments: [], hasTranscript: false };
-    }
-
-    const segments = parseTimedTextXml(xmlText);
-    return { title, channel, duration, videoId, description, segments, hasTranscript: segments.length > 0 };
-  } catch {
+    console.log("[TabZen] YT Direct: tab loaded, extracting transcript");
+    // Use the existing tab-based extraction
+    const result = await extractYouTubeTranscript(tabId, url);
+    console.log("[TabZen] YT Direct: result:", result?.hasTranscript, "segments:", result?.segments?.length);
+    return result;
+  } catch (e) {
+    console.error("[TabZen] YT Direct: error:", e);
     return null;
+  } finally {
+    // Always close the background tab
+    if (tabId) {
+      try { await browser.tabs.remove(tabId); } catch {}
+    }
   }
 }
 
