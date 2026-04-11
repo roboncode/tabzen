@@ -84,8 +84,8 @@ export default function AddUrlInput() {
               when={isValidUrl(url())}
               fallback={
                 <div class="flex items-center gap-1 flex-shrink-0">
-                  <kbd class="px-1 py-px text-[10px] font-medium text-muted-foreground/50 bg-muted/50 rounded">{isMac ? "⌘" : "Ctrl"}</kbd>
-                  <kbd class="px-1 py-px text-[10px] font-medium text-muted-foreground/50 bg-muted/50 rounded">V</kbd>
+                  <kbd class="px-1.5 py-0.5 text-xs font-medium text-muted-foreground bg-muted/60 rounded">{isMac ? "⌘" : "Ctrl"}</kbd>
+                  <kbd class="px-1.5 py-0.5 text-xs font-medium text-muted-foreground bg-muted/60 rounded">V</kbd>
                 </div>
               }
             >
