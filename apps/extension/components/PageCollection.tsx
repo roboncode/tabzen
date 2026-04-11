@@ -492,7 +492,14 @@ export default function PageCollection(props: PageCollectionProps) {
             </Show>
           </span>
 
-          <AddUrlInput />
+          <AddUrlInput onFirstPaste={async () => {
+            const tipKey = "pasteTipDismissed";
+            const tipState = await browser.storage.local.get(tipKey);
+            if (!tipState[tipKey]) {
+              setShowPasteTip(true);
+              await browser.storage.local.set({ [tipKey]: true });
+            }
+          }} />
 
           <ViewToggle mode={props.viewMode} onChange={props.onViewModeChange} />
 
@@ -829,9 +836,11 @@ export default function PageCollection(props: PageCollectionProps) {
       {/* First-paste tip */}
       <Show when={showPasteTip()}>
         <Tip
-          title="Quick Add"
-          message="You can paste a URL anywhere on this page to quickly save it to your collection."
+          tips={[
+            { title: "Quick Add", message: "You can paste a URL anywhere on this page to quickly save it to your collection." },
+          ]}
           onDismiss={() => setShowPasteTip(false)}
+          onDontShowAgain={() => setShowPasteTip(false)}
         />
       </Show>
     </div>

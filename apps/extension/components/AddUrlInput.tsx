@@ -3,7 +3,11 @@ import { Plus, Loader2 } from "lucide-solid";
 import { sendMessage } from "@/lib/messages";
 import { useNavigate } from "@solidjs/router";
 
-export default function AddUrlInput() {
+interface AddUrlInputProps {
+  onFirstPaste?: () => void;
+}
+
+export default function AddUrlInput(props: AddUrlInputProps) {
   const navigate = useNavigate();
   const [url, setUrl] = createSignal("");
   const [saving, setSaving] = createSignal(false);
@@ -47,6 +51,10 @@ export default function AddUrlInput() {
     if (e.key === "Escape") setUrl("");
   };
 
+  const handlePaste = () => {
+    props.onFirstPaste?.();
+  };
+
   return (
     <div class="flex items-center flex-1 min-w-0">
       <Show when={result()}>
@@ -72,6 +80,7 @@ export default function AddUrlInput() {
             value={url()}
             onInput={(e) => setUrl(e.currentTarget.value)}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             disabled={saving()}
           />
           <Show
