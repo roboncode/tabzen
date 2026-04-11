@@ -1,0 +1,200 @@
+import { type JSX, splitProps, createSignal, createContext, useContext, onCleanup, children as resolveChildren } from 'solid-js';
+import { cn } from '../utils/cn';
+
+// --- Types ---
+
+type Orientation = 'horizontal' | 'vertical';
+
+interface ResizableContextValue {
+  orientation: Orientation;
+  registerPanel: (id: string, opts: { defaultSize?: number; minSize?: number; maxSize?: number }) => void;
+}
+
+const ResizableContext = createContext<ResizableContextValue>();
+
+// --- ResizablePanelGroup ---
+
+export interface ResizablePanelGroupProps extends JSX.HTMLAttributes<HTMLDivElement> {
+  orientation?: Orientation;
+  children: JSX.Element;
+}
+
+function ResizablePanelGroup(props: ResizablePanelGroupProps) {
+  const [local, rest] = splitProps(props, ['orientation', 'children', 'class']);
+  const orientation = () => local.orientation ?? 'horizontal';
+
+  return (
+    <ResizableContext.Provider value={{ orientation: orientation(), registerPanel: () => {} }}>
+      <div
+        class={cn(
+          'flex h-full w-full',
+          orientation() === 'vertical' ? 'flex-col' : 'flex-row',
+          local.class
+        )}
+        data-orientation={orientation()}
+        {...rest}
+      >
+        {local.children}
+      </div>
+    </ResizableContext.Provider>
+  );
+}
+
+// --- ResizablePanel ---
+
+export interface ResizablePanelProps extends JSX.HTMLAttributes<HTMLDivElement> {
+  defaultSize?: number;
+  minSize?: number;
+  maxSize?: number;
+  children: JSX.Element;
+}
+
+function ResizablePanel(props: ResizablePanelProps) {
+  const [local, rest] = splitProps(props, ['defaultSize', 'minSize', 'maxSize', 'children', 'class', 'style']);
+
+  const sizeStyle = () => {
+    const s = local.defaultSize;
+    if (s !== undefined) {
+      return { 'flex-basis': `${s}%`, 'flex-grow': '0', 'flex-shrink': '0' };
+    }
+    return { flex: '1 1 0%' };
+  };
+
+  return (
+    <div
+      class={cn('overflow-hidden', local.class)}
+      style={{ ...sizeStyle(), ...(typeof local.style === 'object' ? local.style : {}) }}
+      {...rest}
+    >
+      {local.children}
+    </div>
+  );
+}
+
+// --- ResizableHandle ---
+
+export interface ResizableHandleProps extends JSX.HTMLAttributes<HTMLDivElement> {
+  withHandle?: boolean;
+  onPanelResize?: (delta: number) => void;
+}
+
+function ResizableHandle(props: ResizableHandleProps) {
+  const [local, rest] = splitProps(props, ['withHandle', 'onPanelResize', 'class']);
+  const ctx = useContext(ResizableContext);
+  const orientation = () => ctx?.orientation ?? 'horizontal';
+  const [isDragging, setIsDragging] = createSignal(false);
+
+  let startPos = 0;
+  let prevEl: HTMLElement | null = null;
+  let nextEl: HTMLElement | null = null;
+  let prevSize = 0;
+  let nextSize = 0;
+
+  const handlePointerDown = (e: PointerEvent) => {
+    const handle = e.currentTarget as HTMLElement;
+    prevEl = handle.previousElementSibling as HTMLElement;
+    nextEl = handle.nextElementSibling as HTMLElement;
+
+    if (!prevEl || !nextEl) return;
+
+    e.preventDefault();
+    setIsDragging(true);
+    handle.setPointerCapture(e.pointerId);
+
+    if (orientation() === 'horizontal') {
+      startPos = e.clientX;
+      prevSize = prevEl.getBoundingClientRect().width;
+      nextSize = nextEl.getBoundingClientRect().width;
+    } else {
+      startPos = e.clientY;
+      prevSize = prevEl.getBoundingClientRect().height;
+      nextSize = nextEl.getBoundingClientRect().height;
+    }
+  };
+
+  const handlePointerMove = (e: PointerEvent) => {
+    if (!isDragging() || !prevEl || !nextEl) return;
+
+    const currentPos = orientation() === 'horizontal' ? e.clientX : e.clientY;
+    const delta = currentPos - startPos;
+
+    const newPrevSize = prevSize + delta;
+    const newNextSize = nextSize - delta;
+
+    // Get min/max from data attributes or use defaults
+    const prevMin = parseInt(prevEl.dataset.minSize || '0', 10);
+    const prevMax = parseInt(prevEl.dataset.maxSize || '999999', 10);
+    const nextMin = parseInt(nextEl.dataset.minSize || '0', 10);
+
+    if (newPrevSize < prevMin || newNextSize < nextMin || newPrevSize > prevMax) return;
+
+    prevEl.style.flexBasis = `${newPrevSize}px`;
+    prevEl.style.flexGrow = '0';
+    prevEl.style.flexShrink = '0';
+    nextEl.style.flexBasis = `${newNextSize}px`;
+    nextEl.style.flexGrow = '0';
+    nextEl.style.flexShrink = '0';
+
+    local.onPanelResize?.(delta);
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+    prevEl = null;
+    nextEl = null;
+  };
+
+  return (
+    <div
+      class={cn(
+        'relative flex items-center justify-center',
+        orientation() === 'horizontal'
+          ? 'w-px cursor-col-resize'
+          : 'h-px cursor-row-resize',
+        'bg-border',
+        'after:absolute after:inset-0',
+        orientation() === 'horizontal'
+          ? 'after:-left-1 after:-right-1'
+          : 'after:-top-1 after:-bottom-1',
+        isDragging() && 'bg-primary',
+        local.class
+      )}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      role="separator"
+      tabIndex={0}
+      data-orientation={orientation()}
+      {...rest}
+    >
+      {local.withHandle && (
+        <div
+          class={cn(
+            'z-10 flex items-center justify-center rounded-sm border bg-border',
+            orientation() === 'horizontal'
+              ? 'h-4 w-3 flex-col'
+              : 'h-3 w-4 flex-row',
+          )}
+        >
+          <svg
+            class={cn(
+              'text-muted-foreground',
+              orientation() === 'horizontal' ? 'h-2.5 w-2.5' : 'h-2.5 w-2.5 rotate-90'
+            )}
+            viewBox="0 0 6 10"
+            fill="currentColor"
+          >
+            <circle cx="1.5" cy="2" r="0.75" />
+            <circle cx="4.5" cy="2" r="0.75" />
+            <circle cx="1.5" cy="5" r="0.75" />
+            <circle cx="4.5" cy="5" r="0.75" />
+            <circle cx="1.5" cy="8" r="0.75" />
+            <circle cx="4.5" cy="8" r="0.75" />
+          </svg>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export { ResizablePanelGroup, ResizablePanel, ResizableHandle };

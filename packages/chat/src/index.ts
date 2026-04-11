@@ -8,6 +8,8 @@ export { useTextStream } from './primitives/use-text-stream';
 export type { UseTextStreamOptions, TextStreamSegment } from './primitives/use-text-stream';
 export { useVoiceRecorder } from './primitives/use-voice-recorder';
 export type { UseVoiceRecorderOptions } from './primitives/use-voice-recorder';
+export { ChatConfig, useChatConfig, proseClass, textClass } from './primitives/chat-config';
+export type { ChatConfigValue, ProseSize, ChatConfigProps } from './primitives/chat-config';
 
 // Layer 2: UI Primitives
 export { Button, buttonVariants } from './ui/button';
@@ -24,6 +26,8 @@ export type { TextareaProps } from './ui/textarea';
 export { Badge } from './ui/badge';
 export type { BadgeProps } from './ui/badge';
 export { Separator } from './ui/separator';
+export { ResizablePanelGroup, ResizablePanel, ResizableHandle } from './ui/resizable';
+export type { ResizablePanelGroupProps, ResizablePanelProps, ResizableHandleProps } from './ui/resizable';
 export { Skeleton } from './ui/skeleton';
 export { Dialog, DialogTrigger, DialogContent } from './ui/dialog';
 
@@ -94,3 +98,15 @@ export { Image } from './components/image';
 export type { ImageProps, GeneratedImageLike } from './components/image';
 export { FileUpload, FileUploadTrigger, FileUploadContent } from './components/file-upload';
 export type { FileUploadProps, FileUploadTriggerProps, FileUploadContentProps } from './components/file-upload';
+export {
+  Attachments, Attachment, AttachmentPreview, AttachmentInfo, AttachmentRemove,
+  AttachmentHoverCard, AttachmentHoverCardTrigger, AttachmentHoverCardContent,
+  AttachmentEmpty, getMediaCategory, getAttachmentLabel,
+  useAttachmentsContext, useAttachmentContext,
+} from './components/attachments';
+export type {
+  AttachmentData, AttachmentMediaCategory, AttachmentVariant,
+  AttachmentsProps, AttachmentProps, AttachmentPreviewProps,
+  AttachmentInfoProps, AttachmentRemoveProps, AttachmentEmptyProps,
+  AttachmentHoverCardProps, AttachmentHoverCardTriggerProps, AttachmentHoverCardContentProps,
+} from './components/attachments';

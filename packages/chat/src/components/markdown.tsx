@@ -2,6 +2,7 @@ import { splitProps, createMemo, createUniqueId, For, Show, Switch, Match } from
 import { cn } from '../utils/cn';
 import { marked } from 'marked';
 import { CodeBlock, CodeBlockCode } from './code-block';
+import { useChatConfig, proseClass } from '../primitives/chat-config';
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -49,11 +50,12 @@ function MarkdownBlock(props: { content: string }) {
 
 function Markdown(props: MarkdownProps) {
   const [local] = splitProps(props, ['content', 'id', 'class', 'codeTheme']);
+  const config = useChatConfig();
   const blockId = () => local.id ?? createUniqueId();
   const blocks = createMemo(() => parseMarkdownIntoBlocks(local.content));
 
   return (
-    <div class={cn('prose dark:prose-invert prose-sm max-w-none break-words whitespace-normal', local.class)}>
+    <div class={cn('prose dark:prose-invert max-w-none break-words whitespace-normal', proseClass(config.proseSize()), local.class)}>
       <For each={blocks()}>
         {(block) => (
           <Switch>
@@ -62,7 +64,7 @@ function Markdown(props: MarkdownProps) {
                 <CodeBlockCode
                   code={block.content}
                   language={block.language}
-                  theme={local.codeTheme ?? 'github-dark-dimmed'}
+                  theme={local.codeTheme ?? config.codeTheme()}
                 />
               </CodeBlock>
             </Match>

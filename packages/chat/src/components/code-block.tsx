@@ -1,5 +1,6 @@
 import { type JSX, splitProps, createResource, createSignal, Show } from 'solid-js';
 import { cn } from '../utils/cn';
+import { useChatConfig } from '../primitives/chat-config';
 
 // --- CodeBlock (Root) ---
 
@@ -33,9 +34,10 @@ export interface CodeBlockCodeProps extends JSX.HTMLAttributes<HTMLDivElement> {
 
 function CodeBlockCode(props: CodeBlockCodeProps) {
   const [local, rest] = splitProps(props, ['code', 'language', 'theme', 'class']);
+  const config = useChatConfig();
 
   const lang = () => local.language ?? 'tsx';
-  const theme = () => local.theme ?? 'github-light';
+  const theme = () => local.theme ?? config.codeTheme();
 
   const [highlighted] = createResource(
     () => ({ code: local.code, lang: lang(), theme: theme() }),
@@ -50,9 +52,19 @@ function CodeBlockCode(props: CodeBlockCodeProps) {
     }
   );
 
+  const codeTextSize = () => {
+    switch (config.proseSize()) {
+      case 'xs': return 'text-[11px]';
+      case 'sm': return 'text-[13px]';
+      case 'base': return 'text-sm';
+      case 'lg': return 'text-base';
+    }
+  };
+
   const classNames = () =>
     cn(
-      'w-full overflow-x-auto text-[13px] [&>pre]:px-4 [&>pre]:py-4',
+      'w-full overflow-x-auto [&>pre]:px-4 [&>pre]:py-4',
+      codeTextSize(),
       local.class
     );
 

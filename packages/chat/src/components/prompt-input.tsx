@@ -1,5 +1,6 @@
 import { type JSX, splitProps, createSignal, createContext, useContext, createEffect, on } from 'solid-js';
 import { cn } from '../utils/cn';
+import { useChatConfig, textClass } from '../primitives/chat-config';
 
 // --- Context ---
 
@@ -92,6 +93,7 @@ export interface PromptInputTextareaProps extends JSX.TextareaHTMLAttributes<HTM
 function PromptInputTextarea(props: PromptInputTextareaProps) {
   const [local, rest] = splitProps(props, ['class', 'onKeyDown', 'disableAutosize']);
   const ctx = usePromptInput();
+  const config = useChatConfig();
 
   function adjustHeight(el: HTMLTextAreaElement | undefined) {
     if (!el || local.disableAutosize) return;
@@ -141,6 +143,7 @@ function PromptInputTextarea(props: PromptInputTextareaProps) {
       onKeyDown={handleKeyDown}
       class={cn(
         'text-primary min-h-[44px] w-full resize-none border-none bg-transparent shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0',
+        textClass(config.proseSize()),
         local.class
       )}
       rows={1}

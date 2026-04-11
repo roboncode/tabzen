@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { createSignal } from "solid-js";
+import { createSignal, Show, For } from "solid-js";
 import {
   ChatContainer,
   ChatContainerContent,
@@ -30,12 +30,23 @@ import {
   ReasoningContent,
   Tool,
   ThinkingBar,
+  ChatConfig,
 } from "../index";
+import type { ProseSize } from "../index";
 import type {
   ConversationSummary,
   ConversationGroup,
   ModelOption,
 } from "@tab-zen/shared";
+import {
+  Attachments,
+  Attachment,
+  AttachmentPreview,
+  AttachmentInfo,
+  AttachmentRemove,
+} from "../components/attachments";
+import type { AttachmentData } from "../components/attachments";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../ui/resizable";
 import {
   Copy,
   ThumbsUp,
@@ -202,11 +213,37 @@ export const Default: Story = {
     const [activeId, setActiveId] = createSignal("1");
     const [modelId, setModelId] = createSignal("claude-4");
     const [inputValue, setInputValue] = createSignal("");
+    const [proseSize, setProseSize] = createSignal<ProseSize>("sm");
+    const [attachedFiles, setAttachedFiles] = createSignal<AttachmentData[]>([
+      {
+        id: 'att-1',
+        type: 'file',
+        filename: 'benchmark-results.pdf',
+        mediaType: 'application/pdf',
+      },
+      {
+        id: 'att-2',
+        type: 'file',
+        filename: 'solid-vs-react.png',
+        mediaType: 'image/png',
+        url: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400&h=400&fit=crop',
+      },
+      {
+        id: 'att-3',
+        type: 'source-document',
+        filename: 'SolidJS Docs',
+        title: 'SolidJS Reactivity',
+        url: 'https://solidjs.com/docs',
+      },
+    ]);
+
 
     return (
-      <div class="flex h-screen w-full bg-background overflow-hidden">
+      <ChatConfig proseSize={proseSize()}>
+      <div class="h-screen w-full bg-background overflow-hidden">
+        <ResizablePanelGroup orientation="horizontal">
         {/* Sidebar */}
-        <div class="shrink-0 border-r border-border" style={{ width: "270px" }}>
+        <ResizablePanel defaultSize={20} data-min-size="180" data-max-size="400">
           <ConversationList
             groups={groups}
             conversations={conversations}
@@ -214,16 +251,27 @@ export const Default: Story = {
             onSelect={setActiveId}
             onNewChat={() => {}}
           />
-        </div>
-
+        </ResizablePanel>
+        <ResizableHandle withHandle />
         {/* Main Chat Area */}
-        <main class="flex flex-1 flex-col overflow-hidden">
+        <ResizablePanel>
+        <main class="flex flex-1 flex-col overflow-hidden h-full">
           {/* Header */}
           <header class="flex h-14 shrink-0 items-center justify-between border-b border-border px-5">
             <div class="text-sm font-semibold text-foreground">
               SolidJS reactivity vs React hooks
             </div>
             <div class="flex items-center gap-2">
+              <select
+                class="bg-muted/40 text-xs text-muted-foreground rounded-lg px-2 py-1.5 outline-none hover:bg-muted/60 transition-colors cursor-pointer"
+                value={proseSize()}
+                onChange={(e) => setProseSize(e.currentTarget.value as ProseSize)}
+              >
+                <option value="xs">Extra Small</option>
+                <option value="sm">Small</option>
+                <option value="base">Medium</option>
+                <option value="lg">Large</option>
+              </select>
               <ModelSwitcher
                 models={models}
                 currentModelId={modelId()}
@@ -511,9 +559,32 @@ SolidJS's fine-grained reactivity really shines here — updating a single item 
                 onSubmit={() => setInputValue("")}
               >
                 <div class="flex flex-col">
+                  {/* Attached files — inside the input container */}
+                  <Show when={attachedFiles().length > 0}>
+                    <div class="px-3 pt-3">
+                      <Attachments variant="inline">
+                        <For each={attachedFiles()}>
+                          {(file) => (
+                            <Attachment
+                              data={file}
+                              onRemove={() =>
+                                setAttachedFiles((prev) =>
+                                  prev.filter((f) => f.id !== file.id)
+                                )
+                              }
+                            >
+                              <AttachmentPreview />
+                              <AttachmentInfo />
+                              <AttachmentRemove />
+                            </Attachment>
+                          )}
+                        </For>
+                      </Attachments>
+                    </div>
+                  </Show>
                   <PromptInputTextarea
                     placeholder="Ask anything..."
-                    class="min-h-[44px] pt-3 pl-4 text-base"
+                    class="min-h-[44px] pt-3 pl-4"
                   />
                   <PromptInputActions class="mt-2 flex w-full items-center justify-between gap-2 px-3 pb-3">
                     <div class="flex items-center gap-2">
@@ -562,7 +633,10 @@ SolidJS's fine-grained reactivity really shines here — updating a single item 
             </div>
           </div>
         </main>
+        </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
+      </ChatConfig>
     );
   },
 };
