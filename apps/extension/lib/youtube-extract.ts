@@ -34,28 +34,38 @@ export async function extractYouTubeTranscriptDirect(
 
   try {
     // Use InnerTube API without an API key — works from service worker context
-    const playerRes = await fetch(
-      "https://www.youtube.com/youtubei/v1/player?prettyPrint=false",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          context: {
-            client: {
-              clientName: "WEB",
-              clientVersion: "2.20250101.00.00",
-              hl: "en",
-            },
-          },
-          videoId,
-        }),
+    // First try: fetch the YouTube watch page HTML to extract data
+    const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
       },
-    );
+    });
 
-    console.log("[TabZen] YT Direct: player response status:", playerRes.status);
-    if (!playerRes.ok) return null;
+    if (!pageRes.ok) {
+      console.log("[TabZen] YT Direct: page fetch failed:", pageRes.status);
+      return null;
+    }
 
-    const playerJson = await playerRes.json();
+    const html = await pageRes.text();
+
+    // Extract initial player response from HTML
+    const playerMatch = html.match(/var ytInitialPlayerResponse\s*=\s*(\{.+?\});/s);
+    if (!playerMatch) {
+      console.log("[TabZen] YT Direct: no ytInitialPlayerResponse found in HTML");
+      return null;
+    }
+
+    let playerJson: any;
+    try {
+      playerJson = JSON.parse(playerMatch[1]);
+    } catch {
+      console.log("[TabZen] YT Direct: failed to parse ytInitialPlayerResponse");
+      return null;
+    }
+
+    const playerRes = { ok: true, status: 200 };
+
     console.log("[TabZen] YT Direct: has videoDetails:", !!playerJson?.videoDetails, "has captions:", !!playerJson?.captions);
     const vd = playerJson?.videoDetails;
     const title = vd?.title || "";
