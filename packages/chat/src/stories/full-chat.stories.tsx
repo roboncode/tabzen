@@ -5,13 +5,13 @@ import {
   Message, MessageAvatar, MessageContent, MessageActions,
   PromptInput, PromptInputTextarea, PromptInputActions,
   ConversationList, ModelSwitcher, PromptSuggestion,
-  ScrollButton, Loader, Button, Separator,
+  ScrollButton, Button, Separator,
   Context, ContextTrigger, ContextContent,
   ContextContentHeader, ContextContentBody, ContextContentFooter,
   ContextInputUsage, ContextOutputUsage,
 } from '../index';
 import type { ConversationSummary, ConversationGroup, ModelOption } from '@tab-zen/shared';
-import { Copy, ThumbsUp, ThumbsDown, RefreshCw, ArrowUp, Paperclip, Globe } from 'lucide-solid';
+import { Copy, ThumbsUp, ThumbsDown, RefreshCw, ArrowUp, Paperclip, Globe, Mic, Pencil, Trash, Plus, MoreHorizontal } from 'lucide-solid';
 
 const meta: Meta = {
   title: 'Examples/Full Chat App',
@@ -35,8 +35,8 @@ const conversations: ConversationSummary[] = [
   { id: '4', title: 'Vite HMR not working with web workers', groupId: 'yesterday', scope, messageCount: 11, lastMessageAt: '2026-04-09T17:45:00Z', updatedAt: '2026-04-09T17:45:00Z' },
   { id: '5', title: 'IndexedDB vs OPFS performance', groupId: 'yesterday', scope, messageCount: 9, lastMessageAt: '2026-04-09T14:00:00Z', updatedAt: '2026-04-09T14:00:00Z' },
   { id: '6', title: 'WebSocket reconnection strategies', groupId: 'week', scope, messageCount: 7, lastMessageAt: '2026-04-07T10:30:00Z', updatedAt: '2026-04-07T10:30:00Z' },
-  { id: '7', title: 'TypeScript discriminated unions patterns', groupId: 'week', scope, messageCount: 16, lastMessageAt: '2026-04-06T16:20:00Z', updatedAt: '2026-04-06T16:20:00Z' },
-  { id: '8', title: 'CSS container queries for responsive', groupId: 'week', scope, messageCount: 5, lastMessageAt: '2026-04-05T13:00:00Z', updatedAt: '2026-04-05T13:00:00Z' },
+  { id: '7', title: 'TypeScript discriminated unions', groupId: 'week', scope, messageCount: 16, lastMessageAt: '2026-04-06T16:20:00Z', updatedAt: '2026-04-06T16:20:00Z' },
+  { id: '8', title: 'CSS container queries', groupId: 'week', scope, messageCount: 5, lastMessageAt: '2026-04-05T13:00:00Z', updatedAt: '2026-04-05T13:00:00Z' },
 ];
 
 const models: ModelOption[] = [
@@ -45,27 +45,27 @@ const models: ModelOption[] = [
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
 ];
 
-const assistantMarkdownResponse = `**SolidJS** takes a fundamentally different approach to reactivity compared to React hooks.
+const assistantResponse1 = `**SolidJS** takes a fundamentally different approach to reactivity compared to React hooks.
 
 ### Signals vs useState
 
-In SolidJS, signals are **fine-grained reactive primitives** that track their own subscribers. When a signal updates, only the specific DOM nodes that read that signal are updated -- no virtual DOM diffing required.
+In SolidJS, signals are **fine-grained reactive primitives** that track their own subscribers. When a signal updates, only the specific DOM nodes that read that signal are updated — no virtual DOM diffing required.
 
 \`\`\`typescript
-// SolidJS - runs once, DOM updates surgically
+// SolidJS — runs once, DOM updates surgically
 const [count, setCount] = createSignal(0);
 return <p>{count()}</p>; // only this text node re-renders
 
-// React - entire component re-renders
+// React — entire component re-renders
 const [count, setCount] = useState(0);
 return <p>{count}</p>; // whole function re-executes
 \`\`\`
 
 ### Key Differences
 
-1. **No re-renders** -- SolidJS components run once; only reactive expressions update
-2. **No dependency arrays** -- \`createEffect\` auto-tracks dependencies
-3. **No stale closures** -- signals are getter functions, always current
+1. **No re-renders** — SolidJS components run once; only reactive expressions update
+2. **No dependency arrays** — \`createEffect\` auto-tracks dependencies
+3. **No stale closures** — signals are getter functions, always current
 4. **Derived values** are just functions, no \`useMemo\` needed
 
 ### When to choose SolidJS
@@ -74,6 +74,22 @@ return <p>{count}</p>; // whole function re-executes
 - Projects where you want predictable reactivity
 - When you're tired of \`useCallback\` and dependency arrays`;
 
+const assistantResponse2 = `\`createEffect\` in SolidJS is synchronous by default and automatically tracks all reactive dependencies read inside it — no dependency array needed.
+
+\`\`\`typescript
+// SolidJS — auto-tracks count and name
+createEffect(() => {
+  console.log(count(), name());
+});
+
+// React — must manually declare deps
+useEffect(() => {
+  console.log(count, name);
+}, [count, name]); // easy to get wrong
+\`\`\`
+
+The biggest win: **no stale closure bugs**. Since \`count()\` is a function call, you always get the latest value. In React, closures capture the value at render time, which leads to subtle bugs with intervals, timeouts, and event handlers.`;
+
 export const Default: Story = {
   render: () => {
     const [activeId, setActiveId] = createSignal('1');
@@ -81,9 +97,9 @@ export const Default: Story = {
     const [inputValue, setInputValue] = createSignal('');
 
     return (
-      <div class="flex h-[680px] w-full max-w-5xl rounded-xl bg-background shadow-lg overflow-hidden">
+      <div class="flex h-screen w-full bg-background overflow-hidden">
         {/* Sidebar */}
-        <div class="w-[270px] shrink-0">
+        <div class="w-[270px] shrink-0 border-r border-border">
           <ConversationList
             groups={groups}
             conversations={conversations}
@@ -94,11 +110,11 @@ export const Default: Story = {
         </div>
 
         {/* Main Chat Area */}
-        <div class="flex flex-1 flex-col bg-background">
+        <main class="flex flex-1 flex-col overflow-hidden">
           {/* Header */}
-          <div class="flex items-center justify-between px-4 py-2.5 bg-background/80">
-            <div class="flex items-center gap-3">
-              <h2 class="text-sm font-semibold text-foreground">SolidJS reactivity vs React hooks</h2>
+          <header class="flex h-14 shrink-0 items-center justify-between border-b border-border px-5">
+            <div class="text-sm font-semibold text-foreground">
+              SolidJS reactivity vs React hooks
             </div>
             <div class="flex items-center gap-2">
               <ModelSwitcher models={models} currentModelId={modelId()} onModelChange={setModelId} />
@@ -116,105 +132,117 @@ export const Default: Story = {
                 </ContextContent>
               </Context>
             </div>
+          </header>
+
+          {/* Chat Messages — scrollable */}
+          <div class="relative flex-1 overflow-y-auto">
+            <ChatContainer class="h-full">
+              <ChatContainerContent class="space-y-0 px-5 py-8">
+
+                {/* User message 1 */}
+                <Message class="mx-auto flex w-full max-w-3xl flex-col gap-2 px-6 items-end">
+                  <div class="group flex flex-col items-end gap-1">
+                    <MessageContent class="bg-muted text-primary max-w-[85%] rounded-3xl px-5 py-2.5">
+                      Can you explain how SolidJS reactivity differs from React hooks? I keep hearing that SolidJS is faster but I don't understand why.
+                    </MessageContent>
+                    <MessageActions class="flex gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                      <Button variant="ghost" size="icon-sm" class="rounded-full"><Pencil class="size-3.5" /></Button>
+                      <Button variant="ghost" size="icon-sm" class="rounded-full"><Copy class="size-3.5" /></Button>
+                    </MessageActions>
+                  </div>
+                </Message>
+
+                {/* Assistant message 1 */}
+                <Message class="mx-auto flex w-full max-w-3xl flex-col gap-2 px-6 items-start">
+                  <div class="group flex w-full flex-col gap-0">
+                    <MessageContent markdown class="text-foreground prose flex-1 rounded-lg bg-transparent p-0">
+                      {assistantResponse1}
+                    </MessageContent>
+                    <MessageActions class="-ml-2.5 flex gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                      <Button variant="ghost" size="icon-sm" class="rounded-full"><Copy class="size-3.5" /></Button>
+                      <Button variant="ghost" size="icon-sm" class="rounded-full"><ThumbsUp class="size-3.5" /></Button>
+                      <Button variant="ghost" size="icon-sm" class="rounded-full"><ThumbsDown class="size-3.5" /></Button>
+                      <Button variant="ghost" size="icon-sm" class="rounded-full"><RefreshCw class="size-3.5" /></Button>
+                    </MessageActions>
+                  </div>
+                </Message>
+
+                {/* User message 2 */}
+                <Message class="mx-auto flex w-full max-w-3xl flex-col gap-2 px-6 items-end">
+                  <div class="group flex flex-col items-end gap-1">
+                    <MessageContent class="bg-muted text-primary max-w-[85%] rounded-3xl px-5 py-2.5">
+                      What about effects? How does createEffect compare to useEffect?
+                    </MessageContent>
+                    <MessageActions class="flex gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                      <Button variant="ghost" size="icon-sm" class="rounded-full"><Pencil class="size-3.5" /></Button>
+                      <Button variant="ghost" size="icon-sm" class="rounded-full"><Copy class="size-3.5" /></Button>
+                    </MessageActions>
+                  </div>
+                </Message>
+
+                {/* Assistant message 2 — last message, actions always visible */}
+                <Message class="mx-auto flex w-full max-w-3xl flex-col gap-2 px-6 items-start">
+                  <div class="group flex w-full flex-col gap-0">
+                    <MessageContent markdown class="text-foreground prose flex-1 rounded-lg bg-transparent p-0">
+                      {assistantResponse2}
+                    </MessageContent>
+                    <MessageActions class="-ml-2.5 flex gap-0">
+                      <Button variant="ghost" size="icon-sm" class="rounded-full"><Copy class="size-3.5" /></Button>
+                      <Button variant="ghost" size="icon-sm" class="rounded-full"><ThumbsUp class="size-3.5" /></Button>
+                      <Button variant="ghost" size="icon-sm" class="rounded-full"><ThumbsDown class="size-3.5" /></Button>
+                      <Button variant="ghost" size="icon-sm" class="rounded-full"><RefreshCw class="size-3.5" /></Button>
+                    </MessageActions>
+                  </div>
+                </Message>
+
+                <ChatContainerScrollAnchor />
+              </ChatContainerContent>
+
+              {/* Scroll button */}
+              <div class="absolute bottom-4 left-1/2 flex w-full max-w-3xl -translate-x-1/2 justify-end px-5">
+                <ScrollButton class="shadow-sm" />
+              </div>
+            </ChatContainer>
           </div>
-          <Separator />
 
-          {/* Messages */}
-          <ChatContainer class="flex-1 p-4">
-            <ChatContainerContent class="max-w-2xl mx-auto space-y-6 py-4">
-              <Message>
-                <MessageAvatar src="" fallback="U" alt="User" />
-                <MessageContent>
-                  Can you explain how SolidJS reactivity differs from React hooks? I keep hearing that SolidJS is faster but I don't understand why.
-                </MessageContent>
-              </Message>
+          {/* Input area — pinned to bottom */}
+          <div class="shrink-0 bg-background px-3 pb-3 md:px-5 md:pb-5">
+            <div class="mx-auto max-w-3xl">
+              {/* Suggestions */}
+              <div class="flex gap-2 pb-3 flex-wrap">
+                <PromptSuggestion onClick={() => setInputValue('How does SolidJS handle context?')}>
+                  How does SolidJS handle context?
+                </PromptSuggestion>
+                <PromptSuggestion onClick={() => setInputValue('Show me a SolidJS store example')}>
+                  Show me a store example
+                </PromptSuggestion>
+                <PromptSuggestion onClick={() => setInputValue('SolidJS vs Svelte comparison')}>
+                  SolidJS vs Svelte comparison
+                </PromptSuggestion>
+              </div>
 
-              <Message>
-                <MessageAvatar src="" fallback="AI" alt="Assistant" />
-                <div class="flex-1 space-y-2">
-                  <MessageContent markdown>
-                    {assistantMarkdownResponse}
-                  </MessageContent>
-                  <MessageActions>
-                    <Button variant="ghost" size="icon-sm"><Copy class="size-3.5" /></Button>
-                    <Button variant="ghost" size="icon-sm"><ThumbsUp class="size-3.5" /></Button>
-                    <Button variant="ghost" size="icon-sm"><ThumbsDown class="size-3.5" /></Button>
-                    <Button variant="ghost" size="icon-sm"><RefreshCw class="size-3.5" /></Button>
-                  </MessageActions>
+              {/* Input */}
+              <PromptInput value={inputValue()} onValueChange={setInputValue} onSubmit={() => setInputValue('')}>
+                <div class="flex flex-col">
+                  <PromptInputTextarea placeholder="Ask anything..." class="min-h-[44px] pt-3 pl-4 text-base" />
+                  <PromptInputActions class="mt-2 flex w-full items-center justify-between gap-2 px-3 pb-3">
+                    <div class="flex items-center gap-2">
+                      <Button variant="outline" size="icon-sm" class="rounded-full"><Plus class="size-4" /></Button>
+                      <Button variant="outline" size="sm" class="rounded-full gap-1"><Globe class="size-4" />Search</Button>
+                      <Button variant="outline" size="icon-sm" class="rounded-full"><MoreHorizontal class="size-4" /></Button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <Button variant="outline" size="icon-sm" class="rounded-full"><Mic class="size-4" /></Button>
+                      <Button size="icon-sm" class="rounded-full" disabled={!inputValue().trim()}>
+                        <ArrowUp class="size-4" />
+                      </Button>
+                    </div>
+                  </PromptInputActions>
                 </div>
-              </Message>
-
-              <Message>
-                <MessageAvatar src="" fallback="U" alt="User" />
-                <MessageContent>
-                  What about effects? How does createEffect compare to useEffect?
-                </MessageContent>
-              </Message>
-
-              <Message>
-                <MessageAvatar src="" fallback="AI" alt="Assistant" />
-                <div class="flex-1 space-y-2">
-                  <MessageContent markdown>
-{`\`createEffect\` in SolidJS is synchronous by default and automatically tracks all reactive dependencies read inside it -- no dependency array needed.
-
-\`\`\`typescript
-// SolidJS -- auto-tracks count and name
-createEffect(() => {
-  console.log(count(), name());
-});
-
-// React -- must manually declare deps
-useEffect(() => {
-  console.log(count, name);
-}, [count, name]); // easy to get wrong
-\`\`\`
-
-The biggest win: **no stale closure bugs**. Since \`count()\` is a function call, you always get the latest value. In React, closures capture the value at render time, which leads to subtle bugs with intervals, timeouts, and event handlers.`}
-                  </MessageContent>
-                  <MessageActions>
-                    <Button variant="ghost" size="icon-sm"><Copy class="size-3.5" /></Button>
-                    <Button variant="ghost" size="icon-sm"><ThumbsUp class="size-3.5" /></Button>
-                    <Button variant="ghost" size="icon-sm"><ThumbsDown class="size-3.5" /></Button>
-                    <Button variant="ghost" size="icon-sm"><RefreshCw class="size-3.5" /></Button>
-                  </MessageActions>
-                </div>
-              </Message>
-
-              <ChatContainerScrollAnchor />
-            </ChatContainerContent>
-
-            {/* Scroll Button */}
-            <div class="absolute bottom-32 left-1/2 -translate-x-1/2">
-              <ScrollButton />
+              </PromptInput>
             </div>
-          </ChatContainer>
-
-          {/* Suggestions */}
-          <div class="flex gap-2 px-4 pb-2 max-w-2xl mx-auto w-full flex-wrap">
-            <PromptSuggestion onClick={() => setInputValue('How does SolidJS handle context?')}>
-              How does SolidJS handle context?
-            </PromptSuggestion>
-            <PromptSuggestion onClick={() => setInputValue('Show me a SolidJS store example')}>
-              Show me a store example
-            </PromptSuggestion>
           </div>
-
-          {/* Input */}
-          <div class="px-4 pb-4 max-w-2xl mx-auto w-full">
-            <PromptInput value={inputValue()} onValueChange={setInputValue} onSubmit={() => setInputValue('')}>
-              <PromptInputTextarea placeholder="Ask a follow-up question..." />
-              <PromptInputActions class="justify-between">
-                <div class="flex items-center gap-1">
-                  <Button variant="ghost" size="icon-sm"><Paperclip class="size-4" /></Button>
-                  <Button variant="ghost" size="icon-sm"><Globe class="size-4" /></Button>
-                </div>
-                <Button variant="default" size="icon-sm" class="rounded-full">
-                  <ArrowUp class="size-4" />
-                </Button>
-              </PromptInputActions>
-            </PromptInput>
-          </div>
-        </div>
+        </main>
       </div>
     );
   },
