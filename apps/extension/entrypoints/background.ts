@@ -1408,6 +1408,7 @@ export default defineBackground(() => {
   }
 
   async function handleCaptureUrl(url: string): Promise<MessageResponse> {
+    console.log("[TabZen] handleCaptureUrl called with:", url);
     try {
       const settings = await getSettings();
       const existingPages = await getAllPages();
@@ -1445,6 +1446,7 @@ export default defineBackground(() => {
       let transcriptSegments: TranscriptSegment[] | null = null;
       let markdownContent: string | null = null;
 
+      console.log("[TabZen] CAPTURE_URL: url=", url, "isYouTube=", isYouTubeWatchUrl(url));
       if (isYouTubeWatchUrl(url)) {
         try {
           const { extractYouTubeTranscriptDirect } = await import("@/lib/youtube-extract");
