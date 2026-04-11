@@ -19,6 +19,7 @@ import {
 } from "lucide-solid";
 import UserMenu from "./UserMenu";
 import AddUrlInput from "./AddUrlInput";
+import Tip from "./Tip";
 import EmptyBlock from "./EmptyBlock";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
 import AppSidebar from "./AppSidebar";
@@ -71,6 +72,7 @@ export default function PageCollection(props: PageCollectionProps) {
   const [emptyingTrash, setEmptyingTrash] = createSignal(false);
   const [pastedUrl, setPastedUrl] = createSignal<string | null>(null);
   const [pasteSaving, setPasteSaving] = createSignal(false);
+  const [showPasteTip, setShowPasteTip] = createSignal(false);
   const [capturePreview, setCapturePreview] =
     createSignal<CapturePreviewData | null>(null);
 
@@ -138,6 +140,14 @@ export default function PageCollection(props: PageCollectionProps) {
         if (u.protocol !== "https:" && u.protocol !== "http:") return;
       } catch {
         return;
+      }
+
+      // Show tip on first paste
+      const tipKey = "pasteTipDismissed";
+      const tipState = await browser.storage.local.get(tipKey);
+      if (!tipState[tipKey]) {
+        setShowPasteTip(true);
+        await browser.storage.local.set({ [tipKey]: true });
       }
 
       // Valid URL pasted — confirm with user
@@ -815,6 +825,15 @@ export default function PageCollection(props: PageCollectionProps) {
           />
         </Show>
       </div>
+
+      {/* First-paste tip */}
+      <Show when={showPasteTip()}>
+        <Tip
+          title="Quick Add"
+          message="You can paste a URL anywhere on this page to quickly save it to your collection."
+          onDismiss={() => setShowPasteTip(false)}
+        />
+      </Show>
     </div>
   );
 }

@@ -3,8 +3,6 @@ import { Plus, Loader2 } from "lucide-solid";
 import { sendMessage } from "@/lib/messages";
 import { useNavigate } from "@solidjs/router";
 
-const isMac = navigator.platform.includes("Mac");
-
 export default function AddUrlInput() {
   const navigate = useNavigate();
   const [url, setUrl] = createSignal("");
@@ -80,15 +78,7 @@ export default function AddUrlInput() {
             when={!saving()}
             fallback={<Loader2 size={14} class="text-muted-foreground/40 animate-spin" />}
           >
-            <Show
-              when={isValidUrl(url())}
-              fallback={
-                <div class="flex items-center gap-1 flex-shrink-0">
-                  <kbd class="px-1.5 py-0.5 text-xs font-medium text-muted-foreground bg-muted/60 rounded">{isMac ? "⌘" : "Ctrl"}</kbd>
-                  <kbd class="px-1.5 py-0.5 text-xs font-medium text-muted-foreground bg-muted/60 rounded">V</kbd>
-                </div>
-              }
-            >
+            <Show when={isValidUrl(url())}>
               <button
                 class="w-6 h-6 rounded-full flex items-center justify-center text-foreground hover:bg-muted/40 cursor-pointer transition-colors flex-shrink-0"
                 onClick={handleSubmit}
