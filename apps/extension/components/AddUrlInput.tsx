@@ -3,6 +3,8 @@ import { Plus, Loader2 } from "lucide-solid";
 import { sendMessage } from "@/lib/messages";
 import { useNavigate } from "@solidjs/router";
 
+const modKey = navigator.platform.includes("Mac") ? "⌘" : "Ctrl+";
+
 export default function AddUrlInput() {
   const navigate = useNavigate();
   const [url, setUrl] = createSignal("");
@@ -68,7 +70,7 @@ export default function AddUrlInput() {
         <div class="flex items-center bg-muted/40 rounded-lg px-3 py-1 gap-2 flex-1">
           <input
             class="bg-transparent text-sm text-foreground outline-none flex-1 min-w-0 placeholder:text-muted-foreground/50"
-            placeholder="Paste URL..."
+            placeholder={`Add URL · or ${modKey}V anywhere`}
             value={url()}
             onInput={(e) => setUrl(e.currentTarget.value)}
             onKeyDown={handleKeyDown}
