@@ -1441,6 +1441,34 @@ export default defineBackground(() => {
         captureId = uuidv4();
       }
 
+      // Extract content based on URL type
+      let transcriptSegments: TranscriptSegment[] | null = null;
+      let markdownContent: string | null = null;
+
+      if (isYouTubeWatchUrl(url)) {
+        try {
+          const { extractYouTubeTranscriptDirect } = await import("@/lib/youtube-extract");
+          const result = await extractYouTubeTranscriptDirect(url);
+          if (result?.hasTranscript) {
+            transcriptSegments = result.segments;
+            // Use YouTube metadata if HTTP metadata was sparse
+            if (!meta.ogTitle && result.title) meta.ogTitle = result.title;
+          }
+        } catch {}
+      } else {
+        try {
+          const { extractPageContentViaFetch } = await import("@/lib/page-extract");
+          const result = await extractPageContentViaFetch(url);
+          if (result) {
+            markdownContent = result.content;
+            if (!meta.ogTitle && result.title) meta.ogTitle = result.title;
+          }
+        } catch {}
+      }
+
+      const hasTranscript = transcriptSegments && transcriptSegments.length > 0;
+      const hasContent = !!markdownContent;
+
       const page: Page = {
         id: pageId,
         url,
@@ -1458,9 +1486,11 @@ export default defineBackground(() => {
         starred: false,
         deletedAt: null,
         groupId,
-        contentKey: null,
-        contentType: null,
-        contentFetchedAt: null,
+        contentKey: hasTranscript ? `transcripts/${pageId}` : hasContent ? `content/${pageId}` : null,
+        contentType: hasTranscript ? "transcript" : hasContent ? "markdown" : null,
+        contentFetchedAt: (hasTranscript || hasContent) ? new Date().toISOString() : null,
+        transcript: hasTranscript ? transcriptSegments! : undefined,
+        content: hasContent ? markdownContent! : undefined,
       };
 
       if (!existingGroup) {
@@ -1489,6 +1519,23 @@ export default defineBackground(() => {
               }
             }
             notifyDataChanged();
+          } catch {}
+        })();
+      }
+
+      // AI chapters for YouTube (async, non-blocking)
+      if (settings.autoChapters && settings.openRouterApiKey && hasTranscript) {
+        (async () => {
+          try {
+            const chapters = await generateChapters(
+              settings.openRouterApiKey,
+              settings.aiModel,
+              transcriptSegments!,
+            );
+            if (chapters?.length) {
+              await updatePage(pageId, { chapters });
+              notifyDataChanged();
+            }
           } catch {}
         })();
       }

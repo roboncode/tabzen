@@ -23,6 +23,70 @@ interface PageExtractData {
 }
 
 /**
+ * Extract YouTube transcript directly via InnerTube API — no tab needed.
+ * Works from the background script or any context without a browser tab.
+ */
+export async function extractYouTubeTranscriptDirect(
+  url: string,
+): Promise<YouTubeExtractResult | null> {
+  const videoId = extractVideoId(url);
+  if (!videoId) return null;
+
+  try {
+    // Use YouTube's public InnerTube API key
+    const apiKey = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
+
+    const playerRes = await fetch(
+      `https://www.youtube.com/youtubei/v1/player?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          context: {
+            client: { clientName: "ANDROID", clientVersion: "20.10.38" },
+          },
+          videoId,
+        }),
+      },
+    );
+
+    if (!playerRes.ok) return null;
+
+    const playerJson = await playerRes.json();
+    const vd = playerJson?.videoDetails;
+    const title = vd?.title || "";
+    const channel = vd?.author || "Unknown";
+    const duration = parseInt(vd?.lengthSeconds || "0", 10);
+    const description = vd?.shortDescription || "";
+
+    const captionTracks =
+      playerJson?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+
+    if (!captionTracks || captionTracks.length === 0) {
+      return { title, channel, duration, videoId, description, segments: [], hasTranscript: false };
+    }
+
+    // Pick best caption track (prefer manual English, then auto English, then first)
+    let track = captionTracks.find((t: any) => t.languageCode === "en" && t.kind !== "asr");
+    if (!track) track = captionTracks.find((t: any) => t.languageCode === "en");
+    if (!track) track = captionTracks[0];
+
+    const baseUrl = track.baseUrl.replace(/&fmt=[^&]+/, "");
+    const xmlRes = await fetch(baseUrl);
+    const xmlText = await xmlRes.text();
+
+    if (!xmlText || xmlText.length === 0) {
+      return { title, channel, duration, videoId, description, segments: [], hasTranscript: false };
+    }
+
+    const segments = parseTimedTextXml(xmlText);
+    return { title, channel, duration, videoId, description, segments, hasTranscript: segments.length > 0 };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Extract YouTube video data including transcript from the background worker.
  * Uses chrome.scripting.executeScript with world: 'MAIN' to access YouTube's
  * page context and InnerTube API.
