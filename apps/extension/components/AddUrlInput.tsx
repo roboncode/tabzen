@@ -1,16 +1,13 @@
 import { createSignal, Show } from "solid-js";
-import { Plus, X, Loader2 } from "lucide-solid";
+import { Plus, Loader2 } from "lucide-solid";
 import { sendMessage } from "@/lib/messages";
 import { useNavigate } from "@solidjs/router";
 
 export default function AddUrlInput() {
   const navigate = useNavigate();
-  const [expanded, setExpanded] = createSignal(false);
   const [url, setUrl] = createSignal("");
   const [saving, setSaving] = createSignal(false);
   const [result, setResult] = createSignal<{ message: string; pageId?: string } | null>(null);
-
-  let inputRef: HTMLInputElement | undefined;
 
   const isValidUrl = (text: string) => {
     try {
@@ -36,10 +33,7 @@ export default function AddUrlInput() {
         pageId: response.pageId,
       });
       setUrl("");
-      setTimeout(() => {
-        setResult(null);
-        setExpanded(false);
-      }, 3000);
+      setTimeout(() => setResult(null), 3000);
     } else if (response.type === "ERROR") {
       setResult({ message: "Could not save" });
       setTimeout(() => setResult(null), 3000);
@@ -50,73 +44,48 @@ export default function AddUrlInput() {
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter") handleSubmit();
-    if (e.key === "Escape") { setExpanded(false); setUrl(""); }
+    if (e.key === "Escape") setUrl("");
   };
 
   return (
     <div class="flex items-center flex-shrink-0">
-      <Show
-        when={expanded()}
-        fallback={
-          <button
-            class="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-            onClick={() => {
-              setExpanded(true);
-              setTimeout(() => inputRef?.focus(), 50);
-            }}
-            title="Add URL"
-          >
-            <Plus size={16} />
-          </button>
-        }
-      >
-        <div class="flex items-center gap-1.5">
-          <Show when={result()}>
-            {(r) => (
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-green-400">{r().message}</span>
-                <Show when={r().pageId}>
-                  <button
-                    class="text-xs text-sky-400 hover:text-sky-300 transition-colors"
-                    onClick={() => navigate(`/page/${r().pageId}`)}
-                  >
-                    View
-                  </button>
-                </Show>
-              </div>
-            )}
-          </Show>
-          <Show when={!result()}>
-            <div class="flex items-center bg-muted/40 rounded-full px-3 py-1.5 gap-2">
-              <input
-                ref={inputRef}
-                class="bg-transparent text-sm text-foreground outline-none w-48 placeholder:text-muted-foreground/50"
-                placeholder="Paste URL..."
-                value={url()}
-                onInput={(e) => setUrl(e.currentTarget.value)}
-                onKeyDown={handleKeyDown}
-                disabled={saving()}
-              />
-              <Show
-                when={!saving()}
-                fallback={<Loader2 size={14} class="text-muted-foreground animate-spin" />}
-              >
-                <Show when={isValidUrl(url())}>
-                  <button
-                    class="text-sky-400 hover:text-sky-300 transition-colors"
-                    onClick={handleSubmit}
-                  >
-                    <Plus size={14} />
-                  </button>
-                </Show>
-              </Show>
+      <Show when={result()}>
+        {(r) => (
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-green-400">{r().message}</span>
+            <Show when={r().pageId}>
               <button
-                class="text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                onClick={() => { setExpanded(false); setUrl(""); }}
+                class="text-xs text-sky-400 hover:text-sky-300 transition-colors"
+                onClick={() => navigate(`/page/${r().pageId}`)}
               >
-                <X size={14} />
+                View
               </button>
-            </div>
+            </Show>
+          </div>
+        )}
+      </Show>
+      <Show when={!result()}>
+        <div class="flex items-center bg-muted/40 rounded-full px-3 py-1.5 gap-2">
+          <input
+            class="bg-transparent text-sm text-foreground outline-none w-48 placeholder:text-muted-foreground/50"
+            placeholder="Paste URL..."
+            value={url()}
+            onInput={(e) => setUrl(e.currentTarget.value)}
+            onKeyDown={handleKeyDown}
+            disabled={saving()}
+          />
+          <Show
+            when={!saving()}
+            fallback={<Loader2 size={14} class="text-muted-foreground animate-spin" />}
+          >
+            <Show when={isValidUrl(url())}>
+              <button
+                class="text-sky-400 hover:text-sky-300 transition-colors"
+                onClick={handleSubmit}
+              >
+                <Plus size={14} />
+              </button>
+            </Show>
           </Show>
         </div>
       </Show>
