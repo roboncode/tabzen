@@ -1,31 +1,23 @@
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 import { Badge } from './badge';
 
-const meta: Meta<typeof Badge> = {
+const meta: Meta = {
   title: 'UI/Badge',
-  component: Badge,
-  argTypes: {
-    variant: { control: 'select', options: ['default', 'count', 'citation'] },
-  },
-  args: {
-    children: 'Badge',
-    variant: 'default',
-  },
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 export const Default: Story = {
-  args: { children: 'Default badge' },
+  render: () => <Badge variant="default">Default badge</Badge>,
 };
 
 export const Count: Story = {
-  args: { variant: 'count', children: '12' },
+  render: () => <Badge variant="count">12</Badge>,
 };
 
 export const Citation: Story = {
-  args: { variant: 'citation', children: '1' },
+  render: () => <Badge variant="citation">1</Badge>,
 };
 
 export const AllVariants: Story = {

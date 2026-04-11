@@ -1,28 +1,21 @@
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 import { PromptSuggestion } from './prompt-suggestion';
 
-const meta: Meta<typeof PromptSuggestion> = {
+const meta: Meta = {
   title: 'Components/PromptSuggestion',
-  component: PromptSuggestion,
-  argTypes: {
-    variant: { control: 'select', options: ['outline', 'ghost', 'default'] },
-    size: { control: 'select', options: ['sm', 'md', 'lg', 'icon', 'icon-sm'] },
-    highlight: { control: 'text' },
-  },
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 export const Default: Story = {
-  args: { children: 'Tell me about TypeScript' },
+  render: () => <PromptSuggestion>Tell me about TypeScript</PromptSuggestion>,
 };
 
 export const WithHighlight: Story = {
-  args: {
-    children: 'Tell me about TypeScript generics',
-    highlight: 'TypeScript',
-  },
+  render: () => (
+    <PromptSuggestion highlight="TypeScript">Tell me about TypeScript generics</PromptSuggestion>
+  ),
 };
 
 export const MultipleSuggestions: Story = {

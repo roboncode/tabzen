@@ -1,68 +1,57 @@
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 import { Button } from './button';
 
-const meta: Meta<typeof Button> = {
+const meta: Meta = {
   title: 'UI/Button',
-  component: Button,
-  argTypes: {
-    variant: { control: 'select', options: ['default', 'ghost', 'outline'] },
-    size: { control: 'select', options: ['sm', 'md', 'lg', 'icon', 'icon-sm'] },
-    disabled: { control: 'boolean' },
-  },
-  args: {
-    children: 'Click me',
-    variant: 'default',
-    size: 'md',
-  },
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
-export const Default: Story = {};
+export const Default: Story = {
+  render: () => <Button variant="default" size="md">Click me</Button>,
+};
 
 export const Ghost: Story = {
-  args: { variant: 'ghost', children: 'Ghost' },
+  render: () => <Button variant="ghost">Ghost</Button>,
 };
 
 export const Outline: Story = {
-  args: { variant: 'outline', children: 'Outline' },
+  render: () => <Button variant="outline">Outline</Button>,
 };
 
 export const Small: Story = {
-  args: { size: 'sm', children: 'Small' },
+  render: () => <Button size="sm">Small</Button>,
 };
 
 export const Large: Story = {
-  args: { size: 'lg', children: 'Large' },
+  render: () => <Button size="lg">Large</Button>,
 };
 
 export const Icon: Story = {
-  args: {
-    size: 'icon',
-    children: (
+  render: () => (
+    <Button size="icon">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="12" y1="5" x2="12" y2="19" />
         <line x1="5" y1="12" x2="19" y2="12" />
       </svg>
-    ),
-  },
+    </Button>
+  ),
 };
 
 export const IconSmall: Story = {
-  args: {
-    size: 'icon-sm',
-    children: (
+  render: () => (
+    <Button size="icon-sm">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="12" y1="5" x2="12" y2="19" />
         <line x1="5" y1="12" x2="19" y2="12" />
       </svg>
-    ),
-  },
+    </Button>
+  ),
 };
 
 export const Disabled: Story = {
-  args: { disabled: true, children: 'Disabled' },
+  render: () => <Button disabled>Disabled</Button>,
 };
 
 export const AllVariants: Story = {

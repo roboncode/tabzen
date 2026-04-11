@@ -1,39 +1,36 @@
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 import { Markdown } from './markdown';
 
-const meta: Meta<typeof Markdown> = {
+const meta: Meta = {
   title: 'Components/Markdown',
-  component: Markdown,
-  argTypes: {
-    content: { control: 'text' },
-  },
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 export const PlainText: Story = {
-  args: {
-    content: 'This is a simple paragraph of text rendered through the Markdown component.',
-    class: '',
-  },
+  render: () => (
+    <Markdown content="This is a simple paragraph of text rendered through the Markdown component." />
+  ),
 };
 
 export const Headings: Story = {
-  args: {
-    content: `# Heading 1
+  render: () => (
+    <Markdown
+      content={`# Heading 1
 ## Heading 2
 ### Heading 3
 #### Heading 4
 
-Some text below the headings.`,
-    class: '',
-  },
+Some text below the headings.`}
+    />
+  ),
 };
 
 export const CodeBlocks: Story = {
-  args: {
-    content: `Here is some inline \`code\` in a paragraph.
+  render: () => (
+    <Markdown
+      content={`Here is some inline \`code\` in a paragraph.
 
 \`\`\`typescript
 const x: number = 42;
@@ -44,14 +41,15 @@ And another block:
 
 \`\`\`python
 print("hello world")
-\`\`\``,
-    class: '',
-  },
+\`\`\``}
+    />
+  ),
 };
 
 export const Lists: Story = {
-  args: {
-    content: `### Unordered List
+  render: () => (
+    <Markdown
+      content={`### Unordered List
 - First item
 - Second item
   - Nested item
@@ -61,28 +59,31 @@ export const Lists: Story = {
 ### Ordered List
 1. Step one
 2. Step two
-3. Step three`,
-    class: '',
-  },
+3. Step three`}
+    />
+  ),
 };
 
 export const GFMTable: Story = {
-  args: {
-    content: `### Comparison Table
+  render: () => (
+    <Markdown
+      content={`### Comparison Table
 
 | Feature | SolidJS | React | Svelte |
 |---------|---------|-------|--------|
 | Reactivity | Fine-grained | Virtual DOM | Compiler |
 | Bundle Size | ~7KB | ~40KB | ~2KB |
 | Performance | Excellent | Good | Excellent |
-| Learning Curve | Moderate | Moderate | Easy |`,
-    class: '',
-  },
+| Learning Curve | Moderate | Moderate | Easy |`}
+    />
+  ),
 };
 
 export const RichContent: Story = {
-  args: {
-    content: `# Project Overview
+  render: () => (
+    <Markdown
+      class="max-w-2xl"
+      content={`# Project Overview
 
 This is a **comprehensive** guide to building modern web applications.
 
@@ -111,7 +112,7 @@ pnpm dev
 | State | Signals | Reactivity |
 | Styling | Tailwind | Design |
 
-For more info, visit [solidjs.com](https://solidjs.com).`,
-    class: 'max-w-2xl',
-  },
+For more info, visit [solidjs.com](https://solidjs.com).`}
+    />
+  ),
 };

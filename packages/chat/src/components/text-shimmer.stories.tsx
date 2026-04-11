@@ -1,42 +1,33 @@
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 import { TextShimmer } from './text-shimmer';
 
-const meta: Meta<typeof TextShimmer> = {
+const meta: Meta = {
   title: 'Components/TextShimmer',
-  component: TextShimmer,
-  argTypes: {
-    duration: { control: { type: 'range', min: 1, max: 10, step: 0.5 } },
-    spread: { control: { type: 'range', min: 5, max: 45, step: 5 } },
-    as: { control: 'select', options: ['span', 'p', 'h1', 'h2', 'h3'] },
-  },
-  args: {
-    children: 'Shimmering text effect',
-    duration: 4,
-    spread: 20,
-  },
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
-export const Default: Story = {};
+export const Default: Story = {
+  render: () => <TextShimmer>Shimmering text effect</TextShimmer>,
+};
 
 export const FastShimmer: Story = {
-  args: { children: 'Fast shimmer animation', duration: 1.5 },
+  render: () => <TextShimmer duration={1.5}>Fast shimmer animation</TextShimmer>,
 };
 
 export const SlowShimmer: Story = {
-  args: { children: 'Slow shimmer animation', duration: 8 },
+  render: () => <TextShimmer duration={8}>Slow shimmer animation</TextShimmer>,
 };
 
 export const WideSpread: Story = {
-  args: { children: 'Wide spread shimmer', spread: 40 },
+  render: () => <TextShimmer spread={40}>Wide spread shimmer</TextShimmer>,
 };
 
 export const NarrowSpread: Story = {
-  args: { children: 'Narrow spread shimmer', spread: 5 },
+  render: () => <TextShimmer spread={5}>Narrow spread shimmer</TextShimmer>,
 };
 
 export const AsHeading: Story = {
-  args: { children: 'Shimmer Heading', as: 'h2', class: 'text-2xl' },
+  render: () => <TextShimmer as="h2" class="text-2xl">Shimmer Heading</TextShimmer>,
 };

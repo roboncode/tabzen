@@ -1,24 +1,19 @@
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 import { FeedbackBar } from './feedback-bar';
 
-const meta: Meta<typeof FeedbackBar> = {
+const meta: Meta = {
   title: 'Components/FeedbackBar',
-  component: FeedbackBar,
-  argTypes: {
-    title: { control: 'text' },
-  },
-  args: {
-    title: 'Was this response helpful?',
-  },
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
-export const Default: Story = {};
+export const Default: Story = {
+  render: () => <FeedbackBar title="Was this response helpful?" />,
+};
 
 export const CustomTitle: Story = {
-  args: { title: 'Rate this answer' },
+  render: () => <FeedbackBar title="Rate this answer" />,
 };
 
 export const WithIcon: Story = {

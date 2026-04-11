@@ -2,42 +2,60 @@ import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 import { For } from 'solid-js';
 import { Loader, type LoaderVariant, type LoaderSize } from './loader';
 
-const meta: Meta<typeof Loader> = {
+const meta: Meta = {
   title: 'Components/Loader',
-  component: Loader,
-  argTypes: {
-    variant: {
-      control: 'select',
-      options: [
-        'circular', 'classic', 'pulse', 'pulse-dot', 'dots', 'typing',
-        'wave', 'bars', 'terminal', 'text-blink', 'text-shimmer', 'loading-dots',
-      ],
-    },
-    size: { control: 'select', options: ['sm', 'md', 'lg'] },
-    text: { control: 'text' },
-  },
-  args: {
-    variant: 'circular',
-    size: 'md',
-  },
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
-export const Default: Story = {};
+export const Default: Story = {
+  render: () => <Loader variant="circular" size="md" />,
+};
 
-export const Classic: Story = { args: { variant: 'classic' } };
-export const Pulse: Story = { args: { variant: 'pulse' } };
-export const PulseDot: Story = { args: { variant: 'pulse-dot' } };
-export const Dots: Story = { args: { variant: 'dots' } };
-export const Typing: Story = { args: { variant: 'typing' } };
-export const Wave: Story = { args: { variant: 'wave' } };
-export const Bars: Story = { args: { variant: 'bars' } };
-export const Terminal: Story = { args: { variant: 'terminal' } };
-export const TextBlink: Story = { args: { variant: 'text-blink', text: 'Thinking' } };
-export const TextShimmer: Story = { args: { variant: 'text-shimmer', text: 'Analyzing' } };
-export const LoadingDots: Story = { args: { variant: 'loading-dots', text: 'Processing' } };
+export const Classic: Story = {
+  render: () => <Loader variant="classic" size="md" />,
+};
+
+export const Pulse: Story = {
+  render: () => <Loader variant="pulse" size="md" />,
+};
+
+export const PulseDot: Story = {
+  render: () => <Loader variant="pulse-dot" size="md" />,
+};
+
+export const Dots: Story = {
+  render: () => <Loader variant="dots" size="md" />,
+};
+
+export const Typing: Story = {
+  render: () => <Loader variant="typing" size="md" />,
+};
+
+export const Wave: Story = {
+  render: () => <Loader variant="wave" size="md" />,
+};
+
+export const Bars: Story = {
+  render: () => <Loader variant="bars" size="md" />,
+};
+
+export const Terminal: Story = {
+  render: () => <Loader variant="terminal" size="md" />,
+};
+
+export const TextBlink: Story = {
+  render: () => <Loader variant="text-blink" text="Thinking" size="md" />,
+};
+
+export const TextShimmer: Story = {
+  render: () => <Loader variant="text-shimmer" text="Analyzing" size="md" />,
+};
+
+export const LoadingDots: Story = {
+  render: () => <Loader variant="loading-dots" text="Processing" size="md" />,
+};
 
 const allVariants: LoaderVariant[] = [
   'circular', 'classic', 'pulse', 'pulse-dot', 'dots', 'typing',

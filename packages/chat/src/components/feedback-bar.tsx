@@ -1,11 +1,11 @@
-import { Show } from 'solid-js';
+import { type JSX, Show } from 'solid-js';
 import { cn } from '../utils/cn';
 import { ThumbsUp, ThumbsDown, X } from 'lucide-solid';
 
 export interface FeedbackBarProps {
   class?: string;
   title?: string;
-  icon?: Element;
+  icon?: JSX.Element;
   onHelpful?: () => void;
   onNotHelpful?: () => void;
   onClose?: () => void;
