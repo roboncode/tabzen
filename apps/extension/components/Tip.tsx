@@ -19,7 +19,7 @@ export default function Tip(props: TipProps) {
 
   return (
     <div class="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-      <div class="bg-white rounded-2xl px-8 py-6 max-w-sm shadow-2xl shadow-black/40 pointer-events-auto text-center">
+      <div class="bg-white rounded-2xl px-8 py-6 max-w-sm shadow-2xl shadow-black/40 pointer-events-auto">
         <Show when={current().title}>
           <h3 class="text-base font-semibold text-gray-900 mb-2">{current().title}</h3>
         </Show>
@@ -27,23 +27,14 @@ export default function Tip(props: TipProps) {
 
         {/* Progress dots */}
         <Show when={hasMultiple()}>
-          <div class="flex items-center justify-center gap-1.5 mt-4">
+          <div class="flex items-center gap-1.5 mt-4">
             {props.tips.map((_, i) => (
               <div class={`w-1.5 h-1.5 rounded-full transition-colors ${i === index() ? "bg-sky-500" : "bg-gray-300"}`} />
             ))}
           </div>
         </Show>
 
-        <div class="flex items-center justify-center gap-3 mt-4">
-          <Show when={props.onDontShowAgain}>
-            <button
-              class="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-              onClick={props.onDontShowAgain}
-            >
-              Don't show again
-            </button>
-          </Show>
-
+        <div class="flex items-center justify-between mt-4">
           <Show
             when={!isLast()}
             fallback={
@@ -60,6 +51,15 @@ export default function Tip(props: TipProps) {
               onClick={() => setIndex(index() + 1)}
             >
               Next
+            </button>
+          </Show>
+
+          <Show when={props.onDontShowAgain}>
+            <button
+              class="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              onClick={props.onDontShowAgain}
+            >
+              Don't show again
             </button>
           </Show>
         </div>
