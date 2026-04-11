@@ -509,14 +509,14 @@ export default function PageCollection(props: PageCollectionProps) {
 
         {/* Paste URL confirmation */}
         <Show when={pastedUrl()}>
-          <div class="mx-4 mt-2 flex items-center justify-between bg-sky-500/10 rounded-lg px-3 py-2.5 gap-3">
+          <div class="mx-4 mt-3 flex items-center justify-between bg-sky-500 rounded-lg px-5 py-3 gap-6">
             <div class="flex-1 min-w-0">
-              <p class="text-xs text-sky-300">Add to collection?</p>
-              <p class="text-xs text-muted-foreground mt-0.5 truncate">{pastedUrl()}</p>
+              <p class="text-sm font-medium text-white">Add to collection?</p>
+              <p class="text-xs text-white/70 mt-0.5 truncate">{pastedUrl()}</p>
             </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
+            <div class="flex items-center gap-4 flex-shrink-0">
               <button
-                class="px-3 py-1 text-xs font-medium rounded-full bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 transition-colors disabled:opacity-50"
+                class="px-4 py-1.5 text-sm font-medium rounded-full bg-white text-sky-600 hover:bg-white/90 transition-colors disabled:opacity-50"
                 disabled={pasteSaving()}
                 onClick={async () => {
                   setPasteSaving(true);
@@ -533,7 +533,7 @@ export default function PageCollection(props: PageCollectionProps) {
                 {pasteSaving() ? "Saving..." : "Save"}
               </button>
               <button
-                class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                class="text-sm text-white/80 hover:text-white transition-colors"
                 onClick={() => setPastedUrl(null)}
               >
                 Dismiss
