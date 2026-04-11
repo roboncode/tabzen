@@ -3,7 +3,7 @@ import { Plus, Loader2 } from "lucide-solid";
 import { sendMessage } from "@/lib/messages";
 import { useNavigate } from "@solidjs/router";
 
-const modKey = navigator.platform.includes("Mac") ? "⌘" : "Ctrl+";
+const isMac = navigator.platform.includes("Mac");
 
 export default function AddUrlInput() {
   const navigate = useNavigate();
@@ -70,7 +70,7 @@ export default function AddUrlInput() {
         <div class="flex items-center bg-muted/40 rounded-lg px-3 py-1 gap-2 flex-1">
           <input
             class="bg-transparent text-sm text-foreground outline-none flex-1 min-w-0 placeholder:text-muted-foreground/50"
-            placeholder={`Add URL · or ${modKey}V anywhere`}
+            placeholder="Add URL"
             value={url()}
             onInput={(e) => setUrl(e.currentTarget.value)}
             onKeyDown={handleKeyDown}
@@ -80,7 +80,15 @@ export default function AddUrlInput() {
             when={!saving()}
             fallback={<Loader2 size={14} class="text-muted-foreground/40 animate-spin" />}
           >
-            <Show when={isValidUrl(url())}>
+            <Show
+              when={isValidUrl(url())}
+              fallback={
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  <kbd class="px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/60 bg-muted/60 rounded border border-muted-foreground/10">{isMac ? "⌘" : "Ctrl"}</kbd>
+                  <kbd class="px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/60 bg-muted/60 rounded border border-muted-foreground/10">V</kbd>
+                </div>
+              }
+            >
               <button
                 class="w-6 h-6 rounded-full flex items-center justify-center text-foreground hover:bg-muted/40 cursor-pointer transition-colors flex-shrink-0"
                 onClick={handleSubmit}
