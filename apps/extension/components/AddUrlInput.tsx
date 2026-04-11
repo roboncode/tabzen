@@ -80,10 +80,10 @@ export default function AddUrlInput() {
           >
             <Show when={isValidUrl(url())}>
               <button
-                class="w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/40 cursor-pointer transition-colors flex-shrink-0"
+                class="w-7 h-7 rounded-full flex items-center justify-center text-foreground hover:bg-muted/40 cursor-pointer transition-colors flex-shrink-0"
                 onClick={handleSubmit}
               >
-                <Plus size={14} />
+                <Plus size={18} />
               </button>
             </Show>
           </Show>
