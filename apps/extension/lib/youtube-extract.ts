@@ -35,7 +35,6 @@ export async function extractYouTubeTranscriptDirect(
   let tabId: number | undefined;
 
   try {
-    console.log("[TabZen] YT Direct: opening background tab for", url);
     const tab = await browser.tabs.create({ url, active: false });
     tabId = tab.id;
 
@@ -50,20 +49,15 @@ export async function extractYouTubeTranscriptDirect(
         }
       };
       browser.tabs.onUpdated.addListener(listener);
-      // Timeout after 15 seconds
       setTimeout(() => {
         browser.tabs.onUpdated.removeListener(listener);
         resolve();
       }, 15000);
     });
 
-    console.log("[TabZen] YT Direct: tab loaded, extracting transcript");
-    // Use the existing tab-based extraction
     const result = await extractYouTubeTranscript(tabId, url);
-    console.log("[TabZen] YT Direct: result:", result?.hasTranscript, "segments:", result?.segments?.length);
     return result;
-  } catch (e) {
-    console.error("[TabZen] YT Direct: error:", e);
+  } catch {
     return null;
   } finally {
     // Always close the background tab

@@ -1408,7 +1408,6 @@ export default defineBackground(() => {
   }
 
   async function handleCaptureUrl(url: string): Promise<MessageResponse> {
-    console.log("[TabZen] handleCaptureUrl called with:", url);
     try {
       const settings = await getSettings();
       const existingPages = await getAllPages();
@@ -1446,19 +1445,15 @@ export default defineBackground(() => {
       let transcriptSegments: TranscriptSegment[] | null = null;
       let markdownContent: string | null = null;
 
-      console.log("[TabZen] CAPTURE_URL: url=", url, "isYouTube=", isYouTubeWatchUrl(url));
       if (isYouTubeWatchUrl(url)) {
         try {
           const { extractYouTubeTranscriptDirect } = await import("@/lib/youtube-extract");
-          console.log("[TabZen] CAPTURE_URL: Extracting YouTube transcript for", url);
           const result = await extractYouTubeTranscriptDirect(url);
-          console.log("[TabZen] CAPTURE_URL: YouTube result:", result?.hasTranscript, "segments:", result?.segments?.length);
           if (result?.hasTranscript) {
             transcriptSegments = result.segments;
             if (!meta.ogTitle && result.title) meta.ogTitle = result.title;
           }
-        } catch (e) {
-          console.error("[TabZen] CAPTURE_URL: YouTube extraction failed:", e);
+        } catch {
         }
       } else {
         try {
@@ -1468,8 +1463,7 @@ export default defineBackground(() => {
             markdownContent = result.content;
             if (!meta.ogTitle && result.title) meta.ogTitle = result.title;
           }
-        } catch (e) {
-          console.error("[TabZen] CAPTURE_URL: Content extraction failed:", e);
+        } catch {
         }
       }
 
