@@ -3,6 +3,7 @@ import { PromptSuggestion } from './prompt-suggestion';
 
 const meta: Meta = {
   title: 'Components/PromptSuggestion',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

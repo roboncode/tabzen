@@ -3,6 +3,7 @@ import { TextShimmer } from './text-shimmer';
 
 const meta: Meta = {
   title: 'Components/TextShimmer',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

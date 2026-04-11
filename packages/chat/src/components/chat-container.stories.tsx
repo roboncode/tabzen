@@ -5,6 +5,7 @@ import { For } from 'solid-js';
 
 const meta: Meta = {
   title: 'Components/ChatContainer',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

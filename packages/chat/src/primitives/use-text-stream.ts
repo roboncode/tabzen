@@ -72,8 +72,12 @@ export function useTextStream(options: UseTextStreamOptions) {
       if (options.mode === 'typewriter') {
         intervalId = setInterval(typewriterTick, speed);
       } else {
+        // Deliver all segments at once — CSS animation-delay handles staggered fade-in
+        const words = source.split(/(\s+)/).filter(Boolean);
+        setSegments(words.map((text, index) => ({ text, index })));
         setDisplayedText(source);
-        setIsComplete(true);
+        // isComplete fires after animation has time to play
+        // (segments count * delay per segment from ResponseStream)
       }
     } else {
       if (options.mode === 'typewriter') {

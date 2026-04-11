@@ -4,6 +4,7 @@ import { ModelSwitcher } from './model-switcher';
 
 const meta: Meta = {
   title: 'Components/ModelSwitcher',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

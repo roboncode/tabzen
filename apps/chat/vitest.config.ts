@@ -4,7 +4,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [solidPlugin()],
-  test: { globals: true },
+  test: { globals: true, exclude: ['e2e/**', 'node_modules/**'] },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

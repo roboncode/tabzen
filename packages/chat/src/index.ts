@@ -24,6 +24,7 @@ export type { TextareaProps } from './ui/textarea';
 export { Badge } from './ui/badge';
 export type { BadgeProps } from './ui/badge';
 export { Separator } from './ui/separator';
+export { Skeleton } from './ui/skeleton';
 export { Dialog, DialogTrigger, DialogContent } from './ui/dialog';
 
 // Layer 3: AI/Feature Components
@@ -83,3 +84,13 @@ export { ConversationList } from './components/conversation-list';
 export { ConversationItem } from './components/conversation-item';
 export { ModelSwitcher } from './components/model-switcher';
 export { ChatScopePicker } from './components/chat-scope-picker';
+export { Tool } from './components/tool';
+export type { ToolPart, ToolProps } from './components/tool';
+export { ThinkingBar } from './components/thinking-bar';
+export type { ThinkingBarProps } from './components/thinking-bar';
+export { Reasoning, ReasoningTrigger, ReasoningContent } from './components/reasoning';
+export type { ReasoningProps, ReasoningTriggerProps, ReasoningContentProps } from './components/reasoning';
+export { Image } from './components/image';
+export type { ImageProps, GeneratedImageLike } from './components/image';
+export { FileUpload, FileUploadTrigger, FileUploadContent } from './components/file-upload';
+export type { FileUploadProps, FileUploadTriggerProps, FileUploadContentProps } from './components/file-upload';

@@ -11,7 +11,7 @@ export interface MessageProps extends JSX.HTMLAttributes<HTMLDivElement> {
 function Message(props: MessageProps) {
   const [local, rest] = splitProps(props, ['children', 'class']);
   return (
-    <div class={cn('flex gap-3', local.class)} {...rest}>
+    <div class={cn('flex items-start gap-3', local.class)} {...rest}>
       {local.children}
     </div>
   );

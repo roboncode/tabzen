@@ -3,6 +3,7 @@ import { Button } from './button';
 
 const meta: Meta = {
   title: 'UI/Button',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

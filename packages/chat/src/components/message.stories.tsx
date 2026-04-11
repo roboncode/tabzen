@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 import { Message, MessageAvatar, MessageContent, MessageActions } from './message';
 import { Button } from '../ui/button';
+import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Pencil } from 'lucide-solid';
 
 const meta: Meta = {
   title: 'Components/Message',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;
@@ -11,30 +13,75 @@ type Story = StoryObj;
 
 export const UserMessage: Story = {
   render: () => (
-    <Message>
-      <MessageAvatar src="" fallback="U" alt="User" />
-      <MessageContent>Hello, can you help me with something?</MessageContent>
-    </Message>
+    <div class="max-w-2xl">
+      <Message class="flex flex-col items-end">
+        <MessageContent class="bg-muted text-primary max-w-[85%] rounded-3xl px-5 py-2.5">
+          Hello! How can I help you today?
+        </MessageContent>
+      </Message>
+    </div>
   ),
 };
 
 export const AssistantMessage: Story = {
   render: () => (
-    <Message>
-      <MessageAvatar src="" fallback="AI" alt="Assistant" />
-      <MessageContent>
-        Of course! I'd be happy to help. What would you like to know?
-      </MessageContent>
-    </Message>
+    <div class="max-w-2xl">
+      <Message>
+        <MessageAvatar src="" fallback="AI" alt="Assistant" />
+        <MessageContent>
+          I can help with a variety of tasks: answering questions, providing information,
+          assisting with coding, generating creative content. What would you like help with today?
+        </MessageContent>
+      </Message>
+    </div>
+  ),
+};
+
+export const AssistantNoBg: Story = {
+  name: 'Assistant (No Background)',
+  render: () => (
+    <div class="max-w-2xl">
+      <Message>
+        <MessageAvatar src="" fallback="AI" alt="Assistant" />
+        <MessageContent class="bg-transparent p-0">
+          I can help with a variety of tasks: answering questions, providing information,
+          assisting with coding, generating creative content. What would you like help with today?
+        </MessageContent>
+      </Message>
+    </div>
+  ),
+};
+
+export const UserAlignedRight: Story = {
+  name: 'User (Right-Aligned)',
+  render: () => (
+    <div class="max-w-2xl">
+      <Message class="flex flex-col items-end">
+        <div class="group flex flex-col items-end gap-1">
+          <MessageContent class="bg-muted text-primary max-w-[85%] rounded-3xl px-5 py-2.5">
+            Can you explain how SolidJS reactivity differs from React hooks?
+          </MessageContent>
+          <MessageActions class="flex gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+            <Button variant="ghost" size="icon-sm" class="rounded-full">
+              <Pencil class="size-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon-sm" class="rounded-full">
+              <Copy class="size-3.5" />
+            </Button>
+          </MessageActions>
+        </div>
+      </Message>
+    </div>
   ),
 };
 
 export const MarkdownMessage: Story = {
   render: () => (
-    <Message>
-      <MessageAvatar src="" fallback="AI" alt="Assistant" />
-      <MessageContent markdown>
-        {`Here's a **bold** statement with some \`inline code\` and a list:
+    <div class="max-w-2xl">
+      <Message>
+        <MessageAvatar src="" fallback="AI" alt="Assistant" />
+        <MessageContent markdown class="bg-transparent p-0">
+          {`Here's a **bold** statement with some \`inline code\` and a list:
 
 - First item
 - Second item
@@ -46,30 +93,33 @@ And a code block:
 const greeting = "Hello, world!";
 console.log(greeting);
 \`\`\``}
-      </MessageContent>
-    </Message>
+        </MessageContent>
+      </Message>
+    </div>
   ),
 };
 
 export const WithActions: Story = {
   render: () => (
-    <div class="space-y-2">
+    <div class="max-w-2xl">
       <Message>
         <MessageAvatar src="" fallback="AI" alt="Assistant" />
-        <div class="space-y-2">
-          <MessageContent>Here is a response with actions below it.</MessageContent>
-          <MessageActions>
-            <Button variant="ghost" size="icon-sm">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-              </svg>
+        <div class="group flex w-full flex-col gap-0">
+          <MessageContent class="bg-transparent p-0">
+            Here is a response with hover actions below it.
+          </MessageContent>
+          <MessageActions class="-ml-2.5 flex gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+            <Button variant="ghost" size="icon-sm" class="rounded-full">
+              <Copy class="size-3.5" />
             </Button>
-            <Button variant="ghost" size="icon-sm">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 4v6h6" />
-                <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
-              </svg>
+            <Button variant="ghost" size="icon-sm" class="rounded-full">
+              <ThumbsUp class="size-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon-sm" class="rounded-full">
+              <ThumbsDown class="size-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon-sm" class="rounded-full">
+              <RefreshCw class="size-3.5" />
             </Button>
           </MessageActions>
         </div>
@@ -80,21 +130,41 @@ export const WithActions: Story = {
 
 export const Conversation: Story = {
   render: () => (
-    <div class="space-y-4 max-w-2xl">
-      <Message>
-        <MessageAvatar src="" fallback="U" alt="User" />
-        <MessageContent>What is TypeScript?</MessageContent>
+    <div class="max-w-2xl space-y-4">
+      {/* User — right-aligned, bubble style */}
+      <Message class="flex flex-col items-end">
+        <MessageContent class="bg-muted text-primary max-w-[85%] rounded-3xl px-5 py-2.5">
+          What is TypeScript?
+        </MessageContent>
       </Message>
+
+      {/* Assistant — left-aligned, no background */}
       <Message>
         <MessageAvatar src="" fallback="AI" alt="Assistant" />
-        <MessageContent markdown>
-          {`**TypeScript** is a strongly typed programming language that builds on JavaScript. It adds optional static type checking and other features like interfaces, enums, and generics.
+        <div class="group flex w-full flex-col gap-0">
+          <MessageContent markdown class="bg-transparent p-0">
+            {`**TypeScript** is a strongly typed programming language that builds on JavaScript. It adds optional static type checking and other features like interfaces, enums, and generics.
 
 Key benefits:
 - Catches errors at compile time
 - Better IDE support and autocompletion
 - Makes large codebases more maintainable`}
-        </MessageContent>
+          </MessageContent>
+          <MessageActions class="-ml-2.5 flex gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+            <Button variant="ghost" size="icon-sm" class="rounded-full">
+              <Copy class="size-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon-sm" class="rounded-full">
+              <ThumbsUp class="size-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon-sm" class="rounded-full">
+              <ThumbsDown class="size-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon-sm" class="rounded-full">
+              <RefreshCw class="size-3.5" />
+            </Button>
+          </MessageActions>
+        </div>
       </Message>
     </div>
   ),

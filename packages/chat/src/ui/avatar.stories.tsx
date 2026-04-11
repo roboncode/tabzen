@@ -3,6 +3,7 @@ import { Avatar } from './avatar';
 
 const meta: Meta = {
   title: 'UI/Avatar',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

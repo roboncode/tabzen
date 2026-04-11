@@ -3,6 +3,7 @@ import { Checkpoint, CheckpointIcon, CheckpointTrigger } from './checkpoint';
 
 const meta: Meta = {
   title: 'Components/Checkpoint',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

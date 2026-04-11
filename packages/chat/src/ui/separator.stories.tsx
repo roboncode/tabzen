@@ -3,6 +3,7 @@ import { Separator } from './separator';
 
 const meta: Meta = {
   title: 'UI/Separator',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

@@ -3,6 +3,7 @@ import { ConversationItem } from './conversation-item';
 
 const meta: Meta = {
   title: 'Components/ConversationItem',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

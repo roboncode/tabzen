@@ -3,6 +3,7 @@ import { FeedbackBar } from './feedback-bar';
 
 const meta: Meta = {
   title: 'Components/FeedbackBar',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

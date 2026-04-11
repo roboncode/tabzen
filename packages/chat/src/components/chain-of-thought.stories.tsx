@@ -9,6 +9,7 @@ import {
 
 const meta: Meta = {
   title: 'Components/ChainOfThought',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

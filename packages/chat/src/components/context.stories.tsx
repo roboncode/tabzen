@@ -14,6 +14,7 @@ import {
 
 const meta: Meta = {
   title: 'Components/Context',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

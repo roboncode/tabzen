@@ -4,6 +4,7 @@ import { Loader, type LoaderVariant, type LoaderSize } from './loader';
 
 const meta: Meta = {
   title: 'Components/Loader',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

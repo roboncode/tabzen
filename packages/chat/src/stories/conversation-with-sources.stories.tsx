@@ -10,6 +10,7 @@ import { Copy, ThumbsUp, ThumbsDown, ArrowUp } from 'lucide-solid';
 
 const meta: Meta = {
   title: 'Examples/Conversation with Sources',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

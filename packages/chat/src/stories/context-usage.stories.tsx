@@ -10,6 +10,7 @@ import { createSignal } from 'solid-js';
 
 const meta: Meta = {
   title: 'Examples/Context & Token Usage',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

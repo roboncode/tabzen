@@ -5,6 +5,7 @@ import type { ConversationSummary, ConversationGroup } from '@tab-zen/shared';
 
 const meta: Meta = {
   title: 'Components/ConversationList',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

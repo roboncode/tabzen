@@ -28,7 +28,7 @@ function ChatContainerRoot(props: ChatContainerRootProps) {
     <ChatContainerContext.Provider value={{ isAtBottom, scrollToBottom }}>
       <div
         ref={ref}
-        class={cn('flex overflow-y-auto', local.class)}
+        class={cn('flex flex-col overflow-y-auto', local.class)}
         role="log"
         {...rest}
       >

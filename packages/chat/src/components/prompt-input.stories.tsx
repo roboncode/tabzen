@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 
 const meta: Meta = {
   title: 'Components/PromptInput',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

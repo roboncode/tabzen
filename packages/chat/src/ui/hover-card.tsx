@@ -37,7 +37,7 @@ export interface HoverCardContentProps { children: JSX.Element; class?: string; 
 export function HoverCardContent(props: HoverCardContentProps) {
   return (
     <KHoverCard.Portal>
-      <KHoverCard.Content class={cn('z-50 animate-in fade-in-0 zoom-in-95', props.class)}>
+      <KHoverCard.Content class={cn('z-50 rounded-lg bg-card shadow-lg animate-in fade-in-0 zoom-in-95', props.class)}>
         {props.children}
       </KHoverCard.Content>
     </KHoverCard.Portal>

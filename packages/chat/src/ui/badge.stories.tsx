@@ -3,6 +3,7 @@ import { Badge } from './badge';
 
 const meta: Meta = {
   title: 'UI/Badge',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

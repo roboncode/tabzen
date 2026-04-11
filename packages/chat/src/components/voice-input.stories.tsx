@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 
 const meta: Meta = {
   title: 'Components/VoiceInput',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

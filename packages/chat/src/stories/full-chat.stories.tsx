@@ -25,6 +25,11 @@ import {
   ContextContentFooter,
   ContextInputUsage,
   ContextOutputUsage,
+  Reasoning,
+  ReasoningTrigger,
+  ReasoningContent,
+  Tool,
+  ThinkingBar,
 } from "../index";
 import type {
   ConversationSummary,
@@ -249,7 +254,7 @@ export const Default: Story = {
           {/* Chat Messages — scrollable */}
           <div class="relative flex-1 overflow-y-auto">
             <ChatContainer class="h-full">
-              <ChatContainerContent class="space-y-0 px-5 pt-8 pb-24">
+              <ChatContainerContent class="space-y-0 px-5 pt-4 pb-12">
                 {/* User message 1 */}
                 <Message class="mx-auto flex w-full max-w-3xl flex-col gap-2 px-6 items-end">
                   <div class="group flex flex-col items-end gap-1">
@@ -387,11 +392,87 @@ export const Default: Story = {
                   </div>
                 </Message>
 
+                {/* User message 3 */}
+                <Message class="mx-auto flex w-full max-w-3xl flex-col gap-2 px-6 items-end">
+                  <div class="group flex flex-col items-end gap-1">
+                    <MessageContent class="bg-muted text-primary max-w-[85%] rounded-3xl px-5 py-2.5">
+                      Can you benchmark SolidJS vs React for a list of 10,000 items?
+                    </MessageContent>
+                  </div>
+                </Message>
+
+                {/* Assistant message 3 — with reasoning + tool call */}
+                <Message class="mx-auto flex w-full max-w-3xl flex-col gap-2 px-6 items-start">
+                  <div class="group flex w-full flex-col gap-0">
+                    {/* Reasoning block */}
+                    <Reasoning class="mb-3">
+                      <ReasoningTrigger class="text-sm">
+                        Thought for 4 seconds
+                      </ReasoningTrigger>
+                      <ReasoningContent markdown class="mt-1">
+                        {`I need to create a fair benchmark comparing SolidJS and React rendering performance. Let me think about the approach:
+
+- Both frameworks should render the same list of 10,000 items
+- I should measure initial render time and update performance
+- Need to use \`performance.now()\` for accurate timing
+- SolidJS should be significantly faster due to fine-grained reactivity`}
+                      </ReasoningContent>
+                    </Reasoning>
+
+                    {/* Tool call */}
+                    <Tool
+                      toolPart={{
+                        type: "run_benchmark",
+                        state: "output-available",
+                        input: {
+                          framework: ["solid", "react"],
+                          itemCount: 10000,
+                          iterations: 5,
+                        },
+                        output: {
+                          solid: { avgRenderMs: 12.4, avgUpdateMs: 0.8 },
+                          react: { avgRenderMs: 89.2, avgUpdateMs: 34.1 },
+                        },
+                        toolCallId: "call_abc123",
+                      }}
+                      class="mb-3"
+                    />
+
+                    <MessageContent
+                      markdown
+                      class="text-foreground prose flex-1 rounded-lg bg-transparent p-0"
+                    >
+                      {`Here are the benchmark results for rendering 10,000 list items:
+
+| Metric | SolidJS | React | Difference |
+|--------|---------|-------|-----------|
+| Initial render | 12.4ms | 89.2ms | **7.2x faster** |
+| Single item update | 0.8ms | 34.1ms | **42.6x faster** |
+
+SolidJS's fine-grained reactivity really shines here — updating a single item in React triggers a full virtual DOM diff of all 10,000 items, while SolidJS surgically updates only the changed DOM node.`}
+                    </MessageContent>
+                    <MessageActions class="-ml-2.5 flex gap-0">
+                      <Button variant="ghost" size="icon-sm" class="rounded-full">
+                        <Copy class="size-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" class="rounded-full">
+                        <ThumbsUp class="size-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" class="rounded-full">
+                        <ThumbsDown class="size-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" class="rounded-full">
+                        <RefreshCw class="size-3.5" />
+                      </Button>
+                    </MessageActions>
+                  </div>
+                </Message>
+
                 <ChatContainerScrollAnchor />
               </ChatContainerContent>
 
               {/* Scroll button */}
-              <div class="absolute bottom-4 left-1/2 flex w-full max-w-3xl -translate-x-1/2 justify-end px-5">
+              <div class="absolute bottom-4 left-1/2 flex w-full max-w-3xl -translate-x-1/2 justify-center px-5">
                 <ScrollButton class="shadow-sm" />
               </div>
             </ChatContainer>

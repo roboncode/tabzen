@@ -195,11 +195,22 @@ export const FadeStream: Story = {
 
 This is why \`Promise.resolve().then()\` always runs before \`setTimeout(cb, 0)\`.`;
 
+    const [showMessage, setShowMessage] = createSignal(false);
+
+    const handleStart = () => {
+      setShowMessage(false);
+      // Reset then show to remount the component
+      setTimeout(() => {
+        setShowMessage(true);
+        setIsStreaming(true);
+      }, 50);
+    };
+
     return (
       <div class="w-full max-w-2xl p-4 space-y-4">
         <p class="text-sm text-muted-foreground">Words fade in instead of appearing character by character.</p>
 
-        <Show when={isStreaming()}>
+        <Show when={showMessage()}>
           <Message>
             <MessageAvatar src="" fallback="AI" alt="Assistant" />
             <div class="flex-1 rounded-lg p-2 bg-secondary">
@@ -214,7 +225,7 @@ This is why \`Promise.resolve().then()\` always runs before \`setTimeout(cb, 0)\
           </Message>
         </Show>
 
-        <Button onClick={startStream} disabled={isStreaming()}>
+        <Button onClick={handleStart} disabled={isStreaming()}>
           {isStreaming() ? 'Streaming...' : 'Start Fade Stream'}
         </Button>
       </div>

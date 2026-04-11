@@ -3,6 +3,7 @@ import { Source, SourceTrigger, SourceContent, SourceList } from './source';
 
 const meta: Meta = {
   title: 'Components/Source',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

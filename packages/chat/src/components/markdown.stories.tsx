@@ -3,6 +3,7 @@ import { Markdown } from './markdown';
 
 const meta: Meta = {
   title: 'Components/Markdown',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;

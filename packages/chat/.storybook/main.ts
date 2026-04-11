@@ -4,7 +4,14 @@ const config: StorybookConfig = {
   stories: ['../src/**/*.stories.@(ts|tsx)'],
   framework: 'storybook-solidjs-vite',
   addons: ['@storybook/addon-themes'],
-  viteFinal(config) {
+  async viteFinal(config) {
+    const tailwindcss = (await import('@tailwindcss/postcss')).default;
+    config.css = {
+      ...config.css,
+      postcss: {
+        plugins: [tailwindcss()],
+      },
+    };
     return config;
   },
 };

@@ -9,6 +9,7 @@ import { ArrowUp, Paperclip, Globe, Mic, Square, Sparkles } from 'lucide-solid';
 
 const meta: Meta = {
   title: 'Examples/Prompt Input Variants',
+  parameters: { layout: 'padded' },
 };
 
 export default meta;
