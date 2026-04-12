@@ -152,7 +152,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
   }
 
   return (
-    <ChatConfig proseSize="sm">
+    <ChatConfig proseSize="base">
     <div class="flex flex-col h-full min-w-0 overflow-hidden bg-card">
       <Show when={view() === "history"}>
         <ChatHistory
