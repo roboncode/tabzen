@@ -958,8 +958,10 @@ export default function DetailPage(props: DetailPageProps) {
         </ChatPanel>
       </div>
 
-      {/* Chat FAB */}
-      <ChatFab open={chatOpen()} onToggle={() => setChatOpen((v) => !v)} />
+      {/* Chat FAB — hidden when panel is open, close is in the panel header */}
+      <Show when={!chatOpen()}>
+        <ChatFab open={false} onToggle={() => setChatOpen(true)} />
+      </Show>
 
       {/* Update available toast */}
       <Show when={hasPromptedReExtract() && hasContent()}>
