@@ -29,7 +29,7 @@ export interface MessageAvatarProps {
 
 function MessageAvatar(props: MessageAvatarProps) {
   return (
-    <div class={cn('h-8 w-8 min-w-8 min-h-8 shrink-0 overflow-hidden rounded-full', props.class)}>
+    <div class={cn('h-8 w-8 shrink-0 overflow-hidden rounded-full', props.class)}>
       <Show
         when={props.src}
         fallback={
