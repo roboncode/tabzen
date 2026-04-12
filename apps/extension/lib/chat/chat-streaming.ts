@@ -27,7 +27,8 @@ export async function* streamChatCompletion(
     throw new Error(`OpenRouter error (${response.status}): ${error}`);
   }
 
-  const reader = response.body!.getReader();
+  if (!response.body) throw new Error('Response body is null — streaming not supported');
+  const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
 

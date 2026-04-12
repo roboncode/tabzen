@@ -32,6 +32,7 @@ import ChatPanel from "./ChatPanel";
 import { createDocumentChatStore } from "@/lib/chat/chat-store";
 import type { DocumentChatContext } from "@/lib/chat/chat-streaming";
 import { useSettings } from "@/lib/hooks/useSettings";
+import type { Settings } from "@/lib/types";
 import NotesDisplay from "@/components/NotesDisplay";
 import DocumentNav from "./DocumentNav";
 import DocumentView from "./DocumentView";
@@ -725,10 +726,10 @@ export default function DetailPage(props: DetailPageProps) {
 
         {/* Scrollable area containing content + sticky sidebar */}
         <ChatPanel
-          open={chatOpen()}
+          open={chatOpen() && !!settings()}
           store={chatStore}
           documentContext={documentChatContext()}
-          settings={settings()!}
+          settings={settings() ?? ({} as Settings)}
           narrow={hideRightNav()}
           onClose={() => setChatOpen(false)}
         >

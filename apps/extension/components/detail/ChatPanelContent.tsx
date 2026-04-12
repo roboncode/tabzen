@@ -38,7 +38,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
   const [streamingContent, setStreamingContent] = createSignal("");
   const [promptText, setPromptText] = createSignal("");
   const [currentModel, setCurrentModel] = createSignal(props.settings.chatModel);
-  const [titleGenerated, setTitleGenerated] = createSignal(false);
+  const titleGeneratedFor = new Set<string>();
 
   const suggestions = [
     "What is this about?",
@@ -73,21 +73,22 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
     setIsStreaming(true);
     setStreamingContent("");
 
+    // Build messages from known state to avoid race with async resource refetch
     const conv = props.store.activeConversation();
-    if (!conv) return;
-
-    const systemPrompt = buildSystemPrompt(props.documentContext);
-    const messages = conv.messages.map((m) => ({
+    const priorMessages = conv ? conv.messages : [];
+    const allMessages = [...priorMessages, userMessage].map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     }));
+
+    const systemPrompt = buildSystemPrompt(props.documentContext);
 
     try {
       let fullContent = "";
       for await (const chunk of streamChatCompletion(
         props.settings.openRouterApiKey,
         currentModel(),
-        [{ role: "system", content: systemPrompt }, ...messages],
+        [{ role: "system", content: systemPrompt }, ...allMessages],
       )) {
         fullContent += chunk;
         setStreamingContent(fullContent);
@@ -102,19 +103,22 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
       };
       await props.store.addMessage(assistantMessage);
 
-      // Auto-title generation (fire and forget)
-      if (!titleGenerated()) {
+      // Auto-title generation (fire and forget, once per conversation)
+      const convId = props.store.activeConversationId();
+      if (convId && !titleGeneratedFor.has(convId)) {
         const updatedConv = props.store.activeConversation();
         if (updatedConv && updatedConv.title === "New Thread") {
           const title = await generateConversationTitle(
             props.settings.openRouterApiKey,
             currentModel(),
-            updatedConv.messages,
+            [...updatedConv.messages, assistantMessage],
           );
           if (title) {
             await props.store.updateTitle(title);
-            setTitleGenerated(true);
+            titleGeneratedFor.add(convId);
           }
+        } else if (updatedConv && updatedConv.title !== "New Thread") {
+          titleGeneratedFor.add(convId); // Already titled
         }
       }
     } catch (err) {
@@ -139,13 +143,11 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
 
   function handleNewConversation() {
     props.store.clearActive();
-    setTitleGenerated(false);
     setView("chat");
   }
 
   function handleSelectConversation(id: string) {
     props.store.selectConversation(id);
-    setTitleGenerated(true);
     setView("chat");
   }
 
