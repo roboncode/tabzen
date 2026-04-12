@@ -58,3 +58,10 @@ storybook-static/
 
 # Misc
 reference/
+
+# Go
+apps/service/bin/
+apps/service/build/bin/
+*.exe
+*.dll
+*.dylib

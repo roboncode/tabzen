@@ -293,6 +293,22 @@ importers:
         specifier: ^0.20.20
         version: 0.20.20(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@22.19.17)(jiti@2.6.1)(rollup@4.60.1)(tsx@4.21.0)(yaml@2.8.3)
 
+  apps/service/frontend:
+    dependencies:
+      solid-js:
+        specifier: ^1.9.0
+        version: 1.9.12
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.2(@types/node@22.19.17)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+      vite-plugin-solid:
+        specifier: ^2.11.0
+        version: 2.11.12(@testing-library/jest-dom@6.9.1)(solid-js@1.9.12)(vite@6.4.2(@types/node@22.19.17)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3))
+
   packages/chat:
     dependencies:
       '@kobalte/core':
