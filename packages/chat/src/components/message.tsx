@@ -94,7 +94,7 @@ function MessageActions(props: MessageActionsProps) {
   return (
     <div
       class={cn(
-        "flex items-center gap-0.5 mt-0.5 [&>button]:p-1 [&>button]:rounded [&>button]:text-foreground/60 [&>button]:hover:text-foreground [&>button]:transition-colors",
+        "flex items-center gap-0.5 mt-0.5",
         local.class,
       )}
       {...rest}

@@ -221,7 +221,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                       <MessageContent markdown class="bg-transparent p-0 pt-1.5">
                         {msg.content}
                       </MessageContent>
-                      <MessageActions>
+                      <MessageActions class="[&>button]:p-1 [&>button]:rounded [&>button]:text-foreground/60 [&>button]:hover:text-foreground [&>button]:transition-colors">
                         <button onClick={() => navigator.clipboard.writeText(msg.content)}>
                           <Copy size={14} />
                         </button>
@@ -239,7 +239,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                       <MessageContent class="bg-muted text-primary max-w-[85%] rounded-xl px-4 py-2 mr-1">
                         {msg.content}
                       </MessageContent>
-                      <MessageActions class="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      <MessageActions class="opacity-0 group-hover:opacity-100 transition-opacity duration-150 [&>button]:p-1 [&>button]:rounded [&>button]:text-foreground/60 [&>button]:hover:text-foreground [&>button]:transition-colors">
                         <button onClick={() => navigator.clipboard.writeText(msg.content)}>
                           <Copy size={14} />
                         </button>
