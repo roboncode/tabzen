@@ -219,7 +219,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                         <MessageContent markdown class="bg-transparent p-0">
                           {msg.content}
                         </MessageContent>
-                        <MessageActions class="-ml-2.5 flex gap-0 h-0 overflow-visible opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                        <MessageActions class="-ml-2.5 flex gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                           <Button variant="ghost" size="icon-sm" class="rounded-full" onClick={() => navigator.clipboard.writeText(msg.content)}>
                             <Copy class="size-3.5" />
                           </Button>
@@ -229,11 +229,11 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                   }>
                     {/* User message — right-aligned bubble, copy on hover */}
                     <Message class="flex flex-col items-end">
-                      <div class="group flex flex-col items-end gap-0">
+                      <div class="group flex flex-col items-end gap-1">
                         <MessageContent class="bg-muted text-primary max-w-[85%] rounded-3xl px-5 py-2.5">
                           {msg.content}
                         </MessageContent>
-                        <MessageActions class="flex gap-0 h-0 overflow-visible opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                        <MessageActions class="flex gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                           <Button variant="ghost" size="icon-sm" class="rounded-full" onClick={() => navigator.clipboard.writeText(msg.content)}>
                             <Copy class="size-3.5" />
                           </Button>
