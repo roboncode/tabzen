@@ -155,7 +155,8 @@ function ResizableHandle(props: ResizableHandleProps) {
       style={{
         cursor: isHoriz() ? 'col-resize' : 'row-resize',
         [isHoriz() ? 'width' : 'height']: '8px',
-        'background': isDragging() ? 'var(--primary, #a8b1ff)' : 'transparent',
+        'background': isDragging() ? 'var(--muted-foreground, #98989f)' : 'transparent',
+        'opacity': isDragging() ? '0.3' : '1',
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
