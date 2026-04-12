@@ -28,6 +28,10 @@ import TranscriptView from "./TranscriptView";
 import MarkdownView from "./MarkdownView";
 import DetailSidebar, { type TocEntry } from "./DetailSidebar";
 import ChatFab from "./ChatFab";
+import ChatPanel from "./ChatPanel";
+import { createDocumentChatStore } from "@/lib/chat/chat-store";
+import type { DocumentChatContext } from "@/lib/chat/chat-streaming";
+import { useSettings } from "@/lib/hooks/useSettings";
 import NotesDisplay from "@/components/NotesDisplay";
 import DocumentNav from "./DocumentNav";
 import DocumentView from "./DocumentView";
@@ -90,6 +94,22 @@ export default function DetailPage(props: DetailPageProps) {
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
   const [relatedPages, setRelatedPages] = createSignal<Page[]>([]);
   const [chatOpen, setChatOpen] = createSignal(false);
+
+  const { settings } = useSettings();
+  const chatStore = createDocumentChatStore(() => props.page.id);
+
+  const documentChatContext = (): DocumentChatContext => {
+    const hasTranscript = transcriptSegments().length > 0;
+    return {
+      title: props.page.title,
+      url: props.page.url,
+      author: props.page.creator ?? undefined,
+      contentType: hasTranscript ? "transcript" : "article",
+      content: hasTranscript
+        ? transcriptSegments().map((s) => s.text).join(" ")
+        : markdownContent(),
+    };
+  };
 
   // Sync active section changes to the URL
   createEffect(on(activeSection, (section) => {
@@ -704,6 +724,14 @@ export default function DetailPage(props: DetailPageProps) {
         </Show>
 
         {/* Scrollable area containing content + sticky sidebar */}
+        <ChatPanel
+          open={chatOpen()}
+          store={chatStore}
+          documentContext={documentChatContext()}
+          settings={settings()!}
+          narrow={hideRightNav()}
+          onClose={() => setChatOpen(false)}
+        >
         <div
           ref={scrollRef}
           class="flex-1 overflow-y-auto scrollbar-hide"
@@ -926,6 +954,7 @@ export default function DetailPage(props: DetailPageProps) {
             </Show>
           </div>
         </div>
+        </ChatPanel>
       </div>
 
       {/* Chat FAB */}
