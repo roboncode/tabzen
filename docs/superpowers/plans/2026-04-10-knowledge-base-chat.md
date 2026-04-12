@@ -1,6 +1,6 @@
 # Knowledge Base & Chat Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build a SolidJS chat component library (`packages/chat`) and standalone dev app (`apps/chat`) for conversational interaction with saved content — both single-document and collection-wide knowledge base chat.
 
@@ -124,7 +124,7 @@ packages/shared/src/
 - Create: `packages/shared/src/chat-types.ts`
 - Modify: `packages/shared/src/index.ts`
 
-- [ ] **Step 1: Write the chat types file**
+- [x] **Step 1: Write the chat types file**
 
 ```typescript
 // packages/shared/src/chat-types.ts
@@ -281,7 +281,7 @@ export interface ContextInfo {
 }
 ```
 
-- [ ] **Step 2: Add re-exports to shared index**
+- [x] **Step 2: Add re-exports to shared index**
 
 Add to the end of `packages/shared/src/index.ts`:
 
@@ -289,12 +289,12 @@ Add to the end of `packages/shared/src/index.ts`:
 export * from './chat-types';
 ```
 
-- [ ] **Step 3: Verify shared package builds**
+- [x] **Step 3: Verify shared package builds**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/shared exec tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/shared/src/chat-types.ts packages/shared/src/index.ts
@@ -312,7 +312,7 @@ git commit -m "feat(shared): add chat data model types and adapter interface"
 - Create: `packages/chat/src/utils/cn.ts`
 - Create: `packages/chat/vitest.config.ts`
 
-- [ ] **Step 1: Create package.json**
+- [x] **Step 1: Create package.json**
 
 ```json
 {
@@ -348,7 +348,7 @@ git commit -m "feat(shared): add chat data model types and adapter interface"
 }
 ```
 
-- [ ] **Step 2: Create tsconfig.json**
+- [x] **Step 2: Create tsconfig.json**
 
 ```json
 {
@@ -366,7 +366,7 @@ git commit -m "feat(shared): add chat data model types and adapter interface"
 }
 ```
 
-- [ ] **Step 3: Create cn utility**
+- [x] **Step 3: Create cn utility**
 
 ```typescript
 // packages/chat/src/utils/cn.ts
@@ -378,14 +378,14 @@ export function cn(...inputs: ClassValue[]) {
 }
 ```
 
-- [ ] **Step 4: Create index.ts with initial export**
+- [x] **Step 4: Create index.ts with initial export**
 
 ```typescript
 // packages/chat/src/index.ts
 export { cn } from './utils/cn';
 ```
 
-- [ ] **Step 5: Create vitest config**
+- [x] **Step 5: Create vitest config**
 
 ```typescript
 // packages/chat/vitest.config.ts
@@ -406,17 +406,17 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 6: Install dependencies**
+- [x] **Step 6: Install dependencies**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm install`
 Expected: Dependencies installed, no errors
 
-- [ ] **Step 7: Verify TypeScript compiles**
+- [x] **Step 7: Verify TypeScript compiles**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat exec tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/chat/
@@ -436,7 +436,7 @@ git commit -m "feat(chat): scaffold packages/chat with Kobalte, Tailwind, vitest
 - Create: `apps/chat/src/App.tsx`
 - Create: `apps/chat/src/global.css`
 
-- [ ] **Step 1: Create package.json**
+- [x] **Step 1: Create package.json**
 
 ```json
 {
@@ -469,7 +469,7 @@ git commit -m "feat(chat): scaffold packages/chat with Kobalte, Tailwind, vitest
 }
 ```
 
-- [ ] **Step 2: Create tsconfig.json**
+- [x] **Step 2: Create tsconfig.json**
 
 ```json
 {
@@ -487,7 +487,7 @@ git commit -m "feat(chat): scaffold packages/chat with Kobalte, Tailwind, vitest
 }
 ```
 
-- [ ] **Step 3: Create vite.config.ts**
+- [x] **Step 3: Create vite.config.ts**
 
 ```typescript
 // apps/chat/vite.config.ts
@@ -514,7 +514,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 4: Create global.css**
+- [x] **Step 4: Create global.css**
 
 Mirror the extension's theme tokens for dark mode. Reference: `apps/extension/assets/global.css`
 
@@ -551,7 +551,7 @@ body {
 }
 ```
 
-- [ ] **Step 5: Create index.html**
+- [x] **Step 5: Create index.html**
 
 ```html
 <!DOCTYPE html>
@@ -568,7 +568,7 @@ body {
 </html>
 ```
 
-- [ ] **Step 6: Create entry point**
+- [x] **Step 6: Create entry point**
 
 ```typescript
 // apps/chat/src/index.tsx
@@ -579,7 +579,7 @@ import './global.css';
 render(() => <App />, document.getElementById('root')!);
 ```
 
-- [ ] **Step 7: Create App shell**
+- [x] **Step 7: Create App shell**
 
 ```typescript
 // apps/chat/src/App.tsx
@@ -598,13 +598,13 @@ const App: Component = () => {
 export default App;
 ```
 
-- [ ] **Step 8: Install dependencies and verify dev server starts**
+- [x] **Step 8: Install dependencies and verify dev server starts**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm install && pnpm --filter @tab-zen/chat-app dev`
 Expected: Vite dev server starts, page shows "Chat app loading..."
 Stop the dev server after confirming.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add apps/chat/
@@ -621,7 +621,7 @@ git commit -m "feat(chat-app): scaffold standalone SolidJS dev app with Vite + T
 - Create: `packages/chat/src/primitives/use-auto-resize.ts`
 - Create: `packages/chat/tests/primitives/use-auto-resize.test.ts`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```typescript
 // packages/chat/tests/primitives/use-auto-resize.test.ts
@@ -648,12 +648,12 @@ describe('useAutoResize', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: FAIL — module not found
 
-- [ ] **Step 3: Implement useAutoResize**
+- [x] **Step 3: Implement useAutoResize**
 
 ```typescript
 // packages/chat/src/primitives/use-auto-resize.ts
@@ -691,12 +691,12 @@ export function useAutoResize(options: UseAutoResizeOptions = {}) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/chat/src/primitives/use-auto-resize.ts packages/chat/tests/primitives/use-auto-resize.test.ts
@@ -711,7 +711,7 @@ git commit -m "feat(chat): add useAutoResize primitive for textarea auto-sizing"
 - Create: `packages/chat/src/primitives/use-stick-to-bottom.ts`
 - Create: `packages/chat/tests/primitives/use-stick-to-bottom.test.ts`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```typescript
 // packages/chat/tests/primitives/use-stick-to-bottom.test.ts
@@ -740,12 +740,12 @@ describe('useStickToBottom', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: FAIL — module not found
 
-- [ ] **Step 3: Implement useStickToBottom**
+- [x] **Step 3: Implement useStickToBottom**
 
 ```typescript
 // packages/chat/src/primitives/use-stick-to-bottom.ts
@@ -799,12 +799,12 @@ export function useStickToBottom() {
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/chat/src/primitives/use-stick-to-bottom.ts packages/chat/tests/primitives/use-stick-to-bottom.test.ts
@@ -819,7 +819,7 @@ git commit -m "feat(chat): add useStickToBottom primitive for chat scroll manage
 - Create: `packages/chat/src/primitives/use-text-stream.ts`
 - Create: `packages/chat/tests/primitives/use-text-stream.test.ts`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```typescript
 // packages/chat/tests/primitives/use-text-stream.test.ts
@@ -861,12 +861,12 @@ describe('useTextStream', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: FAIL
 
-- [ ] **Step 3: Implement useTextStream**
+- [x] **Step 3: Implement useTextStream**
 
 Reference: `reference/prompt-kit/components/ui/response-stream.tsx` for the API pattern.
 
@@ -1003,12 +1003,12 @@ export function useTextStream(options: UseTextStreamOptions) {
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/chat/src/primitives/use-text-stream.ts packages/chat/tests/primitives/use-text-stream.test.ts
@@ -1023,7 +1023,7 @@ git commit -m "feat(chat): add useTextStream primitive with typewriter/fade mode
 - Create: `packages/chat/src/primitives/use-voice-recorder.ts`
 - Create: `packages/chat/tests/primitives/use-voice-recorder.test.ts`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```typescript
 // packages/chat/tests/primitives/use-voice-recorder.test.ts
@@ -1044,12 +1044,12 @@ describe('useVoiceRecorder', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: FAIL
 
-- [ ] **Step 3: Implement useVoiceRecorder**
+- [x] **Step 3: Implement useVoiceRecorder**
 
 ```typescript
 // packages/chat/src/primitives/use-voice-recorder.ts
@@ -1114,12 +1114,12 @@ export function useVoiceRecorder(options: UseVoiceRecorderOptions = {}) {
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: PASS
 
-- [ ] **Step 5: Export all primitives from index.ts**
+- [x] **Step 5: Export all primitives from index.ts**
 
 Update `packages/chat/src/index.ts`:
 
@@ -1134,7 +1134,7 @@ export { useVoiceRecorder } from './primitives/use-voice-recorder';
 export type { UseVoiceRecorderOptions } from './primitives/use-voice-recorder';
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/chat/src/primitives/use-voice-recorder.ts packages/chat/tests/primitives/use-voice-recorder.test.ts packages/chat/src/index.ts
@@ -1151,7 +1151,7 @@ git commit -m "feat(chat): add useVoiceRecorder primitive and export all primiti
 - Create: `packages/chat/src/ui/button.tsx`
 - Create: `packages/chat/tests/ui/button.test.tsx`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```typescript
 // packages/chat/tests/ui/button.test.tsx
@@ -1179,12 +1179,12 @@ describe('Button', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: FAIL
 
-- [ ] **Step 3: Implement Button**
+- [x] **Step 3: Implement Button**
 
 Reference: `reference/prompt-kit/components/ui/button.tsx`
 
@@ -1237,12 +1237,12 @@ export function Button(props: ButtonProps) {
 export { buttonVariants };
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/chat/src/ui/button.tsx packages/chat/tests/ui/button.test.tsx
@@ -1267,7 +1267,7 @@ Build the remaining Layer 2 components. Each follows the same pattern as Button:
 - Create: `packages/chat/src/ui/separator.tsx`
 - Create: `packages/chat/src/ui/dialog.tsx`
 
-- [ ] **Step 1: Implement Avatar**
+- [x] **Step 1: Implement Avatar**
 
 ```tsx
 // packages/chat/src/ui/avatar.tsx
@@ -1312,7 +1312,7 @@ export function Avatar(props: AvatarProps) {
 }
 ```
 
-- [ ] **Step 2: Implement Tooltip**
+- [x] **Step 2: Implement Tooltip**
 
 ```tsx
 // packages/chat/src/ui/tooltip.tsx
@@ -1348,7 +1348,7 @@ export function Tooltip(props: TooltipProps) {
 }
 ```
 
-- [ ] **Step 3: Implement HoverCard**
+- [x] **Step 3: Implement HoverCard**
 
 ```tsx
 // packages/chat/src/ui/hover-card.tsx
@@ -1384,7 +1384,7 @@ export function HoverCard(props: HoverCardProps) {
 }
 ```
 
-- [ ] **Step 4: Implement Collapsible**
+- [x] **Step 4: Implement Collapsible**
 
 ```tsx
 // packages/chat/src/ui/collapsible.tsx
@@ -1406,7 +1406,7 @@ export function CollapsibleContent(props: { children: JSX.Element; class?: strin
 }
 ```
 
-- [ ] **Step 5: Implement ScrollArea**
+- [x] **Step 5: Implement ScrollArea**
 
 ```tsx
 // packages/chat/src/ui/scroll-area.tsx
@@ -1431,7 +1431,7 @@ export function ScrollArea(props: ScrollAreaProps) {
 }
 ```
 
-- [ ] **Step 6: Implement Dropdown**
+- [x] **Step 6: Implement Dropdown**
 
 ```tsx
 // packages/chat/src/ui/dropdown.tsx
@@ -1476,7 +1476,7 @@ export function DropdownItem(props: {
 }
 ```
 
-- [ ] **Step 7: Implement Textarea**
+- [x] **Step 7: Implement Textarea**
 
 ```tsx
 // packages/chat/src/ui/textarea.tsx
@@ -1507,7 +1507,7 @@ export function Textarea(props: TextareaProps) {
 }
 ```
 
-- [ ] **Step 8: Implement Badge**
+- [x] **Step 8: Implement Badge**
 
 ```tsx
 // packages/chat/src/ui/badge.tsx
@@ -1545,7 +1545,7 @@ export function Badge(props: BadgeProps) {
 }
 ```
 
-- [ ] **Step 9: Implement Separator**
+- [x] **Step 9: Implement Separator**
 
 ```tsx
 // packages/chat/src/ui/separator.tsx
@@ -1574,7 +1574,7 @@ export function Separator(props: SeparatorProps) {
 }
 ```
 
-- [ ] **Step 10: Implement Dialog**
+- [x] **Step 10: Implement Dialog**
 
 ```tsx
 // packages/chat/src/ui/dialog.tsx
@@ -1604,7 +1604,7 @@ export function DialogContent(props: { children: JSX.Element; class?: string; ti
 }
 ```
 
-- [ ] **Step 11: Export all UI components from index.ts**
+- [x] **Step 11: Export all UI components from index.ts**
 
 Update `packages/chat/src/index.ts` — add after the primitives exports:
 
@@ -1627,12 +1627,12 @@ export { Separator } from './ui/separator';
 export { Dialog, DialogTrigger, DialogContent } from './ui/dialog';
 ```
 
-- [ ] **Step 12: Verify TypeScript compiles**
+- [x] **Step 12: Verify TypeScript compiles**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat exec tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 13: Commit**
+- [x] **Step 13: Commit**
 
 ```bash
 git add packages/chat/src/ui/ packages/chat/src/index.ts
@@ -1648,7 +1648,7 @@ git commit -m "feat(chat): add styled UI primitives (Avatar, Tooltip, HoverCard,
 **Files:**
 - Create: `packages/chat/src/components/chat-container.tsx`
 
-- [ ] **Step 1: Implement ChatContainer**
+- [x] **Step 1: Implement ChatContainer**
 
 Reference: `reference/prompt-kit/components/ui/chat-container.tsx`
 
@@ -1693,7 +1693,7 @@ export function ChatContainer(props: ChatContainerProps) {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/chat/src/components/chat-container.tsx
@@ -1708,7 +1708,7 @@ git commit -m "feat(chat): add ChatContainer with stick-to-bottom scroll managem
 - Create: `packages/chat/src/components/message.tsx`
 - Create: `packages/chat/tests/components/message.test.tsx`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```typescript
 // packages/chat/tests/components/message.test.tsx
@@ -1749,12 +1749,12 @@ describe('Message', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: FAIL
 
-- [ ] **Step 3: Implement Message compound component**
+- [x] **Step 3: Implement Message compound component**
 
 Reference: `reference/prompt-kit/components/ui/message.tsx`
 
@@ -1875,12 +1875,12 @@ export function MessageAction(props: MessageActionProps) {
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/chat/src/components/message.tsx packages/chat/tests/components/message.test.tsx
@@ -1895,7 +1895,7 @@ git commit -m "feat(chat): add Message compound component (Avatar, Content, Acti
 - Create: `packages/chat/src/components/prompt-input.tsx`
 - Create: `packages/chat/tests/components/prompt-input.test.tsx`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```typescript
 // packages/chat/tests/components/prompt-input.test.tsx
@@ -1928,12 +1928,12 @@ describe('PromptInput', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: FAIL
 
-- [ ] **Step 3: Implement PromptInput**
+- [x] **Step 3: Implement PromptInput**
 
 Reference: `reference/prompt-kit/components/ui/prompt-input.tsx`
 
@@ -2010,12 +2010,12 @@ export function PromptInput(props: PromptInputProps) {
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/chat/src/components/prompt-input.tsx packages/chat/tests/components/prompt-input.test.tsx
@@ -2029,7 +2029,7 @@ git commit -m "feat(chat): add PromptInput with auto-resize, Enter submit, actio
 **Files:**
 - Create: `packages/chat/src/components/scroll-button.tsx`
 
-- [ ] **Step 1: Implement ScrollButton**
+- [x] **Step 1: Implement ScrollButton**
 
 ```tsx
 // packages/chat/src/components/scroll-button.tsx
@@ -2064,7 +2064,7 @@ export function ScrollButton(props: ScrollButtonProps) {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/chat/src/components/scroll-button.tsx
@@ -2079,7 +2079,7 @@ git commit -m "feat(chat): add ScrollButton for scroll-to-bottom indicator"
 - Create: `packages/chat/src/components/loader.tsx`
 - Create: `packages/chat/tests/components/loader.test.tsx`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```typescript
 // packages/chat/tests/components/loader.test.tsx
@@ -2110,12 +2110,12 @@ describe('Loader', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: FAIL
 
-- [ ] **Step 3: Implement Loader**
+- [x] **Step 3: Implement Loader**
 
 Reference: `reference/prompt-kit/components/ui/loader.tsx`
 
@@ -2196,7 +2196,7 @@ export function Loader(props: LoaderProps) {
 }
 ```
 
-- [ ] **Step 4: Add shimmer keyframes to global.css**
+- [x] **Step 4: Add shimmer keyframes to global.css**
 
 Add to `apps/chat/src/global.css`:
 
@@ -2211,12 +2211,12 @@ Add to `apps/chat/src/global.css`:
 }
 ```
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/chat/src/components/loader.tsx packages/chat/tests/components/loader.test.tsx apps/chat/src/global.css
@@ -2230,12 +2230,12 @@ git commit -m "feat(chat): add Loader component with bars, text-shimmer, loading
 **Files:**
 - Create: `packages/chat/src/components/markdown.tsx`
 
-- [ ] **Step 1: Install markdown dependencies**
+- [x] **Step 1: Install markdown dependencies**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat add solid-markdown remark-gfm remark-breaks`
 Expected: Dependencies installed
 
-- [ ] **Step 2: Implement Markdown**
+- [x] **Step 2: Implement Markdown**
 
 Reference: `reference/prompt-kit/components/ui/markdown.tsx`
 
@@ -2270,12 +2270,12 @@ export function Markdown(props: MarkdownProps) {
 
 Note: If `solid-markdown` is not available or has compatibility issues, implement a minimal markdown renderer using `marked` library with `innerHTML`. The implementing agent should check compatibility and choose the best approach.
 
-- [ ] **Step 3: Verify it compiles**
+- [x] **Step 3: Verify it compiles**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat exec tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/chat/src/components/markdown.tsx
@@ -2289,12 +2289,12 @@ git commit -m "feat(chat): add Markdown component with GFM and line break suppor
 **Files:**
 - Create: `packages/chat/src/components/code-block.tsx`
 
-- [ ] **Step 1: Install shiki**
+- [x] **Step 1: Install shiki**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat add shiki`
 Expected: Installed
 
-- [ ] **Step 2: Implement CodeBlock**
+- [x] **Step 2: Implement CodeBlock**
 
 Reference: `reference/prompt-kit/components/ui/code-block.tsx`
 
@@ -2359,7 +2359,7 @@ export function CodeBlock(props: CodeBlockProps) {
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/chat/src/components/code-block.tsx
@@ -2373,7 +2373,7 @@ git commit -m "feat(chat): add CodeBlock with Shiki syntax highlighting and copy
 **Files:**
 - Create: `packages/chat/src/components/response-stream.tsx`
 
-- [ ] **Step 1: Implement ResponseStream**
+- [x] **Step 1: Implement ResponseStream**
 
 This component ties together `useTextStream` + `Markdown` for progressive streaming display.
 
@@ -2422,7 +2422,7 @@ export function ResponseStream(props: ResponseStreamProps) {
 export { useTextStream };
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/chat/src/components/response-stream.tsx
@@ -2438,7 +2438,7 @@ git commit -m "feat(chat): add ResponseStream for progressive markdown streaming
 **Files:**
 - Create: `packages/chat/src/components/source.tsx`
 
-- [ ] **Step 1: Implement Source**
+- [x] **Step 1: Implement Source**
 
 Reference: `reference/prompt-kit/components/ui/source.tsx`
 
@@ -2524,7 +2524,7 @@ export function SourceList(props: SourceListProps) {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/chat/src/components/source.tsx
@@ -2540,7 +2540,7 @@ git commit -m "feat(chat): add Source citation component with hover card preview
 - Create: `packages/chat/src/components/prompt-suggestion.tsx`
 - Create: `packages/chat/src/components/chain-of-thought.tsx`
 
-- [ ] **Step 1: Implement FeedbackBar**
+- [x] **Step 1: Implement FeedbackBar**
 
 Reference: `reference/prompt-kit/components/ui/feedback-bar.tsx`
 
@@ -2579,7 +2579,7 @@ export function FeedbackBar(props: FeedbackBarProps) {
 }
 ```
 
-- [ ] **Step 2: Implement PromptSuggestion**
+- [x] **Step 2: Implement PromptSuggestion**
 
 Reference: `reference/prompt-kit/components/ui/prompt-suggestion.tsx`
 
@@ -2628,7 +2628,7 @@ export function PromptSuggestion(props: PromptSuggestionProps) {
 }
 ```
 
-- [ ] **Step 3: Implement ChainOfThought**
+- [x] **Step 3: Implement ChainOfThought**
 
 Reference: `reference/prompt-kit/components/ui/chain-of-thought.tsx`
 
@@ -2704,7 +2704,7 @@ export function ChainOfThoughtItemContent(props: ChainOfThoughtContentProps) {
 }
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/chat/src/components/feedback-bar.tsx packages/chat/src/components/prompt-suggestion.tsx packages/chat/src/components/chain-of-thought.tsx
@@ -2719,7 +2719,7 @@ git commit -m "feat(chat): add FeedbackBar, PromptSuggestion, ChainOfThought com
 - Create: `packages/chat/src/components/checkpoint.tsx`
 - Create: `packages/chat/src/components/context.tsx`
 
-- [ ] **Step 1: Implement Checkpoint**
+- [x] **Step 1: Implement Checkpoint**
 
 Reference: `reference/ai-elements/packages/elements/src/checkpoint.tsx`
 
@@ -2775,7 +2775,7 @@ export function CheckpointTrigger(props: CheckpointTriggerProps) {
 }
 ```
 
-- [ ] **Step 2: Implement Context**
+- [x] **Step 2: Implement Context**
 
 Reference: `reference/ai-elements/packages/elements/src/context.tsx`
 
@@ -2904,7 +2904,7 @@ export function Context(props: ContextProps) {
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/chat/src/components/checkpoint.tsx packages/chat/src/components/context.tsx
@@ -2918,7 +2918,7 @@ git commit -m "feat(chat): add Checkpoint restore points and Context token usage
 **Files:**
 - Create: `packages/chat/src/components/voice-input.tsx`
 
-- [ ] **Step 1: Implement VoiceInput**
+- [x] **Step 1: Implement VoiceInput**
 
 ```tsx
 // packages/chat/src/components/voice-input.tsx
@@ -2977,7 +2977,7 @@ export function VoiceInput(props: VoiceInputProps) {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/chat/src/components/voice-input.tsx
@@ -2993,7 +2993,7 @@ git commit -m "feat(chat): add VoiceInput with push-to-talk and Wispr Flow-style
 - Create: `packages/chat/src/components/conversation-item.tsx`
 - Create: `packages/chat/tests/components/conversation-list.test.tsx`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```typescript
 // packages/chat/tests/components/conversation-list.test.tsx
@@ -3036,12 +3036,12 @@ describe('ConversationList', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: FAIL
 
-- [ ] **Step 3: Implement ConversationItem**
+- [x] **Step 3: Implement ConversationItem**
 
 ```tsx
 // packages/chat/src/components/conversation-item.tsx
@@ -3082,7 +3082,7 @@ export function ConversationItem(props: ConversationItemProps) {
 }
 ```
 
-- [ ] **Step 4: Implement ConversationList**
+- [x] **Step 4: Implement ConversationList**
 
 ```tsx
 // packages/chat/src/components/conversation-list.tsx
@@ -3236,12 +3236,12 @@ function ConversationGroupSection(props: ConversationGroupSectionProps) {
 }
 ```
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/chat/src/components/conversation-list.tsx packages/chat/src/components/conversation-item.tsx packages/chat/tests/components/conversation-list.test.tsx
@@ -3256,7 +3256,7 @@ git commit -m "feat(chat): add ConversationList with grouped conversations and s
 - Create: `packages/chat/src/components/model-switcher.tsx`
 - Create: `packages/chat/src/components/chat-scope-picker.tsx`
 
-- [ ] **Step 1: Implement ModelSwitcher**
+- [x] **Step 1: Implement ModelSwitcher**
 
 ```tsx
 // packages/chat/src/components/model-switcher.tsx
@@ -3315,7 +3315,7 @@ export function ModelSwitcher(props: ModelSwitcherProps) {
 }
 ```
 
-- [ ] **Step 2: Implement ChatScopePicker**
+- [x] **Step 2: Implement ChatScopePicker**
 
 ```tsx
 // packages/chat/src/components/chat-scope-picker.tsx
@@ -3380,7 +3380,7 @@ export function ChatScopePicker(props: ChatScopePickerProps) {
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/chat/src/components/model-switcher.tsx packages/chat/src/components/chat-scope-picker.tsx
@@ -3394,7 +3394,7 @@ git commit -m "feat(chat): add ModelSwitcher and ChatScopePicker components"
 **Files:**
 - Modify: `packages/chat/src/index.ts`
 
-- [ ] **Step 1: Update index.ts with all exports**
+- [x] **Step 1: Update index.ts with all exports**
 
 ```typescript
 // packages/chat/src/index.ts
@@ -3449,17 +3449,17 @@ export { ModelSwitcher } from './components/model-switcher';
 export { ChatScopePicker } from './components/chat-scope-picker';
 ```
 
-- [ ] **Step 2: Verify full package compiles**
+- [x] **Step 2: Verify full package compiles**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat exec tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test`
 Expected: All tests pass
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/chat/src/index.ts
@@ -3475,7 +3475,7 @@ git commit -m "feat(chat): export all components from packages/chat"
 **Files:**
 - Create: `apps/chat/src/db.ts`
 
-- [ ] **Step 1: Implement chat database schema**
+- [x] **Step 1: Implement chat database schema**
 
 ```typescript
 // apps/chat/src/db.ts
@@ -3540,7 +3540,7 @@ export async function getChatDB(): Promise<IDBPDatabase<ChatDB>> {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/chat/src/db.ts
@@ -3554,7 +3554,7 @@ git commit -m "feat(chat-app): add IndexedDB schema for chat data (documents, ch
 **Files:**
 - Create: `apps/chat/src/services/openrouter.ts`
 
-- [ ] **Step 1: Implement OpenRouter service**
+- [x] **Step 1: Implement OpenRouter service**
 
 Reference: `apps/extension/lib/ai.ts` for the fetch pattern.
 
@@ -3650,7 +3650,7 @@ export async function generateEmbedding(
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/chat/src/services/openrouter.ts
@@ -3665,7 +3665,7 @@ git commit -m "feat(chat-app): add OpenRouter service with streaming chat and em
 - Create: `apps/chat/src/services/chunking.ts`
 - Create: `apps/chat/tests/services/chunking.test.ts`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```typescript
 // apps/chat/tests/services/chunking.test.ts
@@ -3726,12 +3726,12 @@ describe('generateDocumentContext', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat-app test`
 Expected: FAIL
 
-- [ ] **Step 3: Implement chunking service**
+- [x] **Step 3: Implement chunking service**
 
 ```typescript
 // apps/chat/src/services/chunking.ts
@@ -3873,12 +3873,12 @@ export function generateDocumentContext(input: DocumentContextInput): DocumentCo
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat-app test`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/chat/src/services/chunking.ts apps/chat/tests/services/chunking.test.ts
@@ -3893,7 +3893,7 @@ git commit -m "feat(chat-app): add chunking service for transcripts and markdown
 - Create: `apps/chat/src/services/vector-store.ts`
 - Create: `apps/chat/tests/services/vector-store.test.ts`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```typescript
 // apps/chat/tests/services/vector-store.test.ts
@@ -3930,12 +3930,12 @@ describe('findTopK', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat-app test`
 Expected: FAIL
 
-- [ ] **Step 3: Implement vector store**
+- [x] **Step 3: Implement vector store**
 
 ```typescript
 // apps/chat/src/services/vector-store.ts
@@ -3978,12 +3978,12 @@ export function findTopK(
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat-app test`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/chat/src/services/vector-store.ts apps/chat/tests/services/vector-store.test.ts
@@ -3997,7 +3997,7 @@ git commit -m "feat(chat-app): add vector store with cosine similarity search"
 **Files:**
 - Create: `apps/chat/src/services/voice.ts`
 
-- [ ] **Step 1: Implement GROQ voice service**
+- [x] **Step 1: Implement GROQ voice service**
 
 ```typescript
 // apps/chat/src/services/voice.ts
@@ -4031,7 +4031,7 @@ export async function transcribeAudio(
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/chat/src/services/voice.ts
@@ -4045,7 +4045,7 @@ git commit -m "feat(chat-app): add GROQ Whisper voice transcription service"
 **Files:**
 - Create: `apps/chat/src/adapters/local-adapter.ts`
 
-- [ ] **Step 1: Implement LocalAdapter**
+- [x] **Step 1: Implement LocalAdapter**
 
 ```typescript
 // apps/chat/src/adapters/local-adapter.ts
@@ -4192,7 +4192,7 @@ export class LocalAdapter implements ChatDataAdapter {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/chat/src/adapters/local-adapter.ts
@@ -4208,7 +4208,7 @@ git commit -m "feat(chat-app): add LocalAdapter implementing ChatDataAdapter wit
 **Files:**
 - Create: `apps/chat/src/stores/chat-store.ts`
 
-- [ ] **Step 1: Implement chat store**
+- [x] **Step 1: Implement chat store**
 
 ```typescript
 // apps/chat/src/stores/chat-store.ts
@@ -4299,7 +4299,7 @@ export function createChatStore(adapter: ChatDataAdapter) {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add apps/chat/src/stores/chat-store.ts
@@ -4313,7 +4313,7 @@ git commit -m "feat(chat-app): add reactive chat store with conversation managem
 **Files:**
 - Modify: `apps/chat/src/App.tsx`
 
-- [ ] **Step 1: Implement the full App layout**
+- [x] **Step 1: Implement the full App layout**
 
 ```tsx
 // apps/chat/src/App.tsx
@@ -4564,12 +4564,12 @@ const App: Component = () => {
 export default App;
 ```
 
-- [ ] **Step 2: Verify the app runs**
+- [x] **Step 2: Verify the app runs**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat-app dev`
 Expected: App opens in browser with sidebar, chat area, input. Test by entering a message (will need API key set in the code to actually work with OpenRouter).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/chat/src/App.tsx
@@ -4583,7 +4583,7 @@ git commit -m "feat(chat-app): wire up full chat app shell with sidebar, streami
 **Files:**
 - Create: `apps/chat/vitest.config.ts`
 
-- [ ] **Step 1: Create vitest config**
+- [x] **Step 1: Create vitest config**
 
 ```typescript
 // apps/chat/vitest.config.ts
@@ -4607,12 +4607,12 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 2: Run all tests across both packages**
+- [x] **Step 2: Run all tests across both packages**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test && pnpm --filter @tab-zen/chat-app test`
 Expected: All tests pass
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/chat/vitest.config.ts
@@ -4623,7 +4623,7 @@ git commit -m "feat(chat-app): add vitest configuration"
 
 ### Task 34: Final Integration Test
 
-- [ ] **Step 1: Verify full dev server runs**
+- [x] **Step 1: Verify full dev server runs**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat-app dev`
 
@@ -4636,17 +4636,17 @@ Verify:
 - Typing a message and pressing Enter adds it to the chat
 - Styling matches dark mode theme tokens
 
-- [ ] **Step 2: Verify TypeScript across entire monorepo**
+- [x] **Step 2: Verify TypeScript across entire monorepo**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/shared exec tsc --noEmit && pnpm --filter @tab-zen/chat exec tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 3: Run full test suite**
+- [x] **Step 3: Run full test suite**
 
 Run: `cd /Users/home/Projects/jombee/chrome-extensions/tab-zen && pnpm --filter @tab-zen/chat test && pnpm --filter @tab-zen/chat-app test`
 Expected: All tests pass
 
-- [ ] **Step 4: Final commit**
+- [x] **Step 4: Final commit**
 
 ```bash
 git add -A
