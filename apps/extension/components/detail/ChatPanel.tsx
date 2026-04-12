@@ -6,8 +6,8 @@ import type { DocumentChatStore } from "@/lib/chat/chat-store";
 import type { Settings } from "@/lib/types";
 import ChatPanelContent from "./ChatPanelContent";
 
-const CHAT_PANEL_WIDTH_KEY = "tab-zen-chat-panel-width";
-const DEFAULT_PANEL_WIDTH = 380;
+const CHAT_PANEL_PCT_KEY = "tab-zen-chat-panel-pct";
+const DEFAULT_PANEL_PCT = 35;
 const MIN_PANEL_WIDTH = 300;
 const MAX_PANEL_WIDTH = 600;
 
@@ -22,22 +22,26 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel(props: ChatPanelProps) {
-  const [panelWidth, setPanelWidth] = createSignal(DEFAULT_PANEL_WIDTH);
+  const [panelPct, setPanelPct] = createSignal(DEFAULT_PANEL_PCT);
 
   onMount(() => {
-    const stored = localStorage.getItem(CHAT_PANEL_WIDTH_KEY);
+    const stored = localStorage.getItem(CHAT_PANEL_PCT_KEY);
     if (stored) {
-      const w = parseInt(stored, 10);
-      if (w >= MIN_PANEL_WIDTH && w <= MAX_PANEL_WIDTH) setPanelWidth(w);
+      const pct = parseFloat(stored);
+      if (pct >= 15 && pct <= 60) setPanelPct(pct);
     }
   });
 
   function handleResize() {
     const panel = document.querySelector("[data-chat-panel]") as HTMLElement | null;
-    if (panel) {
-      const width = panel.getBoundingClientRect().width;
-      setPanelWidth(Math.round(width));
-      localStorage.setItem(CHAT_PANEL_WIDTH_KEY, String(Math.round(width)));
+    const container = panel?.parentElement;
+    if (panel && container) {
+      const containerWidth = container.getBoundingClientRect().width;
+      if (containerWidth > 0) {
+        const pct = (panel.getBoundingClientRect().width / containerWidth) * 100;
+        setPanelPct(Math.round(pct));
+        localStorage.setItem(CHAT_PANEL_PCT_KEY, String(Math.round(pct)));
+      }
     }
   }
 
@@ -69,7 +73,7 @@ export default function ChatPanel(props: ChatPanelProps) {
           <ResizableHandle withHandle onPanelResize={handleResize} />
           <ResizablePanel
             class="overflow-hidden"
-            defaultSize={Math.round((panelWidth() / (window.innerWidth - 300)) * 100)}
+            defaultSize={panelPct()}
             data-chat-panel=""
             data-min-size={String(MIN_PANEL_WIDTH)}
             data-max-size={String(MAX_PANEL_WIDTH)}
