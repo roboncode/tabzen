@@ -75,8 +75,7 @@ export default function DetailPage(props: DetailPageProps) {
   const [fetchingContent, setFetchingContent] = createSignal(false);
   const [currentPage, setCurrentPage] = createSignal(props.page);
   const [isNarrow, setIsNarrow] = createSignal(window.innerWidth < 768);
-  const [hideRightNavBreakpoint, setHideRightNavBreakpoint] = createSignal(window.innerWidth < 1024);
-  const hideRightNav = () => hideRightNavBreakpoint() || chatOpen();
+  const [hideRightNav, setHideRightNav] = createSignal(window.innerWidth < 1024);
   const [hideLeftNav, setHideLeftNav] = createSignal(window.innerWidth < 1100);
   const [copied, setCopied] = createSignal(false);
   const [reExtracting, setReExtracting] = createSignal(false);
@@ -165,7 +164,7 @@ export default function DetailPage(props: DetailPageProps) {
     const leftNavQuery = window.matchMedia("(max-width: 1099px)");
 
     const onNarrowChange = (e: MediaQueryListEvent) => setIsNarrow(e.matches);
-    const onRightNavChange = (e: MediaQueryListEvent) => setHideRightNavBreakpoint(e.matches);
+    const onRightNavChange = (e: MediaQueryListEvent) => setHideRightNav(e.matches);
     const onLeftNavChange = (e: MediaQueryListEvent) => setHideLeftNav(e.matches);
 
     narrowQuery.addEventListener("change", onNarrowChange);
@@ -939,8 +938,8 @@ export default function DetailPage(props: DetailPageProps) {
               </Show>
             </div>
 
-            {/* Sidebar placeholder — reserves space in the flex layout */}
-            <Show when={!hideRightNav()}>
+            {/* Sidebar placeholder — reserves space in the flex layout, hidden when chat is open */}
+            <Show when={!hideRightNav() && !chatOpen()}>
               <div class="relative flex-shrink-0 w-[256px]">
                 {/* Fixed sidebar — positioned inside placeholder, full viewport height */}
                 <div class="fixed top-14 max-w-96 h-[calc(100vh-42px)] overflow-y-auto scrollbar-hide z-10">
