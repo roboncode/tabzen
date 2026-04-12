@@ -235,7 +235,9 @@ export const serviceAdapter: DataAdapter = {
   },
 
   async importData(data) {
-    return post<{ imported: number; skipped: number }>("/batch", data);
+    const resp = await post<{ pages: number; groups: number; captures: number; templates: number; documents: number }>("/batch", data);
+    const imported = (resp.pages || 0) + (resp.groups || 0) + (resp.captures || 0) + (resp.templates || 0) + (resp.documents || 0);
+    return { imported, skipped: 0 };
   },
 
   async clearAllData(): Promise<void> {
