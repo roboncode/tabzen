@@ -285,7 +285,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
               <Show when={!!props.settings.groqApiKey}>
                 <VoiceInput
                   onTranscribe={handleVoiceTranscribe}
-                  onTranscription={(text) => handleSendMessage(text)}
+                  onTranscription={(text) => setPromptText((prev) => prev ? prev + " " + text : text)}
                 />
               </Show>
               <Button
