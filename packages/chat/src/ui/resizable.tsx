@@ -140,6 +140,25 @@ function ResizableHandle(props: ResizableHandleProps) {
   };
 
   const handlePointerUp = () => {
+    // Convert pixel flex-basis to percentages so panels scale with window resize
+    if (prevEl && nextEl) {
+      const container = prevEl.parentElement;
+      if (container) {
+        const totalSize = orientation() === 'horizontal'
+          ? container.getBoundingClientRect().width
+          : container.getBoundingClientRect().height;
+        const handleSize = (prevEl.nextElementSibling as HTMLElement)?.getBoundingClientRect()[
+          orientation() === 'horizontal' ? 'width' : 'height'
+        ] ?? 0;
+        const available = totalSize - handleSize;
+        if (available > 0) {
+          const prevPct = (prevEl.getBoundingClientRect()[orientation() === 'horizontal' ? 'width' : 'height'] / available) * 100;
+          const nextPct = 100 - prevPct;
+          prevEl.style.flexBasis = `${prevPct}%`;
+          nextEl.style.flexBasis = `${nextPct}%`;
+        }
+      }
+    }
     setIsDragging(false);
     prevEl = null;
     nextEl = null;
