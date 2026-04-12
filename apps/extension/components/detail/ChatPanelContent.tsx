@@ -153,7 +153,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
 
   return (
     <ChatConfig proseSize="sm">
-    <div class="flex flex-col h-full bg-card">
+    <div class="flex flex-col h-full min-w-0 overflow-hidden bg-card">
       <Show when={view() === "history"}>
         <ChatHistory
           store={props.store}
@@ -201,8 +201,8 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
         </div>
 
         {/* Messages */}
-        <ChatContainer class="flex-1 px-3 py-3">
-          <div class="space-y-3">
+        <ChatContainer class="flex-1 min-w-0 px-3 py-3">
+          <div class="space-y-3 min-w-0">
             <Show when={props.store.activeConversation()?.messages.length} fallback={
               <div class="flex-1 flex flex-col items-center justify-center py-12">
                 <MessageCircle size={28} class="mb-3 text-muted-foreground/20" />
