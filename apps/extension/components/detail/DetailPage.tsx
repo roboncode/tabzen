@@ -89,6 +89,7 @@ export default function DetailPage(props: DetailPageProps) {
   const [customResult, setCustomResult] = createSignal<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
   const [relatedPages, setRelatedPages] = createSignal<Page[]>([]);
+  const [chatOpen, setChatOpen] = createSignal(false);
 
   // Sync active section changes to the URL
   createEffect(on(activeSection, (section) => {
@@ -928,7 +929,7 @@ export default function DetailPage(props: DetailPageProps) {
       </div>
 
       {/* Chat FAB */}
-      <ChatFab />
+      <ChatFab open={chatOpen()} onToggle={() => setChatOpen((v) => !v)} />
 
       {/* Update available toast */}
       <Show when={hasPromptedReExtract() && hasContent()}>
