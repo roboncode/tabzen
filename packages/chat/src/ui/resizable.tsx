@@ -170,26 +170,26 @@ function ResizableHandle(props: ResizableHandleProps) {
       {local.withHandle && (
         <div
           class={cn(
-            'z-10 flex items-center justify-center rounded-sm border bg-border',
+            'z-10 flex items-center justify-center',
             orientation() === 'horizontal'
-              ? 'h-4 w-3 flex-col'
-              : 'h-3 w-4 flex-row',
+              ? 'h-6 w-3 flex-col'
+              : 'h-3 w-6 flex-row',
           )}
         >
           <svg
             class={cn(
-              'text-muted-foreground',
-              orientation() === 'horizontal' ? 'h-2.5 w-2.5' : 'h-2.5 w-2.5 rotate-90'
+              'text-muted-foreground/40',
+              orientation() === 'horizontal' ? 'h-3 w-2' : 'h-2 w-3 rotate-90'
             )}
-            viewBox="0 0 6 10"
+            viewBox="0 0 4 8"
             fill="currentColor"
           >
-            <circle cx="1.5" cy="2" r="0.75" />
-            <circle cx="4.5" cy="2" r="0.75" />
-            <circle cx="1.5" cy="5" r="0.75" />
-            <circle cx="4.5" cy="5" r="0.75" />
-            <circle cx="1.5" cy="8" r="0.75" />
-            <circle cx="4.5" cy="8" r="0.75" />
+            <circle cx="1" cy="1.5" r="0.6" />
+            <circle cx="3" cy="1.5" r="0.6" />
+            <circle cx="1" cy="4" r="0.6" />
+            <circle cx="3" cy="4" r="0.6" />
+            <circle cx="1" cy="6.5" r="0.6" />
+            <circle cx="3" cy="6.5" r="0.6" />
           </svg>
         </div>
       )}
