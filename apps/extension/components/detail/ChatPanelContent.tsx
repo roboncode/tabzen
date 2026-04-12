@@ -1,10 +1,10 @@
 // apps/extension/components/detail/ChatPanelContent.tsx
 import { createSignal, Show, For } from "solid-js";
-import { Plus, History, X, MessageCircle } from "lucide-solid";
+import { Plus, History, X, MessageCircle, ArrowUp, Mic } from "lucide-solid";
 import {
-  ChatContainer, Message, MessageAvatar, MessageContent,
+  ChatConfig, ChatContainer, Message, MessageAvatar, MessageContent,
   PromptInput, PromptInputTextarea, PromptInputActions,
-  ScrollButton, Loader, PromptSuggestion, ModelSwitcher, VoiceInput,
+  ScrollButton, Loader, PromptSuggestion, ModelSwitcher, VoiceInput, Button,
 } from "@tab-zen/chat";
 import type { ChatMessage, ModelOption } from "@tab-zen/shared";
 import type { DocumentChatStore } from "@/lib/chat/chat-store";
@@ -152,6 +152,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
   }
 
   return (
+    <ChatConfig proseSize="sm">
     <div class="flex flex-col h-full bg-card">
       <Show when={view() === "history"}>
         <ChatHistory
@@ -279,18 +280,33 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
               }
             }}
           >
-            <PromptInputTextarea placeholder="Ask about this page..." />
-            <Show when={!!props.settings.groqApiKey}>
-              <PromptInputActions>
+            <PromptInputTextarea placeholder="Ask about this page..." class="min-h-[44px] pt-3 pl-4" />
+            <PromptInputActions class="mt-2 flex w-full items-center justify-end gap-2 px-3 pb-3">
+              <Show when={!!props.settings.groqApiKey}>
                 <VoiceInput
                   onTranscribe={handleVoiceTranscribe}
                   onTranscription={(text) => handleSendMessage(text)}
                 />
-              </PromptInputActions>
-            </Show>
+              </Show>
+              <Button
+                size="icon-sm"
+                class="rounded-full"
+                disabled={!promptText().trim() || isStreaming()}
+                onClick={() => {
+                  const text = promptText().trim();
+                  if (text) {
+                    setPromptText("");
+                    handleSendMessage(text);
+                  }
+                }}
+              >
+                <ArrowUp class="size-4" />
+              </Button>
+            </PromptInputActions>
           </PromptInput>
         </div>
       </Show>
     </div>
+    </ChatConfig>
   );
 }
