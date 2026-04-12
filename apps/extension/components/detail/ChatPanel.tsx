@@ -63,7 +63,7 @@ export default function ChatPanel(props: ChatPanelProps) {
       {/* Wide: resizable split */}
       <Show when={props.open} fallback={props.children}>
         <ResizablePanelGroup orientation="horizontal" class="flex-1 min-w-0 overflow-hidden">
-          <ResizablePanel class="min-w-0 overflow-hidden">
+          <ResizablePanel class="min-w-0 !overflow-y-auto overflow-x-hidden">
             {props.children}
           </ResizablePanel>
           <ResizableHandle withHandle onPanelResize={handleResize} />
