@@ -144,21 +144,19 @@ function ResizableHandle(props: ResizableHandleProps) {
     nextEl = null;
   };
 
+  const isHoriz = () => orientation() === 'horizontal';
+
   return (
     <div
       class={cn(
         'relative flex items-center justify-center',
-        orientation() === 'horizontal'
-          ? 'w-px cursor-col-resize'
-          : 'h-px cursor-row-resize',
-        'bg-border',
-        'after:absolute after:inset-0',
-        orientation() === 'horizontal'
-          ? 'after:-left-2 after:-right-2 after:cursor-col-resize'
-          : 'after:-top-2 after:-bottom-2 after:cursor-row-resize',
-        isDragging() && 'bg-primary',
         local.class
       )}
+      style={{
+        cursor: isHoriz() ? 'col-resize' : 'row-resize',
+        [isHoriz() ? 'width' : 'height']: '8px',
+        'background': isDragging() ? 'var(--primary, #a8b1ff)' : 'transparent',
+      }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
