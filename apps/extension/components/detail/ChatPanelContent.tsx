@@ -1,8 +1,8 @@
 // apps/extension/components/detail/ChatPanelContent.tsx
 import { createSignal, Show, For } from "solid-js";
-import { Plus, History, X, MessageCircle, ArrowUp, Mic } from "lucide-solid";
+import { Plus, History, X, MessageCircle, ArrowUp, Mic, Copy } from "lucide-solid";
 import {
-  ChatConfig, ChatContainer, Message, MessageAvatar, MessageContent,
+  ChatConfig, ChatContainer, Message, MessageAvatar, MessageContent, MessageActions,
   PromptInput, PromptInputTextarea, PromptInputActions,
   ScrollButton, Loader, PromptSuggestion, ModelSwitcher, VoiceInput, Button,
 } from "@tab-zen/chat";
@@ -211,21 +211,45 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
             }>
               <For each={props.store.activeConversation()?.messages}>
                 {(msg) => (
-                  <Message class={msg.role === "user" ? "justify-end" : "justify-start"}>
-                    <Show when={msg.role === "assistant"}>
+                  <Show when={msg.role === "user"} fallback={
+                    /* Assistant message — avatar, no background, copy on hover */
+                    <Message>
                       <MessageAvatar src="" alt="AI" fallback="AI" />
-                    </Show>
-                    <MessageContent>{msg.content}</MessageContent>
-                  </Message>
+                      <div class="group flex w-full flex-col gap-0 min-w-0">
+                        <MessageContent markdown class="bg-transparent p-0">
+                          {msg.content}
+                        </MessageContent>
+                        <MessageActions class="-ml-2.5 flex gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                          <Button variant="ghost" size="icon-sm" class="rounded-full" onClick={() => navigator.clipboard.writeText(msg.content)}>
+                            <Copy class="size-3.5" />
+                          </Button>
+                        </MessageActions>
+                      </div>
+                    </Message>
+                  }>
+                    {/* User message — right-aligned bubble, copy on hover */}
+                    <Message class="flex flex-col items-end">
+                      <div class="group flex flex-col items-end gap-1">
+                        <MessageContent class="bg-muted text-primary max-w-[85%] rounded-3xl px-5 py-2.5">
+                          {msg.content}
+                        </MessageContent>
+                        <MessageActions class="flex gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                          <Button variant="ghost" size="icon-sm" class="rounded-full" onClick={() => navigator.clipboard.writeText(msg.content)}>
+                            <Copy class="size-3.5" />
+                          </Button>
+                        </MessageActions>
+                      </div>
+                    </Message>
+                  </Show>
                 )}
               </For>
             </Show>
 
             {/* Streaming response */}
             <Show when={isStreaming()}>
-              <Message class="justify-start">
+              <Message>
                 <MessageAvatar src="" alt="AI" fallback="AI" />
-                <MessageContent>
+                <MessageContent markdown class="bg-transparent p-0">
                   <Show when={streamingContent()} fallback={<Loader variant="loading-dots" size="sm" />}>
                     {streamingContent()}
                   </Show>
