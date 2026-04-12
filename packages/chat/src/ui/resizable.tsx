@@ -154,8 +154,8 @@ function ResizableHandle(props: ResizableHandleProps) {
         'bg-border',
         'after:absolute after:inset-0',
         orientation() === 'horizontal'
-          ? 'after:-left-1 after:-right-1'
-          : 'after:-top-1 after:-bottom-1',
+          ? 'after:-left-2 after:-right-2 after:cursor-col-resize'
+          : 'after:-top-2 after:-bottom-2 after:cursor-row-resize',
         isDragging() && 'bg-primary',
         local.class
       )}
