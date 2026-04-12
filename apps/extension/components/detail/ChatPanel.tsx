@@ -49,7 +49,7 @@ export default function ChatPanel(props: ChatPanelProps) {
           {props.children}
         </Show>
         <Show when={props.open}>
-          <div class="flex-1 min-w-0 flex flex-col">
+          <div class="flex-1 min-w-0 flex flex-col overflow-hidden">
             <ChatPanelContent
               store={props.store}
               documentContext={props.documentContext}
@@ -62,23 +62,26 @@ export default function ChatPanel(props: ChatPanelProps) {
     }>
       {/* Wide: resizable split */}
       <Show when={props.open} fallback={props.children}>
-        <ResizablePanelGroup orientation="horizontal" class="flex-1 min-w-0">
-          <ResizablePanel class="min-w-0">
+        <ResizablePanelGroup orientation="horizontal" class="flex-1 min-w-0 overflow-hidden">
+          <ResizablePanel class="min-w-0 overflow-hidden">
             {props.children}
           </ResizablePanel>
           <ResizableHandle withHandle onPanelResize={handleResize} />
           <ResizablePanel
+            class="overflow-hidden"
             defaultSize={Math.round((panelWidth() / (window.innerWidth - 300)) * 100)}
             data-chat-panel=""
             data-min-size={String(MIN_PANEL_WIDTH)}
             data-max-size={String(MAX_PANEL_WIDTH)}
           >
-            <ChatPanelContent
-              store={props.store}
-              documentContext={props.documentContext}
-              settings={props.settings}
-              onClose={props.onClose}
-            />
+            <div class="h-full flex flex-col overflow-hidden">
+              <ChatPanelContent
+                store={props.store}
+                documentContext={props.documentContext}
+                settings={props.settings}
+                onClose={props.onClose}
+              />
+            </div>
           </ResizablePanel>
         </ResizablePanelGroup>
       </Show>
