@@ -65,5 +65,7 @@ export async function migrateToService(): Promise<{ imported: number; skipped: n
     pages: allData.pages,
     groups: allData.groups,
     captures: allData.captures,
+    templates: allData.aiTemplates,
+    documents: allData.aiDocuments,
   });
 }

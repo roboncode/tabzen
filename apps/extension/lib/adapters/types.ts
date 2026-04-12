@@ -58,6 +58,8 @@ export interface DataAdapter {
     pages: Page[];
     groups: Group[];
     captures: Capture[];
+    templates?: AITemplate[];
+    documents?: AIDocument[];
   }): Promise<{ imported: number; skipped: number }>;
   clearAllData(): Promise<void>;
 }

@@ -29,6 +29,7 @@ func RegisterRoutes(h *handler.Handlers) *http.ServeMux {
 	// Captures
 	mux.HandleFunc("GET /api/captures", h.ListCaptures)
 	mux.HandleFunc("POST /api/captures", h.CreateCapture)
+	mux.HandleFunc("DELETE /api/captures/{id}", h.DeleteCapture)
 
 	// Templates
 	mux.HandleFunc("GET /api/templates", h.ListTemplates)

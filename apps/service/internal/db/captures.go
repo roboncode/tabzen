@@ -39,6 +39,14 @@ func ListCaptures(db *sql.DB) ([]model.Capture, error) {
 	return captures, rows.Err()
 }
 
+func DeleteCapture(db *sql.DB, id string) error {
+	_, err := db.Exec("DELETE FROM captures WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("delete capture: %w", err)
+	}
+	return nil
+}
+
 func InsertCapture(db *sql.DB, c *model.Capture) error {
 	now := model.Now()
 	if c.CreatedAt == "" {

@@ -18,6 +18,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
+	defer database.Close()
 
 	if err := server.Start(database, server.DefaultPort); err != nil {
 		log.Fatalf("Failed to start HTTP server: %v", err)

@@ -14,6 +14,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     throw new Error(`Service request failed: ${res.status} ${res.statusText}`);
   }
+  if (res.status === 204 || res.headers.get("content-length") === "0") {
+    return undefined as T;
+  }
   return res.json();
 }
 
@@ -71,9 +74,9 @@ export const serviceAdapter: DataAdapter = {
 
   async getPageByUrl(url: string): Promise<Page | undefined> {
     const pages = await request<Page[]>(
-      `/pages?search=${encodeURIComponent(url)}&limit=1`,
+      `/pages?url=${encodeURIComponent(url)}&limit=1`,
     );
-    return pages.find((p) => p.url === url);
+    return pages[0];
   },
 
   async updatePage(id: string, updates: Partial<Page>): Promise<void> {
@@ -122,7 +125,7 @@ export const serviceAdapter: DataAdapter = {
   },
 
   async addGroups(groups: Group[]): Promise<void> {
-    await post("/batch", { groups, pages: [], captures: [], aiTemplates: [], aiDocuments: [] });
+    await post("/batch", { groups, pages: [], captures: [], templates: [], documents: [] });
   },
 
   async getGroup(id: string): Promise<Group | undefined> {
@@ -134,7 +137,8 @@ export const serviceAdapter: DataAdapter = {
   },
 
   async getGroupsByCapture(captureId: string): Promise<Group[]> {
-    return request<Group[]>(`/groups?captureId=${encodeURIComponent(captureId)}`);
+    const groups = await request<Group[]>("/groups");
+    return groups.filter((g) => g.captureId === captureId);
   },
 
   async updateGroup(id: string, updates: Partial<Group>): Promise<void> {
@@ -174,7 +178,7 @@ export const serviceAdapter: DataAdapter = {
   },
 
   async putTemplates(templates: AITemplate[]): Promise<void> {
-    await post("/batch", { aiTemplates: templates, pages: [], groups: [], captures: [], aiDocuments: [] });
+    await post("/batch", { templates, pages: [], groups: [], captures: [], documents: [] });
   },
 
   async deleteTemplate(id: string): Promise<void> {
@@ -199,7 +203,7 @@ export const serviceAdapter: DataAdapter = {
   },
 
   async putDocuments(docs: AIDocument[]): Promise<void> {
-    await post("/batch", { aiDocuments: docs, pages: [], groups: [], captures: [], aiTemplates: [] });
+    await post("/batch", { documents: docs, pages: [], groups: [], captures: [], templates: [] });
   },
 
   async deleteDocumentsForPage(pageId: string): Promise<void> {

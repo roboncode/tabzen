@@ -34,6 +34,7 @@ var pageKeyMap = map[string]string{
 	"contentType":      "content_type",
 	"contentFetchedAt": "content_fetched_at",
 	"contentVersion":   "content_version",
+	"deletedAt":        "deleted_at",
 }
 
 func (h *Handlers) ListPages(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +43,7 @@ func (h *Handlers) ListPages(w http.ResponseWriter, r *http.Request) {
 		Starred:  queryBool(r, "starred"),
 		GroupID:  queryString(r, "groupId"),
 		Search:   queryString(r, "search"),
+		URL:      queryString(r, "url"),
 		Limit:    queryInt(r, "limit", 0),
 		Offset:   queryInt(r, "offset", 0),
 	}

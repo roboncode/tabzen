@@ -13,6 +13,7 @@ type PageFilter struct {
 	Starred  *bool
 	GroupID  *string
 	Search   *string
+	URL      *string
 	Limit    int
 	Offset   int
 }
@@ -78,6 +79,10 @@ func ListPages(db *sql.DB, f PageFilter) ([]model.Page, error) {
 	if f.GroupID != nil {
 		query += " AND group_id = ?"
 		args = append(args, *f.GroupID)
+	}
+	if f.URL != nil {
+		query += " AND url = ?"
+		args = append(args, *f.URL)
 	}
 	if f.Search != nil && *f.Search != "" {
 		s := *f.Search
