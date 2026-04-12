@@ -75,7 +75,8 @@ export default function DetailPage(props: DetailPageProps) {
   const [fetchingContent, setFetchingContent] = createSignal(false);
   const [currentPage, setCurrentPage] = createSignal(props.page);
   const [isNarrow, setIsNarrow] = createSignal(window.innerWidth < 768);
-  const [hideRightNav, setHideRightNav] = createSignal(window.innerWidth < 1024);
+  const [hideRightNavBreakpoint, setHideRightNavBreakpoint] = createSignal(window.innerWidth < 1024);
+  const hideRightNav = () => hideRightNavBreakpoint() || chatOpen();
   const [hideLeftNav, setHideLeftNav] = createSignal(window.innerWidth < 1100);
   const [copied, setCopied] = createSignal(false);
   const [reExtracting, setReExtracting] = createSignal(false);
@@ -164,7 +165,7 @@ export default function DetailPage(props: DetailPageProps) {
     const leftNavQuery = window.matchMedia("(max-width: 1099px)");
 
     const onNarrowChange = (e: MediaQueryListEvent) => setIsNarrow(e.matches);
-    const onRightNavChange = (e: MediaQueryListEvent) => setHideRightNav(e.matches);
+    const onRightNavChange = (e: MediaQueryListEvent) => setHideRightNavBreakpoint(e.matches);
     const onLeftNavChange = (e: MediaQueryListEvent) => setHideLeftNav(e.matches);
 
     narrowQuery.addEventListener("change", onNarrowChange);
