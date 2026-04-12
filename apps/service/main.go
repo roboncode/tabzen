@@ -4,6 +4,9 @@ import (
 	"embed"
 	"log"
 
+	"tabzen-service/internal/db"
+	"tabzen-service/internal/server"
+
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -11,6 +14,15 @@ import (
 var assets embed.FS
 
 func main() {
+	database, err := db.Open()
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
+
+	if err := server.Start(database, server.DefaultPort); err != nil {
+		log.Fatalf("Failed to start HTTP server: %v", err)
+	}
+
 	app := application.New(application.Options{
 		Name:        "TabZen Service",
 		Description: "Local data service for Tab Zen",
