@@ -58,7 +58,7 @@ function MessageContent(props: MessageContentProps) {
   const config = useChatConfig();
   const classNames = () =>
     cn(
-      'rounded-lg p-2 text-foreground bg-secondary prose dark:prose-invert max-w-none break-words whitespace-normal',
+      'min-w-0 rounded-lg p-2 text-foreground bg-secondary prose dark:prose-invert max-w-none break-words whitespace-normal',
       proseClass(config.proseSize()),
       local.class
     );
