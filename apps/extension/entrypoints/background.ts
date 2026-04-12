@@ -31,6 +31,7 @@ import type {
 } from "@/lib/types";
 import type { MessageRequest, MessageResponse } from "@/lib/messages";
 import { seedTemplatesIfNeeded } from "@/lib/templates";
+import { initDataLayer, refreshAdapterIfNeeded } from "@/lib/data-layer";
 
 export default defineBackground(() => {
   // --- Notify UI views of data changes ---
@@ -151,6 +152,9 @@ export default defineBackground(() => {
   purgeDeletedPages(30).catch((e) => console.warn("[TabZen] Auto-purge failed:", e));
   seedTemplatesIfNeeded().catch((e) => console.warn("[TabZen] Template seed failed:", e));
 
+  // Initialize data layer (service adapter delegation)
+  initDataLayer().catch((e) => console.warn("[TabZen] Data layer init failed:", e));
+
   // Backfill creator field for existing pages that don't have one
   (async () => {
     try {
@@ -177,8 +181,11 @@ export default defineBackground(() => {
   // Pull on startup
   syncPullIfNeeded();
 
-  // Pull on interval (every 5 minutes)
-  setInterval(() => syncPullIfNeeded(), SYNC_INTERVAL);
+  // Pull on interval (every 5 minutes) and refresh data layer adapter
+  setInterval(() => {
+    syncPullIfNeeded();
+    refreshAdapterIfNeeded().catch((e) => console.warn("[TabZen] Adapter refresh failed:", e));
+  }, SYNC_INTERVAL);
 
   // Pull when browser regains focus
   browser.windows.onFocusChanged.addListener((windowId) => {

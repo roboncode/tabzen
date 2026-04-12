@@ -1,16 +1,14 @@
-import type { DataAdapter } from "./adapters/types";
-import { indexeddbAdapter } from "./adapters/indexeddb-adapter";
+import { setServiceActive, isServiceActive } from "./adapter-state";
 import { serviceAdapter } from "./adapters/service-adapter";
 import { getSettings } from "./settings";
+import * as db from "./db";
 
 const SERVICE_HEALTH_URL = "http://localhost:7824/api/health";
 const HEALTH_CHECK_INTERVAL = 30_000;
 
-let activeAdapter: DataAdapter = indexeddbAdapter;
-let serviceHealthy = false;
 let lastHealthCheck = 0;
 
-async function checkServiceHealth(): Promise<boolean> {
+export async function checkServiceHealth(): Promise<boolean> {
   try {
     const res = await fetch(SERVICE_HEALTH_URL, {
       method: "GET",
@@ -22,50 +20,60 @@ async function checkServiceHealth(): Promise<boolean> {
   }
 }
 
-function selectAdapter(dataSource: "local" | "service" | "auto", healthy: boolean): DataAdapter {
-  if (dataSource === "service" && healthy) return serviceAdapter;
-  if (dataSource === "auto" && healthy) return serviceAdapter;
-  return indexeddbAdapter;
-}
-
-export async function initDataLayer(): Promise<DataAdapter> {
+export async function initDataLayer(): Promise<void> {
   const settings = await getSettings();
-  serviceHealthy = await checkServiceHealth();
+  const { dataSource } = settings;
+
+  if (dataSource === "local") {
+    setServiceActive(false);
+    return;
+  }
+
+  const healthy = await checkServiceHealth();
   lastHealthCheck = Date.now();
-  activeAdapter = selectAdapter(settings.dataSource, serviceHealthy);
-  return activeAdapter;
+
+  if (healthy) {
+    setServiceActive(true);
+  } else if (dataSource === "auto") {
+    // Fall back silently to IndexedDB
+    setServiceActive(false);
+  } else if (dataSource === "service") {
+    console.warn("[TabZen] Local service unavailable -- data operations will fail until service is reachable");
+    setServiceActive(false);
+  }
 }
 
-export function getAdapter(): DataAdapter {
-  return activeAdapter;
-}
+export { isServiceActive };
 
-export function isServiceActive(): boolean {
-  return activeAdapter === serviceAdapter;
-}
-
-export async function refreshAdapterIfNeeded(): Promise<DataAdapter> {
+export async function refreshAdapterIfNeeded(): Promise<void> {
   if (Date.now() - lastHealthCheck < HEALTH_CHECK_INTERVAL) {
-    return activeAdapter;
+    return;
   }
   const settings = await getSettings();
   if (settings.dataSource === "local") {
-    activeAdapter = indexeddbAdapter;
-    return activeAdapter;
+    setServiceActive(false);
+    return;
   }
-  serviceHealthy = await checkServiceHealth();
+  const healthy = await checkServiceHealth();
   lastHealthCheck = Date.now();
-  activeAdapter = selectAdapter(settings.dataSource, serviceHealthy);
-  return activeAdapter;
+
+  if (settings.dataSource === "service" || settings.dataSource === "auto") {
+    setServiceActive(healthy);
+  }
 }
 
 export async function migrateToService(): Promise<{ imported: number; skipped: number }> {
-  const allData = await indexeddbAdapter.getAllData();
+  // Temporarily disable service delegation so we read from IndexedDB
+  const wasActive = isServiceActive();
+  setServiceActive(false);
+  const data = await db.getAllData();
+  setServiceActive(wasActive);
+
   return serviceAdapter.importData({
-    pages: allData.pages,
-    groups: allData.groups,
-    captures: allData.captures,
-    templates: allData.aiTemplates,
-    documents: allData.aiDocuments,
+    pages: data.pages,
+    groups: data.groups,
+    captures: data.captures,
+    templates: data.aiTemplates,
+    documents: data.aiDocuments,
   });
 }
