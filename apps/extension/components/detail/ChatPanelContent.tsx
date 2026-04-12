@@ -1,8 +1,8 @@
 // apps/extension/components/detail/ChatPanelContent.tsx
 import { createSignal, Show, For } from "solid-js";
-import { Plus, History, X, MessageCircle, ArrowUp, Mic, Copy } from "lucide-solid";
+import { Plus, History, X, MessageCircle, ArrowUp, Mic, Copy, ThumbsUp, ThumbsDown } from "lucide-solid";
 import {
-  ChatConfig, ChatContainer, Message, MessageAvatar, MessageContent, MessageActions,
+  ChatConfig, ChatContainer, Message, MessageContent, MessageActions,
   PromptInput, PromptInputTextarea, PromptInputActions,
   ScrollButton, Loader, PromptSuggestion, ModelSwitcher, VoiceInput, Button,
 } from "@tab-zen/chat";
@@ -94,6 +94,9 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
         setStreamingContent(fullContent);
       }
 
+      setIsStreaming(false);
+      setStreamingContent("");
+
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -131,8 +134,10 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
       };
       await props.store.addMessage(errorMessage);
     } finally {
-      setIsStreaming(false);
-      setStreamingContent("");
+      if (isStreaming()) {
+        setIsStreaming(false);
+        setStreamingContent("");
+      }
     }
   }
 
@@ -201,9 +206,8 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
         </div>
 
         {/* Messages */}
-        <ChatContainer class="flex-1 min-w-0 px-3 py-3">
-          <div class="space-y-3 min-w-0">
-            <Show when={props.store.activeConversation()?.messages.length} fallback={
+        <ChatContainer class="relative flex-1 min-w-0 px-5 py-4 space-y-4">
+            <Show when={props.store.activeConversation()?.messages.length || isStreaming()} fallback={
               <div class="flex-1 flex flex-col items-center justify-center py-12">
                 <MessageCircle size={28} class="mb-3 text-muted-foreground/20" />
                 <p class="text-sm text-muted-foreground">Ask anything about this page</p>
@@ -212,33 +216,34 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
               <For each={props.store.activeConversation()?.messages}>
                 {(msg) => (
                   <Show when={msg.role === "user"} fallback={
-                    /* Assistant message — avatar, no background, copy on hover */
-                    <Message>
-                      <MessageAvatar src="" alt="AI" fallback="AI" />
-                      <div class="group flex w-full flex-col gap-0 min-w-0">
-                        <MessageContent markdown class="bg-transparent p-0">
-                          {msg.content}
-                        </MessageContent>
-                        <MessageActions class="-ml-2.5 flex gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                          <Button variant="ghost" size="icon-sm" class="rounded-full" onClick={() => navigator.clipboard.writeText(msg.content)}>
-                            <Copy class="size-3.5" />
-                          </Button>
-                        </MessageActions>
-                      </div>
+                    /* Assistant message */
+                    <Message class="flex-col">
+                      <MessageContent markdown class="bg-transparent p-0 pt-1.5">
+                        {msg.content}
+                      </MessageContent>
+                      <MessageActions>
+                        <button onClick={() => navigator.clipboard.writeText(msg.content)}>
+                          <Copy size={14} />
+                        </button>
+                        <button onClick={() => {}}>
+                          <ThumbsUp size={14} />
+                        </button>
+                        <button onClick={() => {}}>
+                          <ThumbsDown size={14} />
+                        </button>
+                      </MessageActions>
                     </Message>
                   }>
-                    {/* User message — right-aligned bubble, copy on hover */}
-                    <Message class="flex flex-col items-end">
-                      <div class="group flex flex-col items-end gap-1">
-                        <MessageContent class="bg-muted text-primary max-w-[85%] rounded-3xl px-5 py-2.5">
-                          {msg.content}
-                        </MessageContent>
-                        <MessageActions class="flex gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                          <Button variant="ghost" size="icon-sm" class="rounded-full" onClick={() => navigator.clipboard.writeText(msg.content)}>
-                            <Copy class="size-3.5" />
-                          </Button>
-                        </MessageActions>
-                      </div>
+                    {/* User message */}
+                    <Message class="group flex-col items-end">
+                      <MessageContent class="bg-muted text-primary max-w-[85%] rounded-xl px-4 py-2 mr-1">
+                        {msg.content}
+                      </MessageContent>
+                      <MessageActions class="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                        <button onClick={() => navigator.clipboard.writeText(msg.content)}>
+                          <Copy size={14} />
+                        </button>
+                      </MessageActions>
                     </Message>
                   </Show>
                 )}
@@ -247,17 +252,17 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
 
             {/* Streaming response */}
             <Show when={isStreaming()}>
-              <Message>
-                <MessageAvatar src="" alt="AI" fallback="AI" />
-                <MessageContent markdown class="bg-transparent p-0">
-                  <Show when={streamingContent()} fallback={<Loader variant="loading-dots" size="sm" />}>
+              <Message class="flex-col">
+                <Show when={streamingContent()} fallback={<Loader variant="loading-dots" size="sm" />}>
+                  <MessageContent markdown class="bg-transparent p-0 pt-1.5">
                     {streamingContent()}
-                  </Show>
-                </MessageContent>
+                  </MessageContent>
+                </Show>
               </Message>
             </Show>
+          <div class="sticky bottom-2 flex justify-center">
+            <ScrollButton class="shadow-md" />
           </div>
-          <ScrollButton />
         </ChatContainer>
 
         {/* Recent conversations (when no active conversation) */}

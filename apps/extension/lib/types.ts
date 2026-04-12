@@ -36,7 +36,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sourceLabel: "Chrome - Default",
   openRouterApiKey: import.meta.env.VITE_OPENROUTER_API_KEY || "",
   aiModel: "openai/gpt-4o-mini",
-  chatModel: "anthropic/claude-sonnet-4",
+  chatModel: "openai/gpt-4o-mini",
   groqApiKey: import.meta.env.VITE_GROQ_API_KEY || "",
   syncEnabled: false,
   syncToken: null,

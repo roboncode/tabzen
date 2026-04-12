@@ -13,7 +13,7 @@ export function createDocumentChatStore(documentId: () => string) {
     (params) => adapter.listConversations(params.docId),
   );
 
-  const [activeConversation, { refetch: refetchActive }] = createResource(
+  const [activeConversation, { refetch: refetchActive, mutate: mutateActive }] = createResource(
     activeConversationId,
     (id) => (id ? adapter.getConversation(id) : undefined),
   );
@@ -38,7 +38,10 @@ export function createDocumentChatStore(documentId: () => string) {
   }
 
   async function addMessage(message: ChatMessage) {
-    const conv = activeConversation();
+    const id = activeConversationId();
+    if (!id) return;
+    // Read directly from DB to avoid stale resource cache
+    const conv = await adapter.getConversation(id);
     if (!conv) return;
     const updated: Conversation = {
       ...conv,
@@ -46,7 +49,7 @@ export function createDocumentChatStore(documentId: () => string) {
       updatedAt: new Date().toISOString(),
     };
     await adapter.saveConversation(updated);
-    refetchActive();
+    mutateActive(updated);
     refreshList();
   }
 
@@ -72,7 +75,10 @@ export function createDocumentChatStore(documentId: () => string) {
 
   function selectConversation(id: string) { setActiveConversationId(id); }
 
-  function clearActive() { setActiveConversationId(null); }
+  function clearActive() {
+    setActiveConversationId(null);
+    mutateActive(undefined);
+  }
 
   return {
     conversations,
