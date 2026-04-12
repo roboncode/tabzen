@@ -1,4 +1,4 @@
-import { setServiceActive, isServiceActive } from "./adapter-state";
+import { setServiceActive, isServiceActive, ensureAdapterInit } from "./adapter-state";
 import { serviceAdapter } from "./adapters/service-adapter";
 import { getSettings } from "./settings";
 import * as db from "./db";

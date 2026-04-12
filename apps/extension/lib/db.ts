@@ -1,7 +1,14 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { Page, Group, Capture, AITemplate, AIDocument } from "./types";
-import { isServiceActive } from "./adapter-state";
+import { isServiceActive, ensureAdapterInit } from "./adapter-state";
 import { serviceAdapter } from "./adapters/service-adapter";
+
+// Ensure adapter state is initialized before checking isServiceActive().
+// Returns true if the service is active (caller should delegate to serviceAdapter).
+async function useService(): Promise<boolean> {
+  await ensureAdapterInit();
+  return isServiceActive();
+}
 
 interface TabZenDB extends DBSchema {
   tabs: {
@@ -112,13 +119,13 @@ async function migrateDocumentPageIds(db: IDBPDatabase<TabZenDB>): Promise<void>
 }
 
 export async function addPage(page: Page): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.addPage(page);
+  if (await useService()) return serviceAdapter.addPage(page);
   const db = await getDB();
   await db.put("tabs", page);
 }
 
 export async function addPages(pages: Page[]): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.addPages(pages);
+  if (await useService()) return serviceAdapter.addPages(pages);
   const db = await getDB();
   const tx = db.transaction("tabs", "readwrite");
   for (const page of pages) {
@@ -128,32 +135,32 @@ export async function addPages(pages: Page[]): Promise<void> {
 }
 
 export async function getPage(id: string): Promise<Page | undefined> {
-  if (isServiceActive()) return serviceAdapter.getPage(id);
+  if (await useService()) return serviceAdapter.getPage(id);
   const db = await getDB();
   return db.get("tabs", id);
 }
 
 export async function getAllPages(): Promise<Page[]> {
-  if (isServiceActive()) return serviceAdapter.getAllPages();
+  if (await useService()) return serviceAdapter.getAllPages();
   const db = await getDB();
   return db.getAll("tabs");
 }
 
 export async function getPagesByGroup(groupId: string): Promise<Page[]> {
-  if (isServiceActive()) return serviceAdapter.getPagesByGroup(groupId);
+  if (await useService()) return serviceAdapter.getPagesByGroup(groupId);
   const db = await getDB();
   return db.getAllFromIndex("tabs", "by-groupId", groupId);
 }
 
 export async function getPageByUrl(url: string): Promise<Page | undefined> {
-  if (isServiceActive()) return serviceAdapter.getPageByUrl(url);
+  if (await useService()) return serviceAdapter.getPageByUrl(url);
   const db = await getDB();
   const pages = await db.getAllFromIndex("tabs", "by-url", url);
   return pages[0];
 }
 
 export async function updatePage(id: string, updates: Partial<Page>): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.updatePage(id, updates);
+  if (await useService()) return serviceAdapter.updatePage(id, updates);
   const db = await getDB();
   const page = await db.get("tabs", id);
   if (page) {
@@ -162,13 +169,13 @@ export async function updatePage(id: string, updates: Partial<Page>): Promise<vo
 }
 
 export async function hardDeletePage(id: string): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.hardDeletePage(id);
+  if (await useService()) return serviceAdapter.hardDeletePage(id);
   const db = await getDB();
   await db.delete("tabs", id);
 }
 
 export async function softDeletePage(id: string): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.softDeletePage(id);
+  if (await useService()) return serviceAdapter.softDeletePage(id);
   const db = await getDB();
   const page = await db.get("tabs", id);
   if (page) {
@@ -177,7 +184,7 @@ export async function softDeletePage(id: string): Promise<void> {
 }
 
 export async function restorePage(id: string): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.restorePage(id);
+  if (await useService()) return serviceAdapter.restorePage(id);
   const db = await getDB();
   const page = await db.get("tabs", id);
   if (page) {
@@ -186,7 +193,7 @@ export async function restorePage(id: string): Promise<void> {
 }
 
 export async function purgeDeletedPages(olderThanDays: number): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.purgeDeletedPages(olderThanDays);
+  if (await useService()) return serviceAdapter.purgeDeletedPages(olderThanDays);
   const db = await getDB();
   const all = await db.getAll("tabs");
   const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000).toISOString();
@@ -199,7 +206,7 @@ export async function purgeDeletedPages(olderThanDays: number): Promise<void> {
 }
 
 export async function searchPages(query: string): Promise<Page[]> {
-  if (isServiceActive()) return serviceAdapter.searchPages(query);
+  if (await useService()) return serviceAdapter.searchPages(query);
   const db = await getDB();
   const all = await db.getAll("tabs");
   const lower = query.toLowerCase();
@@ -226,7 +233,7 @@ export async function searchPages(query: string): Promise<Page[]> {
 }
 
 export async function getAllTags(): Promise<{ tag: string; count: number }[]> {
-  if (isServiceActive()) return serviceAdapter.getAllTags();
+  if (await useService()) return serviceAdapter.getAllTags();
   const db = await getDB();
   const all = await db.getAll("tabs");
   const tagCounts = new Map<string, number>();
@@ -242,13 +249,13 @@ export async function getAllTags(): Promise<{ tag: string; count: number }[]> {
 }
 
 export async function addGroup(group: Group): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.addGroup(group);
+  if (await useService()) return serviceAdapter.addGroup(group);
   const db = await getDB();
   await db.put("groups", group);
 }
 
 export async function addGroups(groups: Group[]): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.addGroups(groups);
+  if (await useService()) return serviceAdapter.addGroups(groups);
   const db = await getDB();
   const tx = db.transaction("groups", "readwrite");
   for (const group of groups) {
@@ -258,25 +265,25 @@ export async function addGroups(groups: Group[]): Promise<void> {
 }
 
 export async function getGroup(id: string): Promise<Group | undefined> {
-  if (isServiceActive()) return serviceAdapter.getGroup(id);
+  if (await useService()) return serviceAdapter.getGroup(id);
   const db = await getDB();
   return db.get("groups", id);
 }
 
 export async function getAllGroups(): Promise<Group[]> {
-  if (isServiceActive()) return serviceAdapter.getAllGroups();
+  if (await useService()) return serviceAdapter.getAllGroups();
   const db = await getDB();
   return db.getAll("groups");
 }
 
 export async function getGroupsByCapture(captureId: string): Promise<Group[]> {
-  if (isServiceActive()) return serviceAdapter.getGroupsByCapture(captureId);
+  if (await useService()) return serviceAdapter.getGroupsByCapture(captureId);
   const db = await getDB();
   return db.getAllFromIndex("groups", "by-captureId", captureId);
 }
 
 export async function updateGroup(id: string, updates: Partial<Group>): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.updateGroup(id, updates);
+  if (await useService()) return serviceAdapter.updateGroup(id, updates);
   const db = await getDB();
   const group = await db.get("groups", id);
   if (group) {
@@ -285,25 +292,25 @@ export async function updateGroup(id: string, updates: Partial<Group>): Promise<
 }
 
 export async function deleteGroup(id: string): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.deleteGroup(id);
+  if (await useService()) return serviceAdapter.deleteGroup(id);
   const db = await getDB();
   await db.delete("groups", id);
 }
 
 export async function addCapture(capture: Capture): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.addCapture(capture);
+  if (await useService()) return serviceAdapter.addCapture(capture);
   const db = await getDB();
   await db.put("captures", capture);
 }
 
 export async function getAllCaptures(): Promise<Capture[]> {
-  if (isServiceActive()) return serviceAdapter.getAllCaptures();
+  if (await useService()) return serviceAdapter.getAllCaptures();
   const db = await getDB();
   return db.getAll("captures");
 }
 
 export async function deleteCapture(id: string): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.deleteCapture(id);
+  if (await useService()) return serviceAdapter.deleteCapture(id);
   const db = await getDB();
   await db.delete("captures", id);
 }
@@ -347,7 +354,7 @@ export async function clearProfileData(deviceId: string): Promise<void> {
 }
 
 export async function clearAllData(): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.clearAllData();
+  if (await useService()) return serviceAdapter.clearAllData();
   const db = await getDB();
   const tx = db.transaction(["tabs", "groups", "captures", "aiTemplates", "aiDocuments"], "readwrite");
   await tx.objectStore("tabs").clear();
@@ -365,7 +372,7 @@ export async function getAllData(): Promise<{
   aiTemplates: AITemplate[];
   aiDocuments: AIDocument[];
 }> {
-  if (isServiceActive()) return serviceAdapter.getAllData();
+  if (await useService()) return serviceAdapter.getAllData();
   const db = await getDB();
   const [pages, groups, captures, aiTemplates, aiDocuments] = await Promise.all([
     db.getAll("tabs"),
@@ -378,7 +385,7 @@ export async function getAllData(): Promise<{
 }
 
 export async function importData(data: { pages: Page[]; groups: Group[]; captures: Capture[] }): Promise<{ imported: number; skipped: number }> {
-  if (isServiceActive()) return serviceAdapter.importData(data);
+  if (await useService()) return serviceAdapter.importData(data);
   const db = await getDB();
   let imported = 0;
   let skipped = 0;
@@ -416,26 +423,26 @@ export async function importData(data: { pages: Page[]; groups: Group[]; capture
 // --- AI Templates ---
 
 export async function getAllTemplates(): Promise<AITemplate[]> {
-  if (isServiceActive()) return serviceAdapter.getAllTemplates();
+  if (await useService()) return serviceAdapter.getAllTemplates();
   const db = await getDB();
   const all = await db.getAll("aiTemplates");
   return all.sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 export async function getTemplate(id: string): Promise<AITemplate | undefined> {
-  if (isServiceActive()) return serviceAdapter.getTemplate(id);
+  if (await useService()) return serviceAdapter.getTemplate(id);
   const db = await getDB();
   return db.get("aiTemplates", id);
 }
 
 export async function putTemplate(template: AITemplate): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.putTemplate(template);
+  if (await useService()) return serviceAdapter.putTemplate(template);
   const db = await getDB();
   await db.put("aiTemplates", template);
 }
 
 export async function putTemplates(templates: AITemplate[]): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.putTemplates(templates);
+  if (await useService()) return serviceAdapter.putTemplates(templates);
   const db = await getDB();
   const tx = db.transaction("aiTemplates", "readwrite");
   for (const t of templates) {
@@ -445,7 +452,7 @@ export async function putTemplates(templates: AITemplate[]): Promise<void> {
 }
 
 export async function deleteTemplate(id: string): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.deleteTemplate(id);
+  if (await useService()) return serviceAdapter.deleteTemplate(id);
   const db = await getDB();
   await db.delete("aiTemplates", id);
 }
@@ -453,20 +460,20 @@ export async function deleteTemplate(id: string): Promise<void> {
 // --- AI Documents ---
 
 export async function getDocumentsForPage(pageId: string): Promise<AIDocument[]> {
-  if (isServiceActive()) return serviceAdapter.getDocumentsForPage(pageId);
+  if (await useService()) return serviceAdapter.getDocumentsForPage(pageId);
   const db = await getDB();
   return db.getAllFromIndex("aiDocuments", "by-pageId", pageId);
 }
 
 export async function getDocument(pageId: string, templateId: string): Promise<AIDocument | undefined> {
-  if (isServiceActive()) return serviceAdapter.getDocument(pageId, templateId);
+  if (await useService()) return serviceAdapter.getDocument(pageId, templateId);
   const db = await getDB();
   const docs = await db.getAllFromIndex("aiDocuments", "by-pageId", pageId);
   return docs.find((d) => d.templateId === templateId);
 }
 
 export async function putDocument(doc: AIDocument): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.putDocument(doc);
+  if (await useService()) return serviceAdapter.putDocument(doc);
   const db = await getDB();
   const existing = await getDocument(doc.pageId, doc.templateId);
   if (existing) {
@@ -476,7 +483,7 @@ export async function putDocument(doc: AIDocument): Promise<void> {
 }
 
 export async function deleteDocumentsForPage(pageId: string): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.deleteDocumentsForPage(pageId);
+  if (await useService()) return serviceAdapter.deleteDocumentsForPage(pageId);
   const db = await getDB();
   const docs = await db.getAllFromIndex("aiDocuments", "by-pageId", pageId);
   const tx = db.transaction("aiDocuments", "readwrite");
@@ -487,19 +494,19 @@ export async function deleteDocumentsForPage(pageId: string): Promise<void> {
 }
 
 export async function deleteDocument(id: string): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.deleteDocument(id);
+  if (await useService()) return serviceAdapter.deleteDocument(id);
   const db = await getDB();
   await db.delete("aiDocuments", id);
 }
 
 export async function getAllDocuments(): Promise<AIDocument[]> {
-  if (isServiceActive()) return serviceAdapter.getAllDocuments();
+  if (await useService()) return serviceAdapter.getAllDocuments();
   const db = await getDB();
   return db.getAll("aiDocuments");
 }
 
 export async function putDocuments(docs: AIDocument[]): Promise<void> {
-  if (isServiceActive()) return serviceAdapter.putDocuments(docs);
+  if (await useService()) return serviceAdapter.putDocuments(docs);
   const db = await getDB();
   const tx = db.transaction("aiDocuments", "readwrite");
   for (const doc of docs) {
