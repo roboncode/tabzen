@@ -125,8 +125,9 @@ function ResizableHandle(props: ResizableHandleProps) {
     const prevMin = parseInt(prevEl.dataset.minSize || '0', 10);
     const prevMax = parseInt(prevEl.dataset.maxSize || '999999', 10);
     const nextMin = parseInt(nextEl.dataset.minSize || '0', 10);
+    const nextMax = parseInt(nextEl.dataset.maxSize || '999999', 10);
 
-    if (newPrevSize < prevMin || newNextSize < nextMin || newPrevSize > prevMax) return;
+    if (newPrevSize < prevMin || newNextSize < nextMin || newPrevSize > prevMax || newNextSize > nextMax) return;
 
     prevEl.style.flexBasis = `${newPrevSize}px`;
     prevEl.style.flexGrow = '0';
