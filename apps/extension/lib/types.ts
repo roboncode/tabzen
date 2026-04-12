@@ -37,7 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   openRouterApiKey: import.meta.env.VITE_OPENROUTER_API_KEY || "",
   aiModel: "openai/gpt-4o-mini",
   chatModel: "anthropic/claude-sonnet-4",
-  groqApiKey: "",
+  groqApiKey: import.meta.env.VITE_GROQ_API_KEY || "",
   syncEnabled: false,
   syncToken: null,
   syncLocalToken: null,
