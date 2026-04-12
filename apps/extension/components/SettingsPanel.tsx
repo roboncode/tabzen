@@ -97,7 +97,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           [
             ["general", "General"],
             ["ai", "AI"],
-            ["sync", "Sync"],
+            ["sync", "Storage"],
             ["domains", "Blocked Domains"],
             ["data", "Data"],
           ] as const
