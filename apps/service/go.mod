@@ -2,7 +2,10 @@ module tabzen-service
 
 go 1.26.2
 
-require github.com/wailsapp/wails/v3 v3.0.0-alpha.9
+require (
+	github.com/mattn/go-sqlite3 v1.14.42
+	github.com/wailsapp/wails/v3 v3.0.0-alpha.9
+)
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
