@@ -4,6 +4,7 @@
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
     "paths": {
+      "@tab-zen/chat": ["../../packages/chat/src/index.ts"],
       "@tab-zen/shared": ["../../packages/shared/src/index.ts"],
       "@/*": ["./*"]
     }
