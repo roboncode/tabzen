@@ -29,6 +29,8 @@ export interface ContextSnapshot {
   isCompressed: boolean;
   originalDocumentTokens: number | null;
   compressionSavings: number | null; // percentage saved, e.g. 0.65 = 65%
+  activeSkillCount: number;
+  skillTokens: number;
 }
 
 export interface PreparedPayload {
@@ -44,11 +46,15 @@ export function preparePayload(
   existingSummary: string | null,
   modelId: string,
   compressionInfo?: { originalTokens: number; compressedTokens: number },
+  skillPrompt?: string,
 ): PreparedPayload {
   const model = getModelByIdOrDefault(modelId);
   const maxInputTokens = Math.floor(model.maxContextTokens * CONTEXT_BUDGET_RATIO);
 
-  const systemPrompt = buildFullSystemPrompt(documentContext);
+  let systemPrompt = buildFullSystemPrompt(documentContext);
+  if (skillPrompt) {
+    systemPrompt += skillPrompt;
+  }
   const systemPromptTokens = estimateTokens(systemPrompt);
   const documentTokens = estimateTokens(documentContext.content);
   const summaryTokens = existingSummary ? estimateTokens(existingSummary) : 0;
@@ -119,6 +125,8 @@ export function preparePayload(
       compressionSavings: compressionInfo
         ? 1 - (compressionInfo.compressedTokens / compressionInfo.originalTokens)
         : null,
+      activeSkillCount: skillPrompt ? skillPrompt.split("---").length : 0,
+      skillTokens: skillPrompt ? estimateTokens(skillPrompt) : 0,
     },
   };
 }
