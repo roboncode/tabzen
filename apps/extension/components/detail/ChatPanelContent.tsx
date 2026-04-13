@@ -78,10 +78,12 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
     setStreamingContent("");
 
     // Compress content on first use (cached for subsequent messages)
+    // Only compress if enabled in settings and content is long enough (~5000+ tokens)
+    const MIN_COMPRESS_LENGTH = 17500; // ~5000 tokens at 3.5 chars/token
     let docContent = props.documentContext.content;
     let compInfo = compressionInfo();
 
-    if (!compressedContent() && docContent.length > 500) {
+    if (props.settings.chatCompression && !compressedContent() && docContent.length > MIN_COMPRESS_LENGTH) {
       try {
         const result = await getOrCompressContent(
           props.documentContext.url,
