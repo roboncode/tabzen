@@ -10,6 +10,7 @@ interface ChatDebugPanelProps {
   summary: string | null;
   messagesPayload: Array<{ role: string; content: string }>;
   modelId: string;
+  activeSkillNames: string[];
 }
 
 function TokenBadge(props: { tokens: number }) {
@@ -97,6 +98,16 @@ export default function ChatDebugPanel(props: ChatDebugPanelProps) {
               {snapshot()?.originalDocumentTokens?.toLocaleString()} → {snapshot()?.documentTokens.toLocaleString()} tokens
               ({Math.round((snapshot()?.compressionSavings ?? 0) * 100)}% saved)
             </span>
+          </div>
+        </div>
+      </Show>
+
+      {/* Active skills */}
+      <Show when={props.activeSkillNames.length > 0}>
+        <div class="px-3 py-2 bg-violet-500/5 flex-shrink-0">
+          <div class="flex justify-between text-xs">
+            <span class="text-violet-400">Active skills</span>
+            <span class="text-violet-400">{props.activeSkillNames.join(", ")}</span>
           </div>
         </div>
       </Show>

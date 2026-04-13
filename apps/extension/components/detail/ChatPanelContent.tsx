@@ -359,6 +359,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
               summary={props.store.conversationSummary()}
               messagesPayload={lastMessagesPayload()}
               modelId={currentModel()}
+              activeSkillNames={props.store.activeSkillIds().map((id) => (allSkills() ?? []).find((s: ChatSkill) => s.id === id)?.name ?? id)}
             />
           </div>
         </Show>
