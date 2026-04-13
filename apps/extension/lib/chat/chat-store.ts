@@ -22,15 +22,15 @@ export function createDocumentChatStore(documentId: () => string) {
   const [conversationSummary, setConversationSummary] = createSignal<string | null>(null);
   const [activeSkillIds, setActiveSkillIds] = createSignal<string[]>([]);
 
-  // Load summary and skill IDs when active conversation changes
+  // Load summary when active conversation changes
+  // Skills are NOT loaded here — they're managed explicitly by createConversation,
+  // toggleSkill, and selectConversation to avoid overwriting user selections
   createEffect(() => {
     const id = activeConversationId();
     if (id) {
       adapter.getSummary(id).then((s) => setConversationSummary(s));
-      adapter.getActiveSkillIds(id).then((ids) => setActiveSkillIds(ids));
     } else {
       setConversationSummary(null);
-      setActiveSkillIds([]);
     }
   });
 
@@ -55,12 +55,15 @@ export function createDocumentChatStore(documentId: () => string) {
       updatedAt: now,
     };
     await adapter.saveConversation(conversation);
-    // Set default skills
-    const defaults = await getDefaultSkillIds();
-    if (defaults.length > 0) {
-      await adapter.setActiveSkillIds(id, defaults);
-      setActiveSkillIds(defaults);
+
+    // Preserve skills already toggled, or fall back to defaults
+    const currentSkills = activeSkillIds();
+    const skillsToApply = currentSkills.length > 0 ? currentSkills : await getDefaultSkillIds();
+    if (skillsToApply.length > 0) {
+      await adapter.setActiveSkillIds(id, skillsToApply);
+      setActiveSkillIds(skillsToApply);
     }
+
     refreshList();
     setActiveConversationId(id);
     return id;
@@ -102,11 +105,16 @@ export function createDocumentChatStore(documentId: () => string) {
     refreshList();
   }
 
-  function selectConversation(id: string) { setActiveConversationId(id); }
+  async function selectConversation(id: string) {
+    setActiveConversationId(id);
+    const ids = await adapter.getActiveSkillIds(id);
+    setActiveSkillIds(ids);
+  }
 
   function clearActive() {
     setActiveConversationId(null);
     mutateActive(undefined);
+    setActiveSkillIds([]);
   }
 
   async function toggleSkill(skillId: string) {
