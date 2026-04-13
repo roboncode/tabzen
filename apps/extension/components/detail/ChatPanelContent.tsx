@@ -15,6 +15,7 @@ import { preparePayload, needsCompaction, compactConversation, type ContextSnaps
 import { CHAT_MODELS } from "@/lib/chat/chat-models";
 import { transcribeAudio } from "@/lib/chat/chat-voice";
 import { generateConversationTitle } from "@/lib/chat/chat-title";
+import { getOrCompressContent } from "@/lib/chat/chat-compress";
 import type { Settings } from "@/lib/types";
 import ChatHistory from "./ChatHistory";
 import ChatDebugPanel from "./ChatDebugPanel";
@@ -38,6 +39,9 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
   const [debugOpen, setDebugOpen] = createSignal(false);
   const [lastSystemPrompt, setLastSystemPrompt] = createSignal<string | null>(null);
   const [lastMessagesPayload, setLastMessagesPayload] = createSignal<Array<{ role: string; content: string }>>([]);
+  const [compressionStatus, setCompressionStatus] = createSignal("");
+  const [compressedContent, setCompressedContent] = createSignal<string | null>(null);
+  const [compressionInfo, setCompressionInfo] = createSignal<{ originalTokens: number; compressedTokens: number } | null>(null);
   const titleGeneratedFor = new Set<string>();
 
   const suggestions = [
@@ -73,16 +77,50 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
     setIsStreaming(true);
     setStreamingContent("");
 
+    // Compress content on first use (cached for subsequent messages)
+    let docContent = props.documentContext.content;
+    let compInfo = compressionInfo();
+
+    if (!compressedContent() && docContent.length > 500) {
+      try {
+        const result = await getOrCompressContent(
+          props.documentContext.url,
+          docContent,
+          props.settings.openRouterApiKey,
+          currentModel(),
+          setCompressionStatus,
+        );
+        setCompressedContent(result.compressed.compressedText);
+        setCompressionInfo({
+          originalTokens: result.compressed.originalTokens,
+          compressedTokens: result.compressed.compressedTokens,
+        });
+        docContent = result.compressed.compressedText;
+        compInfo = {
+          originalTokens: result.compressed.originalTokens,
+          compressedTokens: result.compressed.compressedTokens,
+        };
+      } catch (err) {
+        console.error("Compression failed, using original:", err);
+      }
+    } else if (compressedContent()) {
+      docContent = compressedContent()!;
+      compInfo = compressionInfo();
+    }
+
+    const chatContext = { ...props.documentContext, content: docContent };
+
     // Read messages from store — addMessage already mutated with the user message included
     const conv = props.store.activeConversation();
     const allMessages = conv ? [...conv.messages] : [userMessage];
 
     // Prepare payload with context window management
     const { messages: llmMessages, snapshot } = preparePayload(
-      props.documentContext,
+      chatContext,
       allMessages,
       props.store.conversationSummary(),
       currentModel(),
+      compInfo ?? undefined,
     );
 
     setContextSnapshot(snapshot);
@@ -126,10 +164,11 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
           );
           await props.store.updateSummary(summary);
           const newPayload = preparePayload(
-            props.documentContext,
+            chatContext,
             [...allMessages, assistantMessage],
             summary,
             currentModel(),
+            compInfo ?? undefined,
           );
           setContextSnapshot(newPayload.snapshot);
         }
@@ -229,6 +268,12 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                             <span>{snap().summaryTokens.toLocaleString()}</span>
                           </div>
                         </Show>
+                        <Show when={snap().isCompressed}>
+                          <div class="flex justify-between text-emerald-400">
+                            <span>Compressed</span>
+                            <span>{Math.round((snap().compressionSavings ?? 0) * 100)}% saved</span>
+                          </div>
+                        </Show>
                       </div>
                     </ContextContentBody>
                   </ContextContent>
@@ -283,6 +328,14 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
               messagesPayload={lastMessagesPayload()}
               modelId={currentModel()}
             />
+          </div>
+        </Show>
+
+        {/* Compression status */}
+        <Show when={compressionStatus()}>
+          <div class="px-4 py-1.5 text-xs text-muted-foreground bg-muted/20 flex-shrink-0 flex items-center gap-2">
+            <Loader variant="loading-dots" size="sm" />
+            {compressionStatus()}
           </div>
         </Show>
 
