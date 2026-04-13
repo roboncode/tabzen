@@ -11,7 +11,9 @@ interface ChatHistoryProps {
 }
 
 function timeAgo(dateStr: string): string {
-  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  const seconds = Math.floor(
+    (Date.now() - new Date(dateStr).getTime()) / 1000,
+  );
   if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
@@ -29,7 +31,9 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const q = search().toLowerCase();
     const list = props.store.conversations() ?? [];
     if (!q) return list;
-    return list.filter((c: ConversationSummary) => c.title.toLowerCase().includes(q));
+    return list.filter((c: ConversationSummary) =>
+      c.title.toLowerCase().includes(q),
+    );
   };
 
   async function handleDelete(e: Event, id: string) {
@@ -53,16 +57,16 @@ export default function ChatHistory(props: ChatHistoryProps) {
         >
           <ArrowLeft size={16} />
         </button>
-        <span class="text-sm font-semibold text-foreground">History</span>
+        <span class="text-sm font-semibold text-foreground">Sessions</span>
       </div>
 
       {/* Search */}
       <div class="px-3 py-2 flex-shrink-0">
-        <div class="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2">
-          <Search size={14} class="text-muted-foreground flex-shrink-0" />
+        <div class="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-1.5">
+          <Search size={13} class="text-muted-foreground flex-shrink-0" />
           <input
             type="text"
-            placeholder="Search threads..."
+            placeholder="Search sessions..."
             class="bg-transparent text-sm text-foreground outline-none w-full placeholder:text-muted-foreground/40"
             value={search()}
             onInput={(e) => setSearch(e.currentTarget.value)}
@@ -70,28 +74,35 @@ export default function ChatHistory(props: ChatHistoryProps) {
         </div>
       </div>
 
-      {/* Conversation list */}
+      {/* Session list */}
       <div class="flex-1 overflow-y-auto px-2">
-        <Show when={filtered().length > 0} fallback={
-          <div class="text-center text-sm text-muted-foreground/40 py-12">No conversations</div>
-        }>
+        <Show
+          when={filtered().length > 0}
+          fallback={
+            <div class="text-center text-xs text-muted-foreground/40 py-12">
+              No sessions
+            </div>
+          }
+        >
           <For each={filtered()}>
             {(conv) => (
               <div
-                class="group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer hover:bg-muted/30 transition-colors"
+                class="group flex items-center justify-between px-2 py-2 rounded-md cursor-pointer hover:bg-muted/30 transition-colors"
                 onClick={() => props.onSelect(conv.id)}
               >
                 <div class="min-w-0 flex-1">
-                  <div class="text-sm text-foreground truncate">{conv.title}</div>
-                  <div class="text-xs text-muted-foreground/60 mt-0.5">
+                  <div class="text-sm text-foreground/80 truncate">
+                    {conv.title}
+                  </div>
+                  <div class="text-xs text-muted-foreground/50">
                     {conv.messageCount} messages · {timeAgo(conv.updatedAt)}
                   </div>
                 </div>
                 <button
                   onClick={(e) => handleDelete(e, conv.id)}
-                  class="p-1.5 rounded-md text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-red-400 hover:bg-muted/50 transition-colors"
+                  class="p-1 rounded text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-red-400 transition-colors"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={13} />
                 </button>
               </div>
             )}
@@ -102,24 +113,27 @@ export default function ChatHistory(props: ChatHistoryProps) {
       {/* Delete all */}
       <Show when={(props.store.conversations() ?? []).length > 0}>
         <div class="px-3 py-3 flex-shrink-0">
-          <Show when={confirmDeleteAll()} fallback={
-            <button
-              onClick={() => setConfirmDeleteAll(true)}
-              class="w-full py-2 rounded-lg text-sm text-red-400 bg-red-400/10 hover:bg-red-400/20 transition-colors"
-            >
-              Delete All History
-            </button>
-          }>
+          <Show
+            when={confirmDeleteAll()}
+            fallback={
+              <button
+                onClick={() => setConfirmDeleteAll(true)}
+                class="w-full py-1.5 rounded-lg text-xs text-red-400 bg-red-400/10 hover:bg-red-400/20 transition-colors"
+              >
+                Delete All Sessions
+              </button>
+            }
+          >
             <div class="flex gap-2">
               <button
                 onClick={() => setConfirmDeleteAll(false)}
-                class="flex-1 py-2 rounded-lg text-sm text-muted-foreground bg-muted/30 hover:bg-muted/50 transition-colors"
+                class="flex-1 py-1.5 rounded-lg text-xs text-muted-foreground bg-muted/30 hover:bg-muted/50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAll}
-                class="flex-1 py-2 rounded-lg text-sm text-white bg-red-500 hover:bg-red-600 transition-colors"
+                class="flex-1 py-1.5 rounded-lg text-xs text-white bg-red-500 hover:bg-red-600 transition-colors"
               >
                 Confirm Delete
               </button>
