@@ -1,6 +1,7 @@
 import { createSignal, createResource, createEffect } from 'solid-js';
 import type { Conversation, ChatMessage } from '@tab-zen/shared';
 import { ChatAdapter } from './chat-adapter';
+import { getDefaultSkillIds } from './chat-skills';
 
 const adapter = new ChatAdapter();
 
@@ -19,14 +20,17 @@ export function createDocumentChatStore(documentId: () => string) {
   );
 
   const [conversationSummary, setConversationSummary] = createSignal<string | null>(null);
+  const [activeSkillIds, setActiveSkillIds] = createSignal<string[]>([]);
 
-  // Load summary when active conversation changes
+  // Load summary and skill IDs when active conversation changes
   createEffect(() => {
     const id = activeConversationId();
     if (id) {
       adapter.getSummary(id).then((s) => setConversationSummary(s));
+      adapter.getActiveSkillIds(id).then((ids) => setActiveSkillIds(ids));
     } else {
       setConversationSummary(null);
+      setActiveSkillIds([]);
     }
   });
 
@@ -51,6 +55,12 @@ export function createDocumentChatStore(documentId: () => string) {
       updatedAt: now,
     };
     await adapter.saveConversation(conversation);
+    // Set default skills
+    const defaults = await getDefaultSkillIds();
+    if (defaults.length > 0) {
+      await adapter.setActiveSkillIds(id, defaults);
+      setActiveSkillIds(defaults);
+    }
     refreshList();
     setActiveConversationId(id);
     return id;
@@ -99,15 +109,29 @@ export function createDocumentChatStore(documentId: () => string) {
     mutateActive(undefined);
   }
 
+  async function toggleSkill(skillId: string) {
+    const current = activeSkillIds();
+    const id = activeConversationId();
+    const updated = current.includes(skillId)
+      ? current.filter((s) => s !== skillId)
+      : [...current, skillId];
+    setActiveSkillIds(updated);
+    if (id) {
+      await adapter.setActiveSkillIds(id, updated);
+    }
+  }
+
   return {
     conversations,
     activeConversation,
     activeConversationId,
     conversationSummary,
+    activeSkillIds,
     createConversation,
     addMessage,
     updateTitle,
     updateSummary,
+    toggleSkill,
     deleteConversation,
     deleteAllConversations,
     selectConversation,

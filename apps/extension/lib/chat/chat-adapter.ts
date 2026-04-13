@@ -79,6 +79,22 @@ export class ChatAdapter {
     return (conv as any)?.summary ?? null;
   }
 
+  async getActiveSkillIds(conversationId: string): Promise<string[]> {
+    const db = await getChatDB();
+    const conv = await db.get('conversations', conversationId);
+    return (conv as any)?.activeSkillIds ?? [];
+  }
+
+  async setActiveSkillIds(conversationId: string, skillIds: string[]): Promise<void> {
+    const db = await getChatDB();
+    const conv = await db.get('conversations', conversationId);
+    if (conv) {
+      (conv as any).activeSkillIds = skillIds;
+      conv.updatedAt = new Date().toISOString();
+      await db.put('conversations', conv);
+    }
+  }
+
   async getCompressedContent(pageId: string): Promise<CompressedContent | undefined> {
     const db = await getChatDB();
     return db.get('compressedContent', pageId);
