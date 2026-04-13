@@ -1,27 +1,23 @@
 // apps/extension/components/detail/ChatPanelContent.tsx
 import { createSignal, Show, For } from "solid-js";
-import { Plus, History, X, MessageCircle, ArrowUp, Mic, Copy, ThumbsUp, ThumbsDown } from "lucide-solid";
+import { Plus, History, X, MessageCircle, ArrowUp, Mic, Copy, ThumbsUp, ThumbsDown, Code } from "lucide-solid";
 import {
   ChatConfig, ChatContainer, Message, MessageContent, MessageActions,
   PromptInput, PromptInputTextarea, PromptInputActions,
   ScrollButton, Loader, PromptSuggestion, ModelSwitcher, VoiceInput, Button,
+  Context, ContextTrigger, ContextContent, ContextContentHeader,
+  ContextContentBody,
 } from "@tab-zen/chat";
-import type { ChatMessage, ModelOption } from "@tab-zen/shared";
+import type { ChatMessage } from "@tab-zen/shared";
 import type { DocumentChatStore } from "@/lib/chat/chat-store";
-import { streamChatCompletion, buildSystemPrompt, type DocumentChatContext } from "@/lib/chat/chat-streaming";
+import { streamChatCompletion, type DocumentChatContext } from "@/lib/chat/chat-streaming";
+import { preparePayload, needsCompaction, compactConversation, type ContextSnapshot, MIN_RECENT_MESSAGES } from "@/lib/chat/chat-context-manager";
+import { CHAT_MODELS } from "@/lib/chat/chat-models";
 import { transcribeAudio } from "@/lib/chat/chat-voice";
 import { generateConversationTitle } from "@/lib/chat/chat-title";
 import type { Settings } from "@/lib/types";
 import ChatHistory from "./ChatHistory";
-
-const CHAT_MODELS: ModelOption[] = [
-  { id: "anthropic/claude-sonnet-4", name: "Claude Sonnet 4", provider: "Anthropic" },
-  { id: "anthropic/claude-haiku-4", name: "Claude Haiku 4", provider: "Anthropic" },
-  { id: "openai/gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI" },
-  { id: "openai/gpt-4o", name: "GPT-4o", provider: "OpenAI" },
-  { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "Google" },
-  { id: "google/gemini-2.5-pro", name: "Gemini 2.5 Pro", provider: "Google" },
-];
+import ChatDebugPanel from "./ChatDebugPanel";
 
 interface ChatPanelContentProps {
   store: DocumentChatStore;
@@ -38,6 +34,10 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
   const [streamingContent, setStreamingContent] = createSignal("");
   const [promptText, setPromptText] = createSignal("");
   const [currentModel, setCurrentModel] = createSignal(props.settings.chatModel);
+  const [contextSnapshot, setContextSnapshot] = createSignal<ContextSnapshot | null>(null);
+  const [debugOpen, setDebugOpen] = createSignal(false);
+  const [lastSystemPrompt, setLastSystemPrompt] = createSignal<string | null>(null);
+  const [lastMessagesPayload, setLastMessagesPayload] = createSignal<Array<{ role: string; content: string }>>([]);
   const titleGeneratedFor = new Set<string>();
 
   const suggestions = [
@@ -76,19 +76,28 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
     // Build messages from known state to avoid race with async resource refetch
     const conv = props.store.activeConversation();
     const priorMessages = conv ? conv.messages : [];
-    const allMessages = [...priorMessages, userMessage].map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    }));
+    const allMessages = [...priorMessages, userMessage];
 
-    const systemPrompt = buildSystemPrompt(props.documentContext);
+    // Prepare payload with context window management
+    const { messages: llmMessages, snapshot } = preparePayload(
+      props.documentContext,
+      allMessages,
+      props.store.conversationSummary(),
+      currentModel(),
+    );
+
+    setContextSnapshot(snapshot);
+    setLastSystemPrompt(llmMessages.find((m) => m.role === "system")?.content ?? null);
+    setLastMessagesPayload(llmMessages.filter((m) => m.role !== "system"));
+
+    const shouldCompact = needsCompaction(snapshot);
 
     try {
       let fullContent = "";
       for await (const chunk of streamChatCompletion(
         props.settings.openRouterApiKey,
         currentModel(),
-        [{ role: "system", content: systemPrompt }, ...allMessages],
+        llmMessages,
       )) {
         fullContent += chunk;
         setStreamingContent(fullContent);
@@ -105,6 +114,27 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
         createdAt: new Date().toISOString(),
       };
       await props.store.addMessage(assistantMessage);
+
+      // Compact if needed (after saving the response)
+      if (shouldCompact) {
+        const messagesToCompact = allMessages.slice(0, allMessages.length - MIN_RECENT_MESSAGES);
+        if (messagesToCompact.length > 0) {
+          const summary = await compactConversation(
+            props.settings.openRouterApiKey,
+            currentModel(),
+            props.store.conversationSummary(),
+            messagesToCompact,
+          );
+          await props.store.updateSummary(summary);
+          const newPayload = preparePayload(
+            props.documentContext,
+            [...allMessages, assistantMessage],
+            summary,
+            currentModel(),
+          );
+          setContextSnapshot(newPayload.snapshot);
+        }
+      }
 
       // Auto-title generation (fire and forget, once per conversation)
       const convId = props.store.activeConversationId();
@@ -174,6 +204,38 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
             <span class="text-sm font-semibold text-foreground truncate">
               {props.store.activeConversation()?.title ?? "New Thread"}
             </span>
+            <Show when={contextSnapshot()}>
+              {(snap) => (
+                <Context
+                  usedTokens={snap().totalInputTokens}
+                  maxTokens={snap().maxInputTokens}
+                  inputTokens={snap().messageTokens + snap().summaryTokens}
+                >
+                  <ContextTrigger class="h-6 px-1 text-xs" />
+                  <ContextContent>
+                    <ContextContentHeader />
+                    <ContextContentBody>
+                      <div class="space-y-1 text-xs">
+                        <div class="flex justify-between">
+                          <span class="text-muted-foreground">Document</span>
+                          <span>{snap().documentTokens.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-muted-foreground">Messages</span>
+                          <span>{snap().messagesIncluded} of {snap().messagesTotal}</span>
+                        </div>
+                        <Show when={snap().hasBeenCompacted}>
+                          <div class="flex justify-between">
+                            <span class="text-muted-foreground">Summary</span>
+                            <span>{snap().summaryTokens.toLocaleString()}</span>
+                          </div>
+                        </Show>
+                      </div>
+                    </ContextContentBody>
+                  </ContextContent>
+                </Context>
+              )}
+            </Show>
           </div>
           <div class="flex items-center gap-1 flex-shrink-0">
             <button
@@ -191,6 +253,17 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
               <History size={16} />
             </button>
             <button
+              onClick={() => setDebugOpen(!debugOpen())}
+              class={`p-1.5 rounded-md transition-colors ${
+                debugOpen()
+                  ? "text-sky-400 bg-sky-400/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+              title="Debug inspector"
+            >
+              <Code size={16} />
+            </button>
+            <button
               onClick={props.onClose}
               class="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
               title="Close"
@@ -199,6 +272,20 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
             </button>
           </div>
         </div>
+
+        {/* Debug inspector */}
+        <Show when={debugOpen()}>
+          <div class="flex-shrink-0 max-h-[40%] overflow-hidden border-b border-border/30">
+            <ChatDebugPanel
+              snapshot={contextSnapshot()}
+              systemPrompt={lastSystemPrompt()}
+              documentContent={props.documentContext.content}
+              summary={props.store.conversationSummary()}
+              messagesPayload={lastMessagesPayload()}
+              modelId={currentModel()}
+            />
+          </div>
+        </Show>
 
         {/* Messages */}
         <ChatContainer class="relative flex-1 min-w-0 px-5 py-4 space-y-4">
@@ -243,6 +330,12 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                   </Show>
                 )}
               </For>
+            </Show>
+
+            <Show when={contextSnapshot() && contextSnapshot()!.messagesIncluded < contextSnapshot()!.messagesTotal}>
+              <div class="text-center text-xs text-muted-foreground/50 py-1">
+                Using last {contextSnapshot()!.messagesIncluded} of {contextSnapshot()!.messagesTotal} messages
+              </div>
             </Show>
 
             {/* Streaming response */}
