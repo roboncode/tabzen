@@ -1,5 +1,5 @@
 // apps/extension/components/detail/ChatPanelContent.tsx
-import { createSignal, createResource, Show, For } from "solid-js";
+import { createSignal, createResource, createMemo, Show, For } from "solid-js";
 import {
   Plus,
   History,
@@ -34,6 +34,8 @@ import {
   ContextContent,
   ContextContentHeader,
   ContextContentBody,
+  SlashCommand,
+  type SlashCommandItem,
 } from "@tab-zen/chat";
 import type { ChatMessage } from "@tab-zen/shared";
 import type { DocumentChatStore } from "@/lib/chat/chat-store";
@@ -98,6 +100,16 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
   );
   const [allSkills] = createResource(getAllSkills);
   const titleGeneratedFor = new Set<string>();
+
+  const slashCommands = createMemo<SlashCommandItem[]>(() => {
+    const skills = allSkills() ?? [];
+    return skills.map((s: ChatSkill) => ({
+      id: s.id,
+      label: s.name,
+      description: s.description,
+      category: "Skills",
+    }));
+  });
 
   const suggestions = [
     "What is this about?",
@@ -625,7 +637,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
           </Show>
 
           {/* Input */}
-          <div class="px-3 pb-3 pt-1 flex-shrink-0">
+          <div class="px-3 pb-3 pt-1 flex-shrink-0 relative">
             <PromptInput
               isLoading={isStreaming()}
               value={promptText()}
@@ -696,6 +708,11 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                   </Button>
                 </div>
               </PromptInputActions>
+              <SlashCommand
+                commands={slashCommands()}
+                activeIds={props.store.activeSkillIds()}
+                onSelect={(cmd) => props.store.toggleSkill(cmd.id)}
+              />
             </PromptInput>
           </div>
         </Show>
