@@ -88,6 +88,19 @@ export default function ChatDebugPanel(props: ChatDebugPanelProps) {
         )}
       </Show>
 
+      {/* Compression info */}
+      <Show when={snapshot()?.isCompressed}>
+        <div class="px-3 py-2 bg-emerald-500/5 flex-shrink-0">
+          <div class="flex justify-between text-xs">
+            <span class="text-emerald-400">Content compressed</span>
+            <span class="font-mono text-emerald-400">
+              {snapshot()?.originalDocumentTokens?.toLocaleString()} → {snapshot()?.documentTokens.toLocaleString()} tokens
+              ({Math.round((snapshot()?.compressionSavings ?? 0) * 100)}% saved)
+            </span>
+          </div>
+        </div>
+      </Show>
+
       {/* Sections */}
       <div class="flex-1 overflow-y-auto">
         <Show when={props.systemPrompt}>
