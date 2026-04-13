@@ -11,6 +11,17 @@ export interface CompressedContent {
   createdAt: string;
 }
 
+export interface ChatSkill {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  prompt: string;
+  isBuiltin: boolean;
+  isDefault: boolean;
+  createdAt: string;
+}
+
 interface ChatDB {
   conversations: {
     key: string;
@@ -29,13 +40,17 @@ interface ChatDB {
     key: string;
     value: CompressedContent;
   };
+  skills: {
+    key: string;
+    value: ChatSkill;
+  };
 }
 
 let dbInstance: IDBPDatabase<ChatDB> | null = null;
 
 export async function getChatDB(): Promise<IDBPDatabase<ChatDB>> {
   if (dbInstance) return dbInstance;
-  dbInstance = await openDB<ChatDB>('tab-zen-chat', 2, {
+  dbInstance = await openDB<ChatDB>('tab-zen-chat', 3, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         const convStore = db.createObjectStore('conversations', { keyPath: 'id' });
@@ -47,6 +62,9 @@ export async function getChatDB(): Promise<IDBPDatabase<ChatDB>> {
       }
       if (oldVersion < 2) {
         db.createObjectStore('compressedContent', { keyPath: 'pageId' });
+      }
+      if (oldVersion < 3) {
+        db.createObjectStore('skills', { keyPath: 'id' });
       }
     },
   });
