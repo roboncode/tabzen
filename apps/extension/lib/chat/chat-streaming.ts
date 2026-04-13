@@ -60,18 +60,3 @@ export interface DocumentChatContext {
   contentType: 'transcript' | 'article';
   content: string;
 }
-
-export function buildSystemPrompt(doc: DocumentChatContext): string {
-  return `You are a helpful assistant. The user is viewing a specific document and asking questions about it.
-
-## Document
-Title: ${doc.title}
-Source: ${doc.url}
-Author: ${doc.author || 'Unknown'}
-Type: ${doc.contentType}
-
-## Content
-${doc.content}
-
-Answer questions based on the document content above. If the user asks something not covered in the document, say so. Be concise and reference specific parts of the content when relevant.`;
-}
