@@ -1,6 +1,6 @@
 // apps/extension/components/detail/ChatPanelContent.tsx
 import { createSignal, Show, For } from "solid-js";
-import { Plus, History, X, MessageCircle, ArrowUp, Mic, Copy, ThumbsUp, ThumbsDown, Code } from "lucide-solid";
+import { Plus, History, X, MessageCircle, ArrowUp, Mic, Copy, ThumbsUp, ThumbsDown, Code, Zap } from "lucide-solid";
 import {
   ChatConfig, ChatContainer, Message, MessageContent, MessageActions,
   PromptInput, PromptInputTextarea, PromptInputActions,
@@ -42,6 +42,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
   const [compressionStatus, setCompressionStatus] = createSignal("");
   const [compressedContent, setCompressedContent] = createSignal<string | null>(null);
   const [compressionInfo, setCompressionInfo] = createSignal<{ originalTokens: number; compressedTokens: number } | null>(null);
+  const [compressionEnabled, setCompressionEnabled] = createSignal(props.settings.chatCompression);
   const titleGeneratedFor = new Set<string>();
 
   const suggestions = [
@@ -83,7 +84,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
     let docContent = props.documentContext.content;
     let compInfo = compressionInfo();
 
-    if (props.settings.chatCompression && !compressedContent() && docContent.length > MIN_COMPRESS_LENGTH) {
+    if (compressionEnabled() && !compressedContent() && docContent.length > MIN_COMPRESS_LENGTH) {
       try {
         const result = await getOrCompressContent(
           props.documentContext.url,
@@ -105,7 +106,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
       } catch (err) {
         console.error("Compression failed, using original:", err);
       }
-    } else if (compressedContent()) {
+    } else if (compressionEnabled() && compressedContent()) {
       docContent = compressedContent()!;
       compInfo = compressionInfo();
     }
@@ -453,11 +454,24 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
           >
             <PromptInputTextarea placeholder="Ask about this page..." class="min-h-[36px] pt-2 pl-3" />
             <PromptInputActions class="mt-0.5 flex w-full items-center justify-between gap-2 px-2 pb-1.5">
-              <ModelSwitcher
-                models={CHAT_MODELS}
-                currentModelId={currentModel()}
-                onModelChange={setCurrentModel}
-              />
+              <div class="flex items-center gap-1">
+                <ModelSwitcher
+                  models={CHAT_MODELS}
+                  currentModelId={currentModel()}
+                  onModelChange={setCurrentModel}
+                />
+                <button
+                  onClick={() => setCompressionEnabled(!compressionEnabled())}
+                  class={`p-1.5 rounded-md text-xs flex items-center gap-1 transition-colors ${
+                    compressionEnabled()
+                      ? "text-emerald-400 bg-emerald-400/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  }`}
+                  title={compressionEnabled() ? "Compression on — click to use original content" : "Compression off — click to compress content"}
+                >
+                  <Zap size={14} />
+                </button>
+              </div>
               <div class="flex items-center gap-2">
               <Show when={!!props.settings.groqApiKey}>
                 <VoiceInput
