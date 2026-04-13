@@ -455,11 +455,6 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
             <PromptInputTextarea placeholder="Ask about this page..." class="min-h-[36px] pt-2 pl-3" />
             <PromptInputActions class="mt-0.5 flex w-full items-center justify-between gap-2 px-2 pb-1.5">
               <div class="flex items-center gap-1">
-                <ModelSwitcher
-                  models={CHAT_MODELS}
-                  currentModelId={currentModel()}
-                  onModelChange={setCurrentModel}
-                />
                 <button
                   onClick={() => setCompressionEnabled(!compressionEnabled())}
                   class={`p-1.5 rounded-md text-xs flex items-center gap-1 transition-colors ${
@@ -471,6 +466,11 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                 >
                   <Zap size={14} />
                 </button>
+                <ModelSwitcher
+                  models={CHAT_MODELS}
+                  currentModelId={currentModel()}
+                  onModelChange={setCurrentModel}
+                />
               </div>
               <div class="flex items-center gap-2">
               <Show when={!!props.settings.groqApiKey}>
