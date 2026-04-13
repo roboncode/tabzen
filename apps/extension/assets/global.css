@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@source "../../../packages/chat/src";
 
 @theme inline {
   --text-xs: 0.8125rem;

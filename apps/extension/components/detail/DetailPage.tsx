@@ -28,6 +28,11 @@ import TranscriptView from "./TranscriptView";
 import MarkdownView from "./MarkdownView";
 import DetailSidebar, { type TocEntry } from "./DetailSidebar";
 import ChatFab from "./ChatFab";
+import ChatPanel from "./ChatPanel";
+import { createDocumentChatStore } from "@/lib/chat/chat-store";
+import type { DocumentChatContext } from "@/lib/chat/chat-streaming";
+import { useSettings } from "@/lib/hooks/useSettings";
+import type { Settings } from "@/lib/types";
 import NotesDisplay from "@/components/NotesDisplay";
 import DocumentNav from "./DocumentNav";
 import DocumentView from "./DocumentView";
@@ -89,6 +94,23 @@ export default function DetailPage(props: DetailPageProps) {
   const [customResult, setCustomResult] = createSignal<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
   const [relatedPages, setRelatedPages] = createSignal<Page[]>([]);
+  const [chatOpen, setChatOpen] = createSignal(false);
+
+  const { settings } = useSettings();
+  const chatStore = createDocumentChatStore(() => props.page.id);
+
+  const documentChatContext = (): DocumentChatContext => {
+    const hasTranscript = transcriptSegments().length > 0;
+    return {
+      title: props.page.title,
+      url: props.page.url,
+      author: props.page.creator ?? undefined,
+      contentType: hasTranscript ? "transcript" : "article",
+      content: hasTranscript
+        ? transcriptSegments().map((s) => s.text).join(" ")
+        : markdownContent(),
+    };
+  };
 
   // Sync active section changes to the URL
   createEffect(on(activeSection, (section) => {
@@ -703,6 +725,14 @@ export default function DetailPage(props: DetailPageProps) {
         </Show>
 
         {/* Scrollable area containing content + sticky sidebar */}
+        <ChatPanel
+          open={chatOpen() && !!settings()}
+          store={chatStore}
+          documentContext={documentChatContext()}
+          settings={settings() ?? ({} as Settings)}
+          narrow={hideRightNav()}
+          onClose={() => setChatOpen(false)}
+        >
         <div
           ref={scrollRef}
           class="flex-1 overflow-y-auto scrollbar-hide"
@@ -908,8 +938,8 @@ export default function DetailPage(props: DetailPageProps) {
               </Show>
             </div>
 
-            {/* Sidebar placeholder — reserves space in the flex layout */}
-            <Show when={!hideRightNav()}>
+            {/* Sidebar placeholder — reserves space in the flex layout, hidden when chat is open */}
+            <Show when={!hideRightNav() && !chatOpen()}>
               <div class="relative flex-shrink-0 w-[256px]">
                 {/* Fixed sidebar — positioned inside placeholder, full viewport height */}
                 <div class="fixed top-14 max-w-96 h-[calc(100vh-42px)] overflow-y-auto scrollbar-hide z-10">
@@ -925,10 +955,13 @@ export default function DetailPage(props: DetailPageProps) {
             </Show>
           </div>
         </div>
+        </ChatPanel>
       </div>
 
-      {/* Chat FAB */}
-      <ChatFab />
+      {/* Chat FAB — hidden when panel is open, close is in the panel header */}
+      <Show when={!chatOpen()}>
+        <ChatFab open={false} onToggle={() => setChatOpen(true)} />
+      </Show>
 
       {/* Update available toast */}
       <Show when={hasPromptedReExtract() && hasContent()}>

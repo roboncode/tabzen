@@ -1,7 +1,8 @@
-import { type JSX, splitProps, Show } from 'solid-js';
-import { cn } from '../utils/cn';
-import { Markdown } from './markdown';
-import { useChatConfig, proseClass } from '../primitives/chat-config';
+import { type JSX, createSignal, splitProps, Show } from "solid-js";
+import { Copy, Check } from "lucide-solid";
+import { cn } from "../utils/cn";
+import { Markdown } from "./markdown";
+import { useChatConfig, textClass } from "../primitives/chat-config";
 
 // --- Message ---
 
@@ -10,9 +11,9 @@ export interface MessageProps extends JSX.HTMLAttributes<HTMLDivElement> {
 }
 
 function Message(props: MessageProps) {
-  const [local, rest] = splitProps(props, ['children', 'class']);
+  const [local, rest] = splitProps(props, ["children", "class"]);
   return (
-    <div class={cn('flex items-start gap-3', local.class)} {...rest}>
+    <div class={cn("flex items-start gap-3", local.class)} {...rest}>
       {local.children}
     </div>
   );
@@ -29,7 +30,9 @@ export interface MessageAvatarProps {
 
 function MessageAvatar(props: MessageAvatarProps) {
   return (
-    <div class={cn('h-8 w-8 shrink-0 overflow-hidden rounded-full', props.class)}>
+    <div
+      class={cn("h-8 w-8 shrink-0 overflow-hidden rounded-full", props.class)}
+    >
       <Show
         when={props.src}
         fallback={
@@ -40,7 +43,11 @@ function MessageAvatar(props: MessageAvatarProps) {
           </Show>
         }
       >
-        <img src={props.src} alt={props.alt} class="h-full w-full object-cover" />
+        <img
+          src={props.src}
+          alt={props.alt}
+          class="h-full w-full object-cover"
+        />
       </Show>
     </div>
   );
@@ -54,13 +61,13 @@ export interface MessageContentProps extends JSX.HTMLAttributes<HTMLDivElement> 
 }
 
 function MessageContent(props: MessageContentProps) {
-  const [local, rest] = splitProps(props, ['children', 'markdown', 'class']);
+  const [local, rest] = splitProps(props, ["children", "markdown", "class"]);
   const config = useChatConfig();
   const classNames = () =>
     cn(
-      'rounded-lg p-2 text-foreground bg-secondary prose dark:prose-invert max-w-none break-words whitespace-normal',
-      proseClass(config.proseSize()),
-      local.class
+      "min-w-0 rounded-lg p-2 text-foreground bg-secondary max-w-none break-words whitespace-normal",
+      textClass(config.proseSize()),
+      local.class,
     );
 
   return (
@@ -84,10 +91,13 @@ export interface MessageActionsProps extends JSX.HTMLAttributes<HTMLDivElement> 
 }
 
 function MessageActions(props: MessageActionsProps) {
-  const [local, rest] = splitProps(props, ['children', 'class']);
+  const [local, rest] = splitProps(props, ["children", "class"]);
   return (
     <div
-      class={cn('text-muted-foreground flex items-center gap-2', local.class)}
+      class={cn(
+        "flex items-center gap-0.5 mt-0.5",
+        local.class,
+      )}
       {...rest}
     >
       {local.children}
@@ -100,13 +110,40 @@ function MessageActions(props: MessageActionsProps) {
 export interface MessageActionProps {
   tooltip: string;
   children: JSX.Element;
-  side?: 'top' | 'bottom' | 'left' | 'right';
+  side?: "top" | "bottom" | "left" | "right";
   class?: string;
 }
 
 function MessageAction(props: MessageActionProps) {
-  // Simple wrapper - tooltip integration depends on the app's tooltip primitive
   return <>{props.children}</>;
 }
 
-export { Message, MessageAvatar, MessageContent, MessageActions, MessageAction };
+// --- MessageCopyButton ---
+
+export interface MessageCopyButtonProps {
+  content: string;
+  size?: number;
+  class?: string;
+}
+
+function MessageCopyButton(props: MessageCopyButtonProps) {
+  const [copied, setCopied] = createSignal(false);
+  const iconSize = () => props.size ?? 14;
+
+  return (
+    <button
+      class={props.class}
+      onClick={() => {
+        navigator.clipboard.writeText(props.content);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
+    >
+      <Show when={copied()} fallback={<Copy size={iconSize()} />}>
+        <Check size={iconSize()} class="text-emerald-400" />
+      </Show>
+    </button>
+  );
+}
+
+export { Message, MessageAvatar, MessageContent, MessageActions, MessageAction, MessageCopyButton };

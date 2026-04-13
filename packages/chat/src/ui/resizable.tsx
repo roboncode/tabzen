@@ -125,8 +125,9 @@ function ResizableHandle(props: ResizableHandleProps) {
     const prevMin = parseInt(prevEl.dataset.minSize || '0', 10);
     const prevMax = parseInt(prevEl.dataset.maxSize || '999999', 10);
     const nextMin = parseInt(nextEl.dataset.minSize || '0', 10);
+    const nextMax = parseInt(nextEl.dataset.maxSize || '999999', 10);
 
-    if (newPrevSize < prevMin || newNextSize < nextMin || newPrevSize > prevMax) return;
+    if (newPrevSize < prevMin || newNextSize < nextMin || newPrevSize > prevMax || newNextSize > nextMax) return;
 
     prevEl.style.flexBasis = `${newPrevSize}px`;
     prevEl.style.flexGrow = '0';
@@ -139,26 +140,44 @@ function ResizableHandle(props: ResizableHandleProps) {
   };
 
   const handlePointerUp = () => {
+    // Convert pixel flex-basis to percentages so panels scale with window resize
+    if (prevEl && nextEl) {
+      const container = prevEl.parentElement;
+      if (container) {
+        const totalSize = orientation() === 'horizontal'
+          ? container.getBoundingClientRect().width
+          : container.getBoundingClientRect().height;
+        const handleSize = (prevEl.nextElementSibling as HTMLElement)?.getBoundingClientRect()[
+          orientation() === 'horizontal' ? 'width' : 'height'
+        ] ?? 0;
+        const available = totalSize - handleSize;
+        if (available > 0) {
+          const prevPct = (prevEl.getBoundingClientRect()[orientation() === 'horizontal' ? 'width' : 'height'] / available) * 100;
+          const nextPct = 100 - prevPct;
+          prevEl.style.flexBasis = `${prevPct}%`;
+          nextEl.style.flexBasis = `${nextPct}%`;
+        }
+      }
+    }
     setIsDragging(false);
     prevEl = null;
     nextEl = null;
   };
 
+  const isHoriz = () => orientation() === 'horizontal';
+
   return (
     <div
       class={cn(
         'relative flex items-center justify-center',
-        orientation() === 'horizontal'
-          ? 'w-px cursor-col-resize'
-          : 'h-px cursor-row-resize',
-        'bg-border',
-        'after:absolute after:inset-0',
-        orientation() === 'horizontal'
-          ? 'after:-left-1 after:-right-1'
-          : 'after:-top-1 after:-bottom-1',
-        isDragging() && 'bg-primary',
         local.class
       )}
+      style={{
+        cursor: isHoriz() ? 'col-resize' : 'row-resize',
+        [isHoriz() ? 'width' : 'height']: '8px',
+        'background': isDragging() ? 'var(--muted-foreground, #98989f)' : 'transparent',
+        'opacity': isDragging() ? '0.3' : '1',
+      }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -170,26 +189,26 @@ function ResizableHandle(props: ResizableHandleProps) {
       {local.withHandle && (
         <div
           class={cn(
-            'z-10 flex items-center justify-center rounded-sm border bg-border',
+            'z-10 flex items-center justify-center',
             orientation() === 'horizontal'
-              ? 'h-4 w-3 flex-col'
-              : 'h-3 w-4 flex-row',
+              ? 'h-6 w-3 flex-col'
+              : 'h-3 w-6 flex-row',
           )}
         >
           <svg
             class={cn(
-              'text-muted-foreground',
-              orientation() === 'horizontal' ? 'h-2.5 w-2.5' : 'h-2.5 w-2.5 rotate-90'
+              'text-muted-foreground/40',
+              orientation() === 'horizontal' ? 'h-3 w-2' : 'h-2 w-3 rotate-90'
             )}
-            viewBox="0 0 6 10"
+            viewBox="0 0 4 8"
             fill="currentColor"
           >
-            <circle cx="1.5" cy="2" r="0.75" />
-            <circle cx="4.5" cy="2" r="0.75" />
-            <circle cx="1.5" cy="5" r="0.75" />
-            <circle cx="4.5" cy="5" r="0.75" />
-            <circle cx="1.5" cy="8" r="0.75" />
-            <circle cx="4.5" cy="8" r="0.75" />
+            <circle cx="1" cy="1.5" r="0.6" />
+            <circle cx="3" cy="1.5" r="0.6" />
+            <circle cx="1" cy="4" r="0.6" />
+            <circle cx="3" cy="4" r="0.6" />
+            <circle cx="1" cy="6.5" r="0.6" />
+            <circle cx="3" cy="6.5" r="0.6" />
           </svg>
         </div>
       )}

@@ -36,11 +36,16 @@ export {
   ChatContainer, ChatContainerRoot, ChatContainerContent, ChatContainerScrollAnchor,
   useChatContainer,
 } from './components/chat-container';
-export { Message, MessageAvatar, MessageContent, MessageActions, MessageAction } from './components/message';
+export { Message, MessageAvatar, MessageContent, MessageActions, MessageAction, MessageCopyButton } from './components/message';
+export type { MessageCopyButtonProps } from './components/message';
+export { MessageSkills } from './components/message-skills';
+export type { Skill as MessageSkill } from './components/message-skills';
 export {
   PromptInput, PromptInputTextarea, PromptInputActions, PromptInputAction,
   usePromptInput,
 } from './components/prompt-input';
+export { SlashCommand } from './components/slash-command';
+export type { SlashCommandItem, SlashCommandProps } from './components/slash-command';
 export { ResponseStream } from './components/response-stream';
 export { Markdown } from './components/markdown';
 export { CodeBlock, CodeBlockCode, CodeBlockGroup } from './components/code-block';

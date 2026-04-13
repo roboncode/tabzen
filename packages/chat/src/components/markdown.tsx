@@ -55,7 +55,7 @@ function Markdown(props: MarkdownProps) {
   const blocks = createMemo(() => parseMarkdownIntoBlocks(local.content));
 
   return (
-    <div class={cn('prose dark:prose-invert max-w-none break-words whitespace-normal', proseClass(config.proseSize()), local.class)}>
+    <div class={cn('prose dark:prose-invert max-w-none break-words whitespace-normal [&>div:first-child>p:first-child]:mt-0 [&>div:last-child>p:last-child]:mb-0', proseClass(config.proseSize()), local.class)}>
       <For each={blocks()}>
         {(block) => (
           <Switch>

@@ -13,6 +13,7 @@ import { clearAllData, clearProfileData } from "@/lib/db";
 import SyncConfigPanel from "./settings/SyncConfigPanel";
 import BlockedDomainsManager from "./settings/BlockedDomainsManager";
 import TemplateManager from "./settings/TemplateManager";
+import SkillManager from "./settings/SkillManager";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -257,6 +258,65 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                     Without an API key, pages are grouped by domain
                   </p>
                 </div>
+
+                {/* Chat Model */}
+                <div>
+                  <label class="block text-sm font-medium text-foreground mb-1.5">Chat Model</label>
+                  <p class="text-sm text-muted-foreground mb-2">Model used for document chat conversations</p>
+                  <select
+                    class="w-full bg-muted rounded-lg px-3 py-2 text-sm text-foreground outline-none"
+                    value={s().chatModel}
+                    onChange={(e) => save({ chatModel: e.currentTarget.value })}
+                  >
+                    <option value="anthropic/claude-sonnet-4">Claude Sonnet 4</option>
+                    <option value="anthropic/claude-haiku-4">Claude Haiku 4</option>
+                    <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                    <option value="openai/gpt-4o">GPT-4o</option>
+                    <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="google/gemini-2.5-pro">Gemini 2.5 Pro</option>
+                  </select>
+                </div>
+
+                {/* Chat Compression */}
+                <div class="flex items-center justify-between">
+                  <div>
+                    <label class="block text-sm font-medium text-foreground">Content Compression</label>
+                    <p class="text-sm text-muted-foreground">Compress long documents to save tokens in chat (50-70% savings)</p>
+                  </div>
+                  <button
+                    class={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      s().chatCompression ? "bg-sky-500" : "bg-muted"
+                    }`}
+                    onClick={() => save({ chatCompression: !s().chatCompression })}
+                  >
+                    <span
+                      class={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        s().chatCompression ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Groq API Key (Voice) */}
+                <div>
+                  <label class="block text-sm font-medium text-foreground mb-1.5">
+                    Groq API Key
+                    {s().groqApiKey && (
+                      <span class="ml-2 text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">
+                        Voice enabled
+                      </span>
+                    )}
+                  </label>
+                  <p class="text-sm text-muted-foreground mb-2">Optional — enables voice input in chat (Whisper transcription)</p>
+                  <input
+                    type="password"
+                    class="w-full bg-muted rounded-lg px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground/40"
+                    value={s().groqApiKey}
+                    placeholder="gsk_..."
+                    onInput={(e) => save({ groqApiKey: e.currentTarget.value.trim() })}
+                  />
+                </div>
+
                 <div class="pt-4 space-y-3">
                   <div class="flex items-center justify-between">
                     <div>
@@ -296,6 +356,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 <div class="pt-2">
                   <TemplateManager />
                 </div>
+
+                {/* Chat Skills */}
+                <SkillManager />
               </div>
             </Show>
 
