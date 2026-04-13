@@ -1,5 +1,5 @@
 // apps/extension/components/detail/ChatPanelContent.tsx
-import { createSignal, Show, For } from "solid-js";
+import { createSignal, createResource, Show, For } from "solid-js";
 import { Plus, History, X, MessageCircle, ArrowUp, Mic, Copy, ThumbsUp, ThumbsDown, Code, Zap } from "lucide-solid";
 import {
   ChatConfig, ChatContainer, Message, MessageContent, MessageActions,
@@ -19,6 +19,9 @@ import { getOrCompressContent } from "@/lib/chat/chat-compress";
 import type { Settings } from "@/lib/types";
 import ChatHistory from "./ChatHistory";
 import ChatDebugPanel from "./ChatDebugPanel";
+import ChatSkillPicker from "./ChatSkillPicker";
+import { buildSkillPrompt, getAllSkills } from "@/lib/chat/chat-skills";
+import type { ChatSkill } from "@/lib/chat/chat-db";
 
 interface ChatPanelContentProps {
   store: DocumentChatStore;
@@ -43,6 +46,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
   const [compressedContent, setCompressedContent] = createSignal<string | null>(null);
   const [compressionInfo, setCompressionInfo] = createSignal<{ originalTokens: number; compressedTokens: number } | null>(null);
   const [compressionEnabled, setCompressionEnabled] = createSignal(props.settings.chatCompression);
+  const [allSkills] = createResource(getAllSkills);
   const titleGeneratedFor = new Set<string>();
 
   const suggestions = [
@@ -112,6 +116,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
     }
 
     const chatContext = { ...props.documentContext, content: docContent };
+    const skillPrompt = buildSkillPrompt(props.store.activeSkillIds(), allSkills() ?? []);
 
     // Read messages from store — addMessage already mutated with the user message included
     const conv = props.store.activeConversation();
@@ -124,6 +129,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
       props.store.conversationSummary(),
       currentModel(),
       compInfo ?? undefined,
+      skillPrompt || undefined,
     );
 
     setContextSnapshot(snapshot);
@@ -172,6 +178,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
             summary,
             currentModel(),
             compInfo ?? undefined,
+            skillPrompt || undefined,
           );
           setContextSnapshot(newPayload.snapshot);
         }
@@ -320,6 +327,28 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
           </div>
         </div>
 
+        {/* Active skills */}
+        <Show when={props.store.activeSkillIds().length > 0}>
+          <div class="px-3 py-1 flex gap-1 flex-wrap flex-shrink-0">
+            <For each={props.store.activeSkillIds()}>
+              {(skillId) => {
+                const skill = () => (allSkills() ?? []).find((s: ChatSkill) => s.id === skillId);
+                return (
+                  <Show when={skill()}>
+                    <button
+                      onClick={() => props.store.toggleSkill(skillId)}
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-violet-400/10 text-violet-400 hover:bg-violet-400/20 transition-colors"
+                    >
+                      {skill()!.name}
+                      <X size={10} />
+                    </button>
+                  </Show>
+                );
+              }}
+            </For>
+          </div>
+        </Show>
+
         {/* Debug inspector */}
         <Show when={debugOpen()}>
           <div class="flex-shrink-0 max-h-[40%] overflow-hidden border-b border-border/30">
@@ -455,6 +484,10 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
             <PromptInputTextarea placeholder="Ask about this page..." class="min-h-[36px] pt-2 pl-3" />
             <PromptInputActions class="mt-0.5 flex w-full items-center justify-between gap-2 px-2 pb-1.5">
               <div class="flex items-center gap-1">
+                <ChatSkillPicker
+                  activeSkillIds={props.store.activeSkillIds()}
+                  onToggleSkill={(id) => props.store.toggleSkill(id)}
+                />
                 <button
                   onClick={() => setCompressionEnabled(!compressionEnabled())}
                   class={`p-1.5 rounded-md text-xs flex items-center gap-1 transition-colors ${
