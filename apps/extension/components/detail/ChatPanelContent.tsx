@@ -73,10 +73,9 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
     setIsStreaming(true);
     setStreamingContent("");
 
-    // Build messages from known state to avoid race with async resource refetch
+    // Read messages from store — addMessage already mutated with the user message included
     const conv = props.store.activeConversation();
-    const priorMessages = conv ? conv.messages : [];
-    const allMessages = [...priorMessages, userMessage];
+    const allMessages = conv ? [...conv.messages] : [userMessage];
 
     // Prepare payload with context window management
     const { messages: llmMessages, snapshot } = preparePayload(
