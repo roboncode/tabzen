@@ -36,17 +36,18 @@ function SlashCommand(props: SlashCommandProps) {
     return match ? match[1] : null;
   });
 
-  // Filter commands based on query
+  // Filter and sort commands alphabetically
   const filtered = createMemo(() => {
     const q = slashMatch();
     if (q === null) return [];
-    if (q === "") return props.commands;
-    const lower = q.toLowerCase();
-    return props.commands.filter(
-      (cmd) =>
-        cmd.label.toLowerCase().includes(lower) ||
-        (cmd.description?.toLowerCase().includes(lower) ?? false),
-    );
+    const items = q === ""
+      ? [...props.commands]
+      : props.commands.filter(
+          (cmd) =>
+            cmd.label.toLowerCase().includes(q.toLowerCase()) ||
+            (cmd.description?.toLowerCase().includes(q.toLowerCase()) ?? false),
+        );
+    return items.sort((a, b) => a.label.localeCompare(b.label));
   });
 
   // Group by category
