@@ -1,6 +1,6 @@
 // apps/extension/lib/chat/chat-adapter.ts
 import type { Conversation, ConversationSummary } from '@tab-zen/shared';
-import { getChatDB } from './chat-db';
+import { getChatDB, type CompressedContent } from './chat-db';
 
 export class ChatAdapter {
   async saveConversation(conversation: Conversation): Promise<void> {
@@ -77,5 +77,20 @@ export class ChatAdapter {
     const db = await getChatDB();
     const conv = await db.get('conversations', conversationId);
     return (conv as any)?.summary ?? null;
+  }
+
+  async getCompressedContent(pageId: string): Promise<CompressedContent | undefined> {
+    const db = await getChatDB();
+    return db.get('compressedContent', pageId);
+  }
+
+  async saveCompressedContent(content: CompressedContent): Promise<void> {
+    const db = await getChatDB();
+    await db.put('compressedContent', content);
+  }
+
+  async deleteCompressedContent(pageId: string): Promise<void> {
+    const db = await getChatDB();
+    await db.delete('compressedContent', pageId);
   }
 }
