@@ -25,6 +25,10 @@ export interface ContextSnapshot {
   messagesTotal: number;
   hasBeenCompacted: boolean;
   summary: string | null;
+  // Compression info
+  isCompressed: boolean;
+  originalDocumentTokens: number | null;
+  compressionSavings: number | null; // percentage saved, e.g. 0.65 = 65%
 }
 
 export interface PreparedPayload {
@@ -39,6 +43,7 @@ export function preparePayload(
   conversationMessages: ChatMessage[],
   existingSummary: string | null,
   modelId: string,
+  compressionInfo?: { originalTokens: number; compressedTokens: number },
 ): PreparedPayload {
   const model = getModelByIdOrDefault(modelId);
   const maxInputTokens = Math.floor(model.maxContextTokens * CONTEXT_BUDGET_RATIO);
@@ -108,6 +113,12 @@ export function preparePayload(
       messagesTotal: conversationMessages.length,
       hasBeenCompacted: existingSummary !== null,
       summary: existingSummary,
+      // Compression info
+      isCompressed: compressionInfo !== undefined,
+      originalDocumentTokens: compressionInfo?.originalTokens ?? null,
+      compressionSavings: compressionInfo
+        ? 1 - (compressionInfo.compressedTokens / compressionInfo.originalTokens)
+        : null,
     },
   };
 }
