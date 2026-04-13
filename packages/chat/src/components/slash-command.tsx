@@ -185,7 +185,7 @@ function SlashCommand(props: SlashCommandProps) {
                       >
                         <Show when={isCompact} fallback={
                           <div class="flex-1 min-w-0">
-                            <div class="text-sm flex items-center gap-1.5">
+                            <div class="text-xs flex items-center gap-1.5">
                               {item.label}
                               <Show when={isActive()}>
                                 <span class="text-[10px] text-violet-400">active</span>
@@ -201,7 +201,7 @@ function SlashCommand(props: SlashCommandProps) {
                           <Show when={isActive()}>
                             <span class="w-1 h-1 rounded-full bg-violet-400 flex-shrink-0" />
                           </Show>
-                          <span class={cn("text-sm flex-shrink-0", isActive() && "text-violet-400")}>{item.label}</span>
+                          <span class={cn("text-xs flex-shrink-0", isActive() && "text-violet-400")}>{item.label}</span>
                           <Show when={item.description}>
                             <span class="text-xs text-muted-foreground/40 truncate">{item.description}</span>
                           </Show>
