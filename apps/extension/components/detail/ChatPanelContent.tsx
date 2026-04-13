@@ -2,7 +2,7 @@
 import { createSignal, createResource, Show, For } from "solid-js";
 import { Plus, History, X, MessageCircle, ArrowUp, Mic, Copy, ThumbsUp, ThumbsDown, Code, Zap } from "lucide-solid";
 import {
-  ChatConfig, ChatContainer, Message, MessageContent, MessageActions,
+  ChatConfig, ChatContainer, Message, MessageContent, MessageActions, MessageSkills,
   PromptInput, PromptInputTextarea, PromptInputActions,
   ScrollButton, Loader, PromptSuggestion, ModelSwitcher, VoiceInput, Button,
   Context, ContextTrigger, ContextContent, ContextContentHeader,
@@ -152,13 +152,15 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
       setIsStreaming(false);
       setStreamingContent("");
 
+      const activeSkills = props.store.activeSkillIds();
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
         content: fullContent,
         modelId: currentModel(),
         createdAt: new Date().toISOString(),
-      };
+        ...(activeSkills.length > 0 ? { skillIds: activeSkills } : {}),
+      } as ChatMessage;
       await props.store.addMessage(assistantMessage);
 
       // Compact if needed (after saving the response)
@@ -385,6 +387,13 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                   <Show when={msg.role === "user"} fallback={
                     /* Assistant message */
                     <Message class="flex-col !gap-0">
+                      <MessageSkills
+                        skills={((msg as any).skillIds ?? []).map((id: string) => {
+                          const skill = (allSkills() ?? []).find((s: ChatSkill) => s.id === id);
+                          return { id, name: skill?.name ?? id.replace("builtin-", "") };
+                        })}
+                        class="mb-1"
+                      />
                       <MessageContent markdown class="bg-transparent p-0 pt-1.5">
                         {msg.content}
                       </MessageContent>

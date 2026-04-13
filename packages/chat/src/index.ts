@@ -37,6 +37,8 @@ export {
   useChatContainer,
 } from './components/chat-container';
 export { Message, MessageAvatar, MessageContent, MessageActions, MessageAction } from './components/message';
+export { MessageSkills } from './components/message-skills';
+export type { Skill as MessageSkill } from './components/message-skills';
 export {
   PromptInput, PromptInputTextarea, PromptInputActions, PromptInputAction,
   usePromptInput,
