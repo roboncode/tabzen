@@ -13,6 +13,7 @@ import { clearAllData, clearProfileData } from "@/lib/db";
 import SyncConfigPanel from "./settings/SyncConfigPanel";
 import BlockedDomainsManager from "./settings/BlockedDomainsManager";
 import TemplateManager from "./settings/TemplateManager";
+import SkillManager from "./settings/SkillManager";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -276,6 +277,26 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   </select>
                 </div>
 
+                {/* Chat Compression */}
+                <div class="flex items-center justify-between">
+                  <div>
+                    <label class="block text-sm font-medium text-foreground">Content Compression</label>
+                    <p class="text-sm text-muted-foreground">Compress long documents to save tokens in chat (50-70% savings)</p>
+                  </div>
+                  <button
+                    class={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      s().chatCompression ? "bg-sky-500" : "bg-muted"
+                    }`}
+                    onClick={() => save({ chatCompression: !s().chatCompression })}
+                  >
+                    <span
+                      class={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        s().chatCompression ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
+
                 {/* Groq API Key (Voice) */}
                 <div>
                   <label class="block text-sm font-medium text-foreground mb-1.5">
@@ -335,6 +356,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 <div class="pt-2">
                   <TemplateManager />
                 </div>
+
+                {/* Chat Skills */}
+                <SkillManager />
               </div>
             </Show>
 

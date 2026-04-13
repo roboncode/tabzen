@@ -8,6 +8,7 @@ export interface Settings {
   openRouterApiKey: string;
   aiModel: string;
   chatModel: string;
+  chatCompression: boolean;
   groqApiKey: string;
   syncEnabled: boolean;
   syncToken: string | null;
@@ -37,7 +38,8 @@ export const DEFAULT_SETTINGS: Settings = {
   sourceLabel: "Chrome - Default",
   openRouterApiKey: import.meta.env.VITE_OPENROUTER_API_KEY || "",
   aiModel: "openai/gpt-4o-mini",
-  chatModel: "anthropic/claude-sonnet-4",
+  chatModel: "openai/gpt-4o-mini",
+  chatCompression: true,
   groqApiKey: import.meta.env.VITE_GROQ_API_KEY || "",
   syncEnabled: false,
   syncToken: null,

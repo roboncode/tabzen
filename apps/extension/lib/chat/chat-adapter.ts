@@ -1,6 +1,6 @@
 // apps/extension/lib/chat/chat-adapter.ts
 import type { Conversation, ConversationSummary } from '@tab-zen/shared';
-import { getChatDB } from './chat-db';
+import { getChatDB, type CompressedContent } from './chat-db';
 
 export class ChatAdapter {
   async saveConversation(conversation: Conversation): Promise<void> {
@@ -61,5 +61,52 @@ export class ChatAdapter {
       conv.updatedAt = new Date().toISOString();
       await db.put('conversations', conv);
     }
+  }
+
+  async updateSummary(conversationId: string, summary: string): Promise<void> {
+    const db = await getChatDB();
+    const conv = await db.get('conversations', conversationId);
+    if (conv) {
+      (conv as any).summary = summary;
+      conv.updatedAt = new Date().toISOString();
+      await db.put('conversations', conv);
+    }
+  }
+
+  async getSummary(conversationId: string): Promise<string | null> {
+    const db = await getChatDB();
+    const conv = await db.get('conversations', conversationId);
+    return (conv as any)?.summary ?? null;
+  }
+
+  async getActiveSkillIds(conversationId: string): Promise<string[]> {
+    const db = await getChatDB();
+    const conv = await db.get('conversations', conversationId);
+    return (conv as any)?.activeSkillIds ?? [];
+  }
+
+  async setActiveSkillIds(conversationId: string, skillIds: string[]): Promise<void> {
+    const db = await getChatDB();
+    const conv = await db.get('conversations', conversationId);
+    if (conv) {
+      (conv as any).activeSkillIds = skillIds;
+      conv.updatedAt = new Date().toISOString();
+      await db.put('conversations', conv);
+    }
+  }
+
+  async getCompressedContent(pageId: string): Promise<CompressedContent | undefined> {
+    const db = await getChatDB();
+    return db.get('compressedContent', pageId);
+  }
+
+  async saveCompressedContent(content: CompressedContent): Promise<void> {
+    const db = await getChatDB();
+    await db.put('compressedContent', content);
+  }
+
+  async deleteCompressedContent(pageId: string): Promise<void> {
+    const db = await getChatDB();
+    await db.delete('compressedContent', pageId);
   }
 }
