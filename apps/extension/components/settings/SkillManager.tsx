@@ -25,19 +25,7 @@ export default function SkillManager() {
 
   return (
     <div class="space-y-3">
-      <div class="flex items-center justify-between">
-        <div>
-          <h3 class="text-sm font-medium text-foreground">Chat Skills</h3>
-          <p class="text-sm text-muted-foreground">Skills modify how the AI responds in chat conversations</p>
-        </div>
-        <button
-          onClick={() => { setEditingSkill(undefined); setShowEditor(true); }}
-          class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs bg-violet-500 text-white hover:bg-violet-600 transition-colors"
-        >
-          <Plus size={12} />
-          New Skill
-        </button>
-      </div>
+      <p class="text-sm text-muted-foreground">Skills modify how the AI responds in chat conversations</p>
 
       <Show when={skills()}>
         <div class="space-y-1">
@@ -88,6 +76,14 @@ export default function SkillManager() {
           </For>
         </div>
       </Show>
+
+      <button
+        onClick={() => { setEditingSkill(undefined); setShowEditor(true); }}
+        class="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-lg transition-colors"
+      >
+        <Plus size={14} />
+        Add Skill
+      </button>
 
       <Show when={showEditor()}>
         <ChatSkillEditor

@@ -79,10 +79,7 @@ export default function SyncConfigPanel(props: SyncConfigPanelProps) {
 
   return (
     <>
-      <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
-        <HardDrive size={14} /> Storage
-      </p>
-      <div class="px-1 py-3 space-y-2">
+      <div class="space-y-2">
 
         {/* Browser Only */}
         <button

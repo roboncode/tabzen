@@ -53,7 +53,6 @@ export default function TemplateManager() {
 
   return (
     <div>
-      <div class="text-sm font-medium text-foreground mb-3">Prompt Templates</div>
       <div class="space-y-1">
         <For each={templates()}>
           {(template) => (

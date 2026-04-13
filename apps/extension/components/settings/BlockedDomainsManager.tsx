@@ -12,15 +12,12 @@ export default function BlockedDomainsManager(props: BlockedDomainsManagerProps)
 
   return (
     <>
-      <div class="flex items-center justify-between bg-muted/40 -mx-4 px-4 py-2.5 mt-2 first:mt-0">
-        <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground/70">
-          <ShieldBan size={14} /> Blocked Domains
-        </p>
+      <div class="flex items-center justify-end mb-3">
         <button
           class="px-2.5 py-1 text-xs bg-muted/50 text-muted-foreground rounded-md hover:text-foreground hover:bg-muted transition-colors"
           onClick={() => props.save({ blockedDomains: DEFAULT_SETTINGS.blockedDomains })}
         >
-          Reset
+          Reset to defaults
         </button>
       </div>
       <div class="px-1 py-3 space-y-3">
