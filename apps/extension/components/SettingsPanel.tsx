@@ -13,6 +13,7 @@ import { clearAllData, clearProfileData } from "@/lib/db";
 import SyncConfigPanel from "./settings/SyncConfigPanel";
 import BlockedDomainsManager from "./settings/BlockedDomainsManager";
 import TemplateManager from "./settings/TemplateManager";
+import SkillManager from "./settings/SkillManager";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -355,6 +356,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 <div class="pt-2">
                   <TemplateManager />
                 </div>
+
+                {/* Chat Skills */}
+                <SkillManager />
               </div>
             </Show>
 
