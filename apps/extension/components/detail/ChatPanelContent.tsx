@@ -715,11 +715,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
               />
             </PromptInput>
           </div>
-          <p class={`text-[12px] text-center pb-2 px-2 -mt-1 transition-opacity ${
-            !promptText() && props.store.activeSkillIds().length === 0
-              ? "text-muted-foreground/60"
-              : "opacity-0"
-          }`}>
+          <p class="text-[12px] text-muted-foreground/60 text-center pb-2 px-2 -mt-1">
             Type <code class="bg-muted px-1 rounded">/</code> to see commands.
           </p>
         </Show>
