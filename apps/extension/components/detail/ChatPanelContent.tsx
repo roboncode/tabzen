@@ -656,6 +656,9 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
               />
               <PromptInputActions class="mt-0.5 flex w-full items-center justify-between gap-2 px-2 pb-1.5">
                 <div class="flex items-center gap-1">
+                  <Show when={!promptText() && props.store.activeSkillIds().length === 0}>
+                    <span class="text-[10px] text-muted-foreground/30 mr-1">type / for skills</span>
+                  </Show>
                   <ChatSkillPicker
                     activeSkillIds={props.store.activeSkillIds()}
                     onToggleSkill={(id) => props.store.toggleSkill(id)}
