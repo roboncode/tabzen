@@ -1,4 +1,4 @@
-import { createSignal, createResource } from 'solid-js';
+import { createSignal, createResource, createEffect } from 'solid-js';
 import type { Conversation, ChatMessage } from '@tab-zen/shared';
 import { ChatAdapter } from './chat-adapter';
 
@@ -17,6 +17,25 @@ export function createDocumentChatStore(documentId: () => string) {
     activeConversationId,
     (id) => (id ? adapter.getConversation(id) : undefined),
   );
+
+  const [conversationSummary, setConversationSummary] = createSignal<string | null>(null);
+
+  // Load summary when active conversation changes
+  createEffect(() => {
+    const id = activeConversationId();
+    if (id) {
+      adapter.getSummary(id).then((s) => setConversationSummary(s));
+    } else {
+      setConversationSummary(null);
+    }
+  });
+
+  async function updateSummary(summary: string) {
+    const id = activeConversationId();
+    if (!id) return;
+    await adapter.updateSummary(id, summary);
+    setConversationSummary(summary);
+  }
 
   function refreshList() { setListKey((k) => k + 1); }
 
@@ -84,9 +103,11 @@ export function createDocumentChatStore(documentId: () => string) {
     conversations,
     activeConversation,
     activeConversationId,
+    conversationSummary,
     createConversation,
     addMessage,
     updateTitle,
+    updateSummary,
     deleteConversation,
     deleteAllConversations,
     selectConversation,

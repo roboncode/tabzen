@@ -62,4 +62,20 @@ export class ChatAdapter {
       await db.put('conversations', conv);
     }
   }
+
+  async updateSummary(conversationId: string, summary: string): Promise<void> {
+    const db = await getChatDB();
+    const conv = await db.get('conversations', conversationId);
+    if (conv) {
+      (conv as any).summary = summary;
+      conv.updatedAt = new Date().toISOString();
+      await db.put('conversations', conv);
+    }
+  }
+
+  async getSummary(conversationId: string): Promise<string | null> {
+    const db = await getChatDB();
+    const conv = await db.get('conversations', conversationId);
+    return (conv as any)?.summary ?? null;
+  }
 }
