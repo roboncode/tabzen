@@ -176,11 +176,6 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
             </span>
           </div>
           <div class="flex items-center gap-1 flex-shrink-0">
-            <ModelSwitcher
-              models={CHAT_MODELS}
-              currentModelId={currentModel()}
-              onModelChange={setCurrentModel}
-            />
             <button
               onClick={handleNewConversation}
               class="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
@@ -217,7 +212,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                 {(msg) => (
                   <Show when={msg.role === "user"} fallback={
                     /* Assistant message */
-                    <Message class="flex-col">
+                    <Message class="flex-col !gap-0">
                       <MessageContent markdown class="bg-transparent p-0 pt-1.5">
                         {msg.content}
                       </MessageContent>
@@ -235,7 +230,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                     </Message>
                   }>
                     {/* User message */}
-                    <Message class="group flex-col items-end">
+                    <Message class="group flex-col items-end !gap-0">
                       <MessageContent class="bg-muted text-primary max-w-[85%] rounded-xl px-4 py-2 mr-1">
                         {msg.content}
                       </MessageContent>
@@ -252,7 +247,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
 
             {/* Streaming response */}
             <Show when={isStreaming()}>
-              <Message class="flex-col">
+              <Message class="flex-col !gap-0">
                 <Show when={streamingContent()} fallback={<Loader variant="loading-dots" size="sm" />}>
                   <MessageContent markdown class="bg-transparent p-0 pt-1.5">
                     {streamingContent()}
@@ -309,8 +304,14 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
               }
             }}
           >
-            <PromptInputTextarea placeholder="Ask about this page..." class="min-h-[44px] pt-3 pl-4" />
-            <PromptInputActions class="mt-2 flex w-full items-center justify-end gap-2 px-3 pb-3">
+            <PromptInputTextarea placeholder="Ask about this page..." class="min-h-[36px] pt-2 pl-3" />
+            <PromptInputActions class="mt-0.5 flex w-full items-center justify-between gap-2 px-2 pb-1.5">
+              <ModelSwitcher
+                models={CHAT_MODELS}
+                currentModelId={currentModel()}
+                onModelChange={setCurrentModel}
+              />
+              <div class="flex items-center gap-2">
               <Show when={!!props.settings.groqApiKey}>
                 <VoiceInput
                   onTranscribe={handleVoiceTranscribe}
@@ -331,6 +332,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
               >
                 <ArrowUp class="size-4" />
               </Button>
+              </div>
             </PromptInputActions>
           </PromptInput>
         </div>
