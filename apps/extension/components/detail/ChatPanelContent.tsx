@@ -716,8 +716,8 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
             </PromptInput>
           </div>
           <Show when={!promptText() && props.store.activeSkillIds().length === 0}>
-            <p class="text-[10px] text-muted-foreground/30 text-center pb-1">
-              Type <code class="bg-muted/50 px-0.5 rounded">/ </code> for skills
+            <p class="text-xs text-muted-foreground/40 text-center py-2">
+              Type <code class="bg-muted px-1 rounded">/</code> to see commands. Arrow keys + Tab/Enter to select.
             </p>
           </Show>
         </Show>
