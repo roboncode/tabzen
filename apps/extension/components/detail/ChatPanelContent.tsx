@@ -7,7 +7,6 @@ import {
   MessageCircle,
   ArrowUp,
   Mic,
-  Copy,
   ThumbsUp,
   ThumbsDown,
   Code,
@@ -36,6 +35,7 @@ import {
   ContextContentBody,
   SlashCommand,
   type SlashCommandItem,
+  MessageCopyButton,
 } from "@tab-zen/chat";
 import type { ChatMessage } from "@tab-zen/shared";
 import type { DocumentChatStore } from "@/lib/chat/chat-store";
@@ -416,31 +416,6 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
             </div>
           </div>
 
-          {/* Active skills */}
-          <Show when={props.store.activeSkillIds().length > 0}>
-            <div class="px-3 py-1 flex gap-1 flex-wrap flex-shrink-0">
-              <For each={props.store.activeSkillIds()}>
-                {(skillId) => {
-                  const skill = () =>
-                    (allSkills() ?? []).find(
-                      (s: ChatSkill) => s.id === skillId,
-                    );
-                  return (
-                    <Show when={skill()}>
-                      <button
-                        onClick={() => props.store.toggleSkill(skillId)}
-                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-violet-400/10 text-violet-400 hover:bg-violet-400/20 transition-colors"
-                      >
-                        {skill()!.name}
-                        <X size={10} />
-                      </button>
-                    </Show>
-                  );
-                }}
-              </For>
-            </div>
-          </Show>
-
           {/* Debug inspector */}
           <Show when={debugOpen()}>
             <div class="flex-shrink-0 max-h-[40%] overflow-hidden border-b border-border/30">
@@ -471,7 +446,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
           </Show>
 
           {/* Messages */}
-          <ChatContainer class="relative flex-1 min-w-0 px-5 py-4 space-y-4">
+          <ChatContainer class="relative flex-1 min-w-0 px-5 py-4">
             <Show
               when={
                 props.store.activeConversation()?.messages.length ||
@@ -481,7 +456,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                 <div class="flex-1 flex flex-col">
                   {/* Recent sessions */}
                   <Show when={recentConversations().length > 0}>
-                    <div class="px-1">
+                    <div class="px-0">
                       <div class="text-xs font-semibold text-foreground/70 uppercase tracking-wide mb-1">
                         Sessions
                       </div>
@@ -524,7 +499,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                     when={msg.role === "user"}
                     fallback={
                       /* Assistant message */
-                      <Message class="flex-col !gap-0">
+                      <Message class="flex-col gap-0!">
                         <MessageSkills
                           skills={((msg as any).skillIds ?? []).map(
                             (id: string) => {
@@ -546,13 +521,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                           {msg.content}
                         </MessageContent>
                         <MessageActions class="[&>button]:p-1 [&>button]:rounded [&>button]:text-foreground/60 [&>button]:hover:text-foreground [&>button]:transition-colors">
-                          <button
-                            onClick={() =>
-                              navigator.clipboard.writeText(msg.content)
-                            }
-                          >
-                            <Copy size={14} />
-                          </button>
+                          <MessageCopyButton content={msg.content} />
                           <button onClick={() => {}}>
                             <ThumbsUp size={14} />
                           </button>
@@ -569,13 +538,7 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                         {msg.content}
                       </MessageContent>
                       <MessageActions class="opacity-0 group-hover:opacity-100 transition-opacity duration-150 [&>button]:p-1 [&>button]:rounded [&>button]:text-foreground/60 [&>button]:hover:text-foreground [&>button]:transition-colors">
-                        <button
-                          onClick={() =>
-                            navigator.clipboard.writeText(msg.content)
-                          }
-                        >
-                          <Copy size={14} />
-                        </button>
+                        <MessageCopyButton content={msg.content} />
                       </MessageActions>
                     </Message>
                   </Show>
@@ -614,8 +577,8 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
             </div>
           </ChatContainer>
 
-          {/* Prompt suggestions (when no messages) */}
-          <Show
+          {/* Prompt suggestions (when no messages) — commented out, may not be needed */}
+          {/* <Show
             when={
               !props.store.activeConversation()?.messages.length &&
               !props.store.activeConversationId()
@@ -632,6 +595,31 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
                     {suggestion}
                   </PromptSuggestion>
                 )}
+              </For>
+            </div>
+          </Show> */}
+
+          {/* Active skills */}
+          <Show when={props.store.activeSkillIds().length > 0}>
+            <div class="px-3 py-1 flex gap-1 flex-wrap flex-shrink-0">
+              <For each={props.store.activeSkillIds()}>
+                {(skillId) => {
+                  const skill = () =>
+                    (allSkills() ?? []).find(
+                      (s: ChatSkill) => s.id === skillId,
+                    );
+                  return (
+                    <Show when={skill()}>
+                      <button
+                        onClick={() => props.store.toggleSkill(skillId)}
+                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-violet-400/10 text-violet-400 hover:bg-violet-400/20 transition-colors"
+                      >
+                        {skill()!.name}
+                        <X size={10} />
+                      </button>
+                    </Show>
+                  );
+                }}
               </For>
             </div>
           </Show>
@@ -656,10 +644,10 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
               />
               <PromptInputActions class="mt-0.5 flex w-full items-center justify-between gap-2 px-2 pb-1.5">
                 <div class="flex items-center gap-1">
-                  <ChatSkillPicker
+                  {/* <ChatSkillPicker
                     activeSkillIds={props.store.activeSkillIds()}
                     onToggleSkill={(id) => props.store.toggleSkill(id)}
-                  />
+                  /> */}
                   <button
                     onClick={() => setCompressionEnabled(!compressionEnabled())}
                     class={`p-1.5 rounded-md text-xs flex items-center gap-1 transition-colors ${
