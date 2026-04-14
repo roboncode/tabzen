@@ -5,7 +5,7 @@ export default function SettingsPage() {
   const navigate = useNavigate();
 
   return (
-    <div class="w-full min-h-screen bg-background">
+    <div class="w-full h-screen bg-background">
       <SettingsPanel onClose={() => navigate("/")} />
     </div>
   );

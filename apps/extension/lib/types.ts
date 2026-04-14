@@ -30,6 +30,7 @@ export interface Settings {
   autoChapters: boolean;
   notchEnabled: boolean;
   notchSide: "left" | "right";
+  dataSource: "local" | "service" | "auto";
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -83,6 +84,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoChapters: true,
   notchEnabled: true,
   notchSide: "right",
+  dataSource: "local" as const,
 };
 
 export interface AIGroupSuggestion {

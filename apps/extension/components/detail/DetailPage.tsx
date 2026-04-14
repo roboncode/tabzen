@@ -602,9 +602,7 @@ export default function DetailPage(props: DetailPageProps) {
           segments={transcriptSegments()}
           videoUrl={props.page.url}
           chapters={currentPage().chapters}
-          onFetchTranscript={
-            transcriptSegments().length === 0 ? handleFetchContent : undefined
-          }
+          onFetchTranscript={handleFetchContent}
           loading={fetchingContent()}
         />
       </Show>
@@ -660,6 +658,7 @@ export default function DetailPage(props: DetailPageProps) {
               if (hideLeftNav()) setSidebarOpen(false);
             }}
             onHideTemplate={handleHideTemplate}
+            onNavigateHome={() => navigate("/")}
           />
         </div>
       </Show>
@@ -671,12 +670,13 @@ export default function DetailPage(props: DetailPageProps) {
           page={currentPage()}
           onBack={handleBack}
           onToggleStar={handleToggleStar}
-
           onArchive={handleArchive}
           onDelete={handleDelete}
           onCopy={hasContent() ? handleCopy : undefined}
           copied={copied()}
           onMenuToggle={hideLeftNav() && hasContent() && templates().length > 0 ? () => setSidebarOpen(!sidebarOpen()) : undefined}
+          onRefreshContent={hasContent() ? handleFetchContent : undefined}
+          refreshingContent={fetchingContent()}
         />
 
         {/* Narrow: "On this page" TOC button + dropdown */}

@@ -9,6 +9,7 @@ interface DocumentNavProps {
   onSectionChange: (section: string) => void;
   onAddCustom: () => void;
   onHideTemplate?: (template: AITemplate) => void;
+  onNavigateHome?: () => void;
 }
 
 export default function DocumentNav(props: DocumentNavProps) {
@@ -53,7 +54,7 @@ export default function DocumentNav(props: DocumentNavProps) {
     <nav class="pb-8">
       {/* App name — matches header bar height */}
       <div class="h-16 flex items-center px-10">
-        <span class="text-sm font-bold text-foreground">Tab Zen</span>
+        <button onClick={() => props.onNavigateHome?.()} class="text-sm font-bold text-foreground hover:text-foreground/80 transition-colors">Tab Zen</button>
       </div>
       <div class="mx-10 border-b-3 border-muted-foreground/10" />
 

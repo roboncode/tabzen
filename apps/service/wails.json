@@ -1,0 +1,11 @@
+{
+  "$schema": "https://wails.io/schemas/config.v3.json",
+  "name": "tabzen-service",
+  "outputfilename": "tabzen-service",
+  "frontend:install": "pnpm install",
+  "frontend:build": "pnpm build",
+  "frontend:dir": "frontend",
+  "author": {
+    "name": "Tab Zen"
+  }
+}
