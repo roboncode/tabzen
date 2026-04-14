@@ -72,3 +72,27 @@ export function getDefaultPrompt(templateName: string): string | null {
   const def = BUILTIN_TEMPLATES.find((d) => d.name === templateName);
   return def?.prompt ?? null;
 }
+
+export async function resetBuiltinTemplates(): Promise<void> {
+  const existing = await getAllTemplates();
+  const customTemplates = existing.filter((t) => !t.isBuiltin);
+
+  const builtins: AITemplate[] = BUILTIN_TEMPLATES.map((def, i) => ({
+    id: def.id,
+    name: def.name,
+    prompt: def.prompt,
+    isBuiltin: true,
+    defaultPrompt: def.prompt,
+    isEnabled: true,
+    sortOrder: i,
+    model: null,
+  }));
+
+  // Re-number custom templates after builtins
+  const renumbered = customTemplates.map((t, i) => ({
+    ...t,
+    sortOrder: builtins.length + i,
+  }));
+
+  await putTemplates([...builtins, ...renumbered]);
+}

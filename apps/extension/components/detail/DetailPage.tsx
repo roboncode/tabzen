@@ -660,6 +660,7 @@ export default function DetailPage(props: DetailPageProps) {
               if (hideLeftNav()) setSidebarOpen(false);
             }}
             onHideTemplate={handleHideTemplate}
+            onNavigateHome={() => navigate("/")}
           />
         </div>
       </Show>

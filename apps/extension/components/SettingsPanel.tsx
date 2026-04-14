@@ -118,7 +118,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
     <>
       {/* App header */}
       <div class="h-16 flex items-center px-5">
-        <span class="text-sm font-bold text-foreground">Tab Zen</span>
+        <button onClick={() => navigate("/")} class="text-sm font-bold text-foreground hover:text-foreground/80 transition-colors">Tab Zen</button>
       </div>
       <div class="mx-5 border-b-3 border-muted-foreground/10" />
 

@@ -31,7 +31,7 @@ export default function AppSidebar(props: AppSidebarProps) {
     <div class="h-full overflow-y-auto scrollbar-hide">
       {/* App name — matches detail page DocumentNav */}
       <div class="h-16 flex items-center px-5">
-        <span class="text-sm font-bold text-foreground">Tab Zen</span>
+        <button onClick={() => props.onSelectDomain(null)} class="text-sm font-bold text-foreground hover:text-foreground/80 transition-colors">Tab Zen</button>
       </div>
       <div class="mx-5 border-b-3 border-muted-foreground/10" />
 
