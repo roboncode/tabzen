@@ -57,7 +57,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
         >
           <ArrowLeft size={16} />
         </button>
-        <span class="text-sm font-semibold text-foreground">Sessions</span>
+        <span class="text-xs font-semibold text-foreground">Sessions</span>
       </div>
 
       {/* Search */}
@@ -91,10 +91,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
                 onClick={() => props.onSelect(conv.id)}
               >
                 <div class="min-w-0 flex-1">
-                  <div class="text-sm text-foreground/80 truncate">
+                  <div class="text-xs text-foreground/80 truncate">
                     {conv.title}
                   </div>
-                  <div class="text-xs text-muted-foreground/50">
+                  <div class="text-[12px] text-muted-foreground/50">
                     {conv.messageCount} messages · {timeAgo(conv.updatedAt)}
                   </div>
                 </div>
@@ -118,7 +118,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             fallback={
               <button
                 onClick={() => setConfirmDeleteAll(true)}
-                class="w-full py-1.5 rounded-lg text-xs text-red-400 bg-red-400/10 hover:bg-red-400/20 transition-colors"
+                class="w-full py-2 rounded-lg text-sm text-red-400 bg-red-400/10 hover:bg-red-400/20 transition-colors"
               >
                 Delete All Sessions
               </button>
@@ -127,13 +127,13 @@ export default function ChatHistory(props: ChatHistoryProps) {
             <div class="flex gap-2">
               <button
                 onClick={() => setConfirmDeleteAll(false)}
-                class="flex-1 py-1.5 rounded-lg text-xs text-muted-foreground bg-muted/30 hover:bg-muted/50 transition-colors"
+                class="flex-1 py-2 rounded-lg text-sm text-muted-foreground bg-muted/30 hover:bg-muted/50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAll}
-                class="flex-1 py-1.5 rounded-lg text-xs text-white bg-red-500 hover:bg-red-600 transition-colors"
+                class="flex-1 py-2 rounded-lg text-sm text-white bg-red-500 hover:bg-red-600 transition-colors"
               >
                 Confirm Delete
               </button>

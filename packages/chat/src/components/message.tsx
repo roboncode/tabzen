@@ -1,4 +1,5 @@
-import { type JSX, splitProps, Show } from "solid-js";
+import { type JSX, createSignal, splitProps, Show } from "solid-js";
+import { Copy, Check } from "lucide-solid";
 import { cn } from "../utils/cn";
 import { Markdown } from "./markdown";
 import { useChatConfig, textClass } from "../primitives/chat-config";
@@ -117,4 +118,32 @@ function MessageAction(props: MessageActionProps) {
   return <>{props.children}</>;
 }
 
-export { Message, MessageAvatar, MessageContent, MessageActions, MessageAction };
+// --- MessageCopyButton ---
+
+export interface MessageCopyButtonProps {
+  content: string;
+  size?: number;
+  class?: string;
+}
+
+function MessageCopyButton(props: MessageCopyButtonProps) {
+  const [copied, setCopied] = createSignal(false);
+  const iconSize = () => props.size ?? 14;
+
+  return (
+    <button
+      class={props.class}
+      onClick={() => {
+        navigator.clipboard.writeText(props.content);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
+    >
+      <Show when={copied()} fallback={<Copy size={iconSize()} />}>
+        <Check size={iconSize()} class="text-emerald-400" />
+      </Show>
+    </button>
+  );
+}
+
+export { Message, MessageAvatar, MessageContent, MessageActions, MessageAction, MessageCopyButton };
