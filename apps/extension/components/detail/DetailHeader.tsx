@@ -8,6 +8,7 @@ import {
   Check,
   Menu,
   Ellipsis,
+  RefreshCw,
 } from "lucide-solid";
 import type { Page } from "@/lib/types";
 import { extractCreator, getDomain, getFaviconUrl } from "@/lib/domains";
@@ -17,6 +18,7 @@ import IconButton from "@/components/IconButton";
 import Avatar from "@/components/Avatar";
 import TagList from "@/components/TagList";
 import UserMenu from "@/components/UserMenu";
+import StorageBadge from "@/components/StorageBadge";
 
 interface DetailHeaderProps {
   page: Page;
@@ -32,6 +34,8 @@ interface DetailHeaderProps {
   showTags?: boolean;
   /** Show menu button for sidebar toggle on narrow screens */
   onMenuToggle?: () => void;
+  onRefreshContent?: () => void;
+  refreshingContent?: boolean;
 }
 
 export default function DetailHeader(props: DetailHeaderProps) {
@@ -209,6 +213,8 @@ export default function DetailHeader(props: DetailHeaderProps) {
         Collections
       </button>
 
+      <StorageBadge />
+
       <div class="w-px h-5 bg-muted-foreground/20 flex-shrink-0 mx-2" />
 
       <UserMenu />
@@ -239,6 +245,19 @@ export default function DetailHeader(props: DetailHeaderProps) {
                   <Check size={14} class="text-green-400" />
                 </Show>
                 <span>{props.copied ? "Copied!" : "Copy content"}</span>
+              </button>
+            </Show>
+            <Show when={props.onRefreshContent}>
+              <button
+                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+                disabled={props.refreshingContent}
+                onClick={() => {
+                  props.onRefreshContent!();
+                  setMenuOpen(false);
+                }}
+              >
+                <RefreshCw size={14} class={props.refreshingContent ? "animate-spin" : ""} />
+                <span>{props.refreshingContent ? "Refreshing..." : "Refresh content"}</span>
               </button>
             </Show>
             <button

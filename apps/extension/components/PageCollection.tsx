@@ -23,6 +23,7 @@ import Tip from "./Tip";
 import EmptyBlock from "./EmptyBlock";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
 import AppSidebar from "./AppSidebar";
+import StorageBadge from "./StorageBadge";
 import type {
   Page,
   Group,
@@ -502,6 +503,8 @@ export default function PageCollection(props: PageCollectionProps) {
           }} />
 
           <ViewToggle mode={props.viewMode} onChange={props.onViewModeChange} />
+
+          <StorageBadge />
 
           <div class="w-px h-5 bg-muted-foreground/20 flex-shrink-0 mx-2" />
 

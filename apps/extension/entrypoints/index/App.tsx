@@ -14,6 +14,7 @@ export default function App() {
         <Route path="/page/:pageId" component={PageDetail} />
         <Route path="/page/:pageId/:section" component={PageDetail} />
         <Route path="/settings" component={SettingsPage} />
+        <Route path="/settings/:section" component={SettingsPage} />
         <Route path="*" component={PageList} />
       </HashRouter>
       <Toaster

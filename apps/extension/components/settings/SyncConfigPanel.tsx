@@ -1,5 +1,5 @@
 import { createSignal, Show } from "solid-js";
-import { HardDrive, RefreshCw } from "lucide-solid";
+import { HardDrive, Cloud, Monitor, RefreshCw } from "lucide-solid";
 import { initSync, verifySync, checkConnection } from "@/lib/sync";
 import { sendMessage } from "@/lib/messages";
 import { setServiceActive } from "@/lib/adapter-state";
@@ -84,19 +84,17 @@ export default function SyncConfigPanel(props: SyncConfigPanelProps) {
         {/* Browser Only */}
         <button
           class={`flex items-center gap-3 w-full p-3 rounded-lg text-left transition-colors ${
-            mode() === "browser" ? "bg-muted/50" : "bg-transparent hover:bg-muted/20"
+            mode() === "browser" ? "bg-sky-500/10" : "bg-transparent hover:bg-muted/20"
           }`}
           onClick={() => handleStorageChange("browser")}
         >
-          <div class={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${
-            mode() === "browser" ? "bg-primary" : "bg-muted/60"
+          <div class={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+            mode() === "browser" ? "bg-sky-500/20 text-sky-400" : "bg-muted/50 text-muted-foreground"
           }`}>
-            <Show when={mode() === "browser"}>
-              <div class="w-2 h-2 rounded-full bg-background" />
-            </Show>
+            <HardDrive size={16} />
           </div>
           <div>
-            <div class="text-sm text-foreground">Browser Only</div>
+            <div class={`text-sm ${mode() === "browser" ? "text-sky-400" : "text-foreground"}`}>Browser Only</div>
             <div class="text-sm text-muted-foreground">Data stays in this browser. No sync across devices.</div>
           </div>
         </button>
@@ -105,19 +103,17 @@ export default function SyncConfigPanel(props: SyncConfigPanelProps) {
         <div>
           <button
             class={`flex items-center gap-3 w-full p-3 rounded-lg text-left transition-colors ${
-              mode() === "sync" ? "bg-muted/50" : "bg-transparent hover:bg-muted/20"
+              mode() === "sync" ? "bg-sky-500/10" : "bg-transparent hover:bg-muted/20"
             }`}
             onClick={() => handleStorageChange("sync")}
           >
-            <div class={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${
-              mode() === "sync" ? "bg-primary" : "bg-muted/60"
+            <div class={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              mode() === "sync" ? "bg-sky-500/20 text-sky-400" : "bg-muted/50 text-muted-foreground"
             }`}>
-              <Show when={mode() === "sync"}>
-                <div class="w-2 h-2 rounded-full bg-background" />
-              </Show>
+              <Cloud size={16} />
             </div>
             <div>
-              <div class="text-sm text-foreground">Browser + Cloud Sync</div>
+              <div class={`text-sm ${mode() === "sync" ? "text-sky-400" : "text-foreground"}`}>Browser + Cloud Sync</div>
               <div class="text-sm text-muted-foreground">Sync data across devices via a sync server.</div>
             </div>
           </button>
@@ -145,19 +141,17 @@ export default function SyncConfigPanel(props: SyncConfigPanelProps) {
         <div>
           <button
             class={`flex items-center gap-3 w-full p-3 rounded-lg text-left transition-colors ${
-              mode() === "service" ? "bg-muted/50" : "bg-transparent hover:bg-muted/20"
+              mode() === "service" ? "bg-sky-500/10" : "bg-transparent hover:bg-muted/20"
             }`}
             onClick={() => handleStorageChange("service")}
           >
-            <div class={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${
-              mode() === "service" ? "bg-primary" : "bg-muted/60"
+            <div class={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              mode() === "service" ? "bg-sky-500/20 text-sky-400" : "bg-muted/50 text-muted-foreground"
             }`}>
-              <Show when={mode() === "service"}>
-                <div class="w-2 h-2 rounded-full bg-background" />
-              </Show>
+              <Monitor size={16} />
             </div>
             <div>
-              <div class="text-sm text-foreground">Local Service <span class="text-muted-foreground">(experimental)</span></div>
+              <div class={`text-sm ${mode() === "service" ? "text-sky-400" : "text-foreground"}`}>Local Service <span class="text-muted-foreground">(experimental)</span></div>
               <div class="text-sm text-muted-foreground">Store data via a local desktop service.</div>
             </div>
           </button>

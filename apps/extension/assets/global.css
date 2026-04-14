@@ -39,6 +39,10 @@
 }
 
 @layer base {
+  button, [role="button"] {
+    cursor: pointer;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family:

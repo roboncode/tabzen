@@ -1,9 +1,10 @@
-import { createSignal, Show, For } from "solid-js";
-import { useNavigate } from "@solidjs/router";
+import { createSignal, createEffect, on, Show, For } from "solid-js";
+import { useNavigate, useParams } from "@solidjs/router";
 import ConfirmDialog from "./ConfirmDialog";
 import UserMenu from "./UserMenu";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { Menu, Download, Upload, Keyboard, Trash2 } from "lucide-solid";
+import StorageBadge from "./StorageBadge";
 import {
   exportAsJson,
   exportAsHtmlBookmarks,
@@ -55,19 +56,30 @@ const navGroups: { items: { key: SettingsSection; label: string }[] }[] = [
   },
 ];
 
+const allSectionKeys = navGroups.flatMap(g => g.items.map(i => i.key));
+
+function isValidSection(s: string): s is SettingsSection {
+  return allSectionKeys.includes(s as SettingsSection);
+}
+
 export default function SettingsPanel(props: SettingsPanelProps) {
   const navigate = useNavigate();
+  const params = useParams<{ section?: string }>();
   const { settings, save: rawSave } = useSettings();
   const [saving, setSaving] = createSignal(false);
   const [importResult, setImportResult] = createSignal<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = createSignal(false);
   const [aiTestResult, setAiTestResult] = createSignal<{ ok: boolean; message: string } | null>(null);
   const [aiTesting, setAiTesting] = createSignal(false);
-  const [activeSection, setActiveSection] = createSignal<SettingsSection>("general");
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
 
+  const activeSection = (): SettingsSection => {
+    const s = params.section;
+    return s && isValidSection(s) ? s : "general";
+  };
+
   const handleNavClick = (key: SettingsSection) => {
-    setActiveSection(key);
+    navigate(`/settings/${key}`, { replace: true });
     setSidebarOpen(false);
   };
 
@@ -206,6 +218,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           </span>
 
           <span class="text-xs text-muted-foreground/40 flex-shrink-0">v{browser.runtime.getManifest().version}</span>
+
+          <StorageBadge />
 
           <div class="w-px h-5 bg-muted-foreground/20 flex-shrink-0 mx-2" />
 

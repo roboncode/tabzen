@@ -60,6 +60,7 @@ function decodeXmlEntities(text: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&apos;/g, "'")
+    .replace(/<[^>]*>/g, "") // Strip HTML tags (e.g. YouTube's <font color="..."> subtitle styling)
     .replace(/\n/g, " ")
     .trim();
 }

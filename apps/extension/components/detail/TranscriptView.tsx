@@ -119,6 +119,10 @@ function startsWithCapital(text: string): boolean {
   return first ? first === first.toUpperCase() && first !== first.toLowerCase() : false;
 }
 
+function stripHtml(text: string): string {
+  return text.replace(/<[^>]*>/g, "");
+}
+
 const SegmentSpan = (p: { segment: TranscriptSegment; videoUrl: string; onHover: (seg: TranscriptSegment | null, rect: DOMRect | null) => void }) => (
   <a
     href={getTimestampUrl(p.videoUrl, p.segment.startMs)}
@@ -128,7 +132,7 @@ const SegmentSpan = (p: { segment: TranscriptSegment; videoUrl: string; onHover:
     onMouseEnter={(e) => p.onHover(p.segment, (e.target as HTMLElement).getBoundingClientRect())}
     onMouseLeave={() => p.onHover(null, null)}
   >
-    {p.segment.text}
+    {stripHtml(p.segment.text)}
   </a>
 );
 
