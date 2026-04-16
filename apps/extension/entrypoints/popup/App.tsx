@@ -1,5 +1,5 @@
 import { createSignal, createResource, Show } from "solid-js";
-import { ShieldBan, Settings as SettingsIcon } from "lucide-solid";
+import { ShieldBan, Settings as SettingsIcon, Maximize, PanelRight } from "lucide-solid";
 import { sendMessage } from "@/lib/messages";
 import { shouldSkipUrl } from "@/lib/duplicates";
 import { getSettings } from "@/lib/settings";
@@ -169,19 +169,24 @@ export default function App() {
       {/* Header */}
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-base font-semibold text-foreground">Tab Zen</h1>
-        <button
-          class="text-sm text-muted-foreground hover:text-sky-400 px-2.5 py-1 rounded-lg transition-colors"
-          onClick={handleCaptureAll}
-          disabled={capturing() || uncapturedCount() === 0}
-        >
-          {capturing()
-            ? "Saving..."
-            : uncapturedCount.loading
-              ? ""
-              : uncapturedCount() === 0
-                ? "All saved"
-                : `Save all (${uncapturedCount()})`}
-        </button>
+        <div class="flex items-center gap-1.5">
+          <Show when={capturing() || (!uncapturedCount.loading && (uncapturedCount() ?? 0) > 0)}>
+            <button
+              class="text-sm text-muted-foreground hover:text-sky-400 px-2.5 py-1 rounded-lg transition-colors"
+              onClick={handleCaptureAll}
+              disabled={capturing()}
+            >
+              {capturing() ? "Saving..." : `Save all (${uncapturedCount()})`}
+            </button>
+          </Show>
+          <button
+            class="text-muted-foreground hover:text-foreground p-1.5 rounded-lg transition-colors"
+            onClick={() => openOrFocusSPA("/settings")}
+            aria-label="Settings"
+          >
+            <SettingsIcon size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Sync error banner */}
@@ -235,11 +240,7 @@ export default function App() {
                 <img
                   src={tab().ogImage!}
                   alt=""
-                  class={`w-full h-full object-cover object-top transition-all duration-500 ${
-                    saved()
-                      ? ""
-                      : "grayscale brightness-75 group-hover/card:grayscale-[30%] group-hover/card:brightness-[0.85]"
-                  }`}
+                  class="w-full h-full object-cover object-top"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none";
                   }}
@@ -254,11 +255,7 @@ export default function App() {
                     <img
                       src={faviconSrc()}
                       alt=""
-                      class={`w-8 h-8 rounded transition-all duration-500 ${
-                        saved()
-                          ? ""
-                          : "grayscale brightness-75 group-hover/card:grayscale-[30%] group-hover/card:brightness-[0.85]"
-                      }`}
+                      class="w-8 h-8 rounded"
                     />
                   ) : (
                     <span class="text-muted-foreground text-sm">
@@ -276,41 +273,25 @@ export default function App() {
                   <img
                     src={faviconSrc()}
                     alt=""
-                    class={`w-5 h-5 rounded-full mt-0.5 flex-shrink-0 transition-all duration-500 ${
-                      saved()
-                        ? ""
-                        : "grayscale brightness-75 group-hover/card:grayscale-[30%] group-hover/card:brightness-[0.85]"
-                    }`}
+                    class="w-5 h-5 rounded-full mt-0.5 flex-shrink-0"
                   />
                 ) : (
                   <div class="w-5 h-5 rounded-full bg-muted/50 mt-0.5 flex-shrink-0" />
                 )}
                 <div class="flex-1 min-w-0">
                   <h3
-                    class={`text-sm font-medium leading-snug line-clamp-2 transition-colors duration-300 ${
-                      saved()
-                        ? "text-foreground"
-                        : "text-muted-foreground group-hover/card:text-foreground/80"
-                    }`}
+                    class="text-sm font-medium leading-snug line-clamp-2 text-foreground"
                   >
                     {tab().ogTitle || tab().title}
                   </h3>
                   <p
-                    class={`text-xs mt-1 transition-colors duration-300 ${
-                      saved()
-                        ? "text-muted-foreground"
-                        : "text-muted-foreground/50"
-                    }`}
+                    class="text-xs mt-1 text-muted-foreground"
                   >
                     {tab().creator || domain()}
                   </p>
                   <Show when={tab().ogDescription}>
                     <p
-                      class={`text-xs mt-0.5 line-clamp-1 transition-colors duration-300 ${
-                        saved()
-                          ? "text-muted-foreground"
-                          : "text-muted-foreground/40"
-                      }`}
+                      class="text-xs mt-0.5 line-clamp-1 text-muted-foreground"
                     >
                       {tab().ogDescription}
                     </p>
@@ -350,35 +331,21 @@ export default function App() {
         )}
       </Show>
 
-      {/* Visual navigation */}
-      <p class="text-xs text-muted-foreground/50 mb-2.5">
-        Browse your collection
-      </p>
+      {/* Navigation buttons */}
       <div class="flex gap-2.5">
-        {/* Fullscreen nav */}
         <button
-          class="flex-1 bg-muted/25 rounded-xl p-3 flex gap-1.5 h-[100px] transition-colors duration-200 hover:bg-sky-950 group"
+          class="flex-1 bg-muted/25 rounded-xl px-4 py-3 flex items-center gap-2.5 transition-colors duration-200 hover:bg-sky-950 hover:text-foreground text-muted-foreground group"
           onClick={openFullPage}
-          aria-label="Open full page"
         >
-          <div class="w-[24%] bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
-          <div class="flex-1 grid grid-cols-2 grid-rows-2 gap-1.5">
-            <div class="bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
-            <div class="bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
-            <div class="bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
-            <div class="bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
-          </div>
+          <Maximize size={16} class="flex-shrink-0 transition-colors duration-200 group-hover:text-sky-400" />
+          <span class="text-sm">Full Page</span>
         </button>
-
-        {/* Sidebar nav */}
         <button
-          class="w-[80px] bg-muted/25 rounded-xl p-3 flex flex-col gap-1.5 h-[100px] transition-colors duration-200 hover:bg-sky-950 group"
+          class="flex-1 bg-muted/25 rounded-xl px-4 py-3 flex items-center gap-2.5 transition-colors duration-200 hover:bg-sky-950 hover:text-foreground text-muted-foreground group"
           onClick={openSidePanel}
-          aria-label="Open side panel"
         >
-          <div class="flex-1 bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
-          <div class="flex-1 bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
-          <div class="flex-1 bg-muted/40 rounded-md transition-colors duration-200 group-hover:bg-sky-400" />
+          <PanelRight size={16} class="flex-shrink-0 transition-colors duration-200 group-hover:text-sky-400" />
+          <span class="text-sm">Side Panel</span>
         </button>
       </div>
     </div>

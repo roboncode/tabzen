@@ -98,12 +98,12 @@ export default function StorageBadge() {
   return (
     <button
       onClick={() => navigate("/settings/storage")}
-      class={`w-7 h-7 rounded-md flex items-center justify-center hover:bg-muted/50 transition-colors flex-shrink-0 ${iconColor()}`}
+      class={`w-8 h-8 rounded-md flex items-center justify-center hover:bg-muted/50 transition-colors flex-shrink-0 ${iconColor()}`}
       title={tooltip()}
     >
-      {mode() === "service" && <Monitor size={15} />}
-      {mode() === "sync" && <Cloud size={15} />}
-      {mode() === "browser" && <HardDrive size={15} />}
+      {mode() === "service" && <Monitor size={18} />}
+      {mode() === "sync" && <Cloud size={18} />}
+      {mode() === "browser" && <HardDrive size={18} />}
     </button>
   );
 }

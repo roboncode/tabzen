@@ -9,6 +9,7 @@ import {
   Menu,
   Ellipsis,
   RefreshCw,
+  Home,
 } from "lucide-solid";
 import type { Page } from "@/lib/types";
 import { extractCreator, getDomain, getFaviconUrl } from "@/lib/domains";
@@ -187,7 +188,17 @@ export default function DetailHeader(props: DetailHeaderProps) {
         </IconButton>
       </Show>
 
-      {/* Left: Star + Title */}
+      <button
+        class="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex-shrink-0"
+        onClick={props.onBack}
+        title="Home"
+      >
+        <Home size={18} />
+      </button>
+
+      <div class="w-px h-5 bg-muted-foreground/20 flex-shrink-0 mx-1" />
+
+      {/* Star + Title */}
       <button
         class={`flex-shrink-0 p-1.5 rounded-md cursor-pointer transition-colors ${
           props.page.starred
@@ -203,15 +214,6 @@ export default function DetailHeader(props: DetailHeaderProps) {
       <span class="text-sm font-medium text-foreground truncate flex-1 min-w-0">
         {title()}
       </span>
-
-      {/* Right: Collections | separator | Kebab */}
-      <div class="w-6 flex-shrink-0" />
-      <button
-        onClick={props.onBack}
-        class="text-sm text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
-      >
-        Collections
-      </button>
 
       <StorageBadge />
 
