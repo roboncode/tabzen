@@ -3,6 +3,7 @@ import type { ChatMessage } from "@tab-zen/shared";
 import type { DocumentChatContext } from "./chat-streaming";
 import { estimateTokens, getModelByIdOrDefault } from "./chat-models";
 import { streamChatCompletion } from "./chat-streaming";
+import guardrailsRaw from "@/prompts/chat-guardrails.md?raw";
 
 const CONTEXT_BUDGET_RATIO = 0.75;
 const COMPACTION_THRESHOLD = 0.70;
@@ -176,7 +177,9 @@ Write the summary:`;
 }
 
 function buildFullSystemPrompt(doc: DocumentChatContext): string {
-  return `You are a helpful assistant. The user is viewing a specific document and asking questions about it.
+  return `You are Tab Zen's document assistant. The user is viewing a specific document and asking questions about it.
+
+${guardrailsRaw.trim()}
 
 ## Document
 Title: ${doc.title}
@@ -187,5 +190,5 @@ Type: ${doc.contentType}
 ## Content
 ${doc.content}
 
-Answer questions based on the document content above. If the user asks something not covered in the document, say so. Be concise and reference specific parts of the content when relevant.`;
+Answer questions based on the document content above. Be concise and reference specific parts of the content when relevant.`;
 }
