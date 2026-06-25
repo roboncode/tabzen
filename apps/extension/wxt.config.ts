@@ -2,6 +2,14 @@ import { defineConfig } from "wxt";
 
 export default defineConfig({
   modules: ["@wxt-dev/module-solid"],
+  // Dev: don't spawn a throwaway Chromium. `pnpm dev` just builds to
+  // .output/chrome-mv3-dev and serves HMR. Load that folder as an unpacked
+  // extension in your own Chrome once (chrome://extensions -> Load unpacked);
+  // code edits then auto-reload there. WXT pins a stable dev extension ID, so
+  // IndexedDB persists across reloads/restarts in your real profile.
+  webExt: {
+    disabled: true,
+  },
   manifest: {
     name: "Tab Zen",
     description: "AI-powered tab organization and management",

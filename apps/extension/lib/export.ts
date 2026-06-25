@@ -1,30 +1,71 @@
-import { getAllData, importData } from "./db";
-import type { Page, Group, Capture } from "./types";
+import { getAllData, importData, putTemplates, putDocuments } from "./db";
+import type { Page, Group, Capture, AITemplate, AIDocument } from "./types";
 
 interface ExportData {
-  version: 1;
+  // v1: pages/groups/captures only. v2 also carries AI templates + documents.
+  version: 1 | 2;
   exportedAt: string;
   pages: Page[];
   groups: Group[];
   captures: Capture[];
+  aiTemplates?: AITemplate[];
+  aiDocuments?: AIDocument[];
 }
 
-export async function exportAsJson(): Promise<string> {
+/** Build the full, lossless backup payload (transcripts/content ride along on pages). */
+async function buildExportData(): Promise<ExportData> {
   const data = await getAllData();
-  const exportData: ExportData = {
-    version: 1,
+  return {
+    version: 2,
     exportedAt: new Date().toISOString(),
-    ...data,
+    pages: data.pages,
+    groups: data.groups,
+    captures: data.captures,
+    aiTemplates: data.aiTemplates,
+    aiDocuments: data.aiDocuments,
   };
-  return JSON.stringify(exportData, null, 2);
+}
+
+/** Complete backup as a compact JSON string. */
+export async function exportAsJson(): Promise<string> {
+  return JSON.stringify(await buildExportData());
+}
+
+/**
+ * Complete backup as a gzipped blob (.json.gz). Everything we store is text, so
+ * gzip shrinks it ~5-10x. Uses the native CompressionStream — no dependency.
+ */
+export async function exportBackupBlob(): Promise<Blob> {
+  const json = await exportAsJson();
+  const compressed = new Blob([json]).stream().pipeThrough(new CompressionStream("gzip"));
+  return new Response(compressed).blob();
+}
+
+/** Import from a picked file, auto-detecting gzip (.json.gz) vs plain .json. */
+export async function importFromFile(file: File): Promise<{ imported: number; skipped: number }> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const isGzip = bytes.length > 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
+  let text: string;
+  if (isGzip) {
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+    text = await new Response(stream).text();
+  } else {
+    text = new TextDecoder().decode(bytes);
+  }
+  return importFromJson(text);
 }
 
 export async function importFromJson(jsonString: string): Promise<{ imported: number; skipped: number }> {
   const data: ExportData = JSON.parse(jsonString);
-  if (data.version !== 1) {
+  if (data.version !== 1 && data.version !== 2) {
     throw new Error(`Unsupported export version: ${data.version}`);
   }
-  return importData(data);
+  // Pages (with transcripts/content), groups, captures.
+  const result = await importData(data);
+  // v2 backups also carry AI templates + saved documents — restore them too.
+  if (data.aiTemplates?.length) await putTemplates(data.aiTemplates);
+  if (data.aiDocuments?.length) await putDocuments(data.aiDocuments);
+  return result;
 }
 
 export async function exportAsHtmlBookmarks(): Promise<string> {
@@ -74,7 +115,10 @@ function escapeHtml(str: string): string {
 }
 
 export function downloadFile(content: string, filename: string, mimeType: string): void {
-  const blob = new Blob([content], { type: mimeType });
+  downloadBlob(new Blob([content], { type: mimeType }), filename);
+}
+
+export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

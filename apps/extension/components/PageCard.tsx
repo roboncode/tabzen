@@ -1,7 +1,8 @@
 import { Show, createMemo } from "solid-js";
-import { Star, ExternalLink, Undo2, Trash2 } from "lucide-solid";
+import { Star, ExternalLink, Undo2, Trash2, Clock } from "lucide-solid";
 import type { Page } from "@/lib/types";
 import { extractCreator, getDomain, getFaviconUrl } from "@/lib/domains";
+import { isTranscriptPending } from "@/lib/capture-utils";
 import { formatTimeAgo } from "@/lib/format";
 import Highlight from "./Highlight";
 import Avatar from "./Avatar";
@@ -39,6 +40,9 @@ export default function PageCard(props: PageCardProps) {
 
   const creatorUrl = createMemo(() => props.page.creatorUrl || null);
 
+  // Transcript still queued: grayscale the thumbnail + show a subtle clock badge.
+  const pending = createMemo(() => isTranscriptPending(props.page));
+
   const timeAgo = createMemo(() => {
     if (props.page.publishedAt) return formatTimeAgo(props.page.publishedAt);
     return formatTimeAgo(props.page.capturedAt);
@@ -56,7 +60,7 @@ export default function PageCard(props: PageCardProps) {
             src={props.page.ogImage}
             alt=""
             loading="lazy"
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+            class={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 ${pending() ? "grayscale" : ""}`}
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
@@ -116,6 +120,16 @@ export default function PageCard(props: PageCardProps) {
             >
               <ExternalLink size={14} />
             </button>
+          </div>
+        </Show>
+        {/* Transcript pending (queued) indicator — subtle */}
+        <Show when={pending()}>
+          <div
+            class="absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/60 text-foreground/70 text-[10px]"
+            title="Transcript queued — fetching in the background"
+          >
+            <Clock size={11} />
+            <span>Transcript</span>
           </div>
         </Show>
       </div>

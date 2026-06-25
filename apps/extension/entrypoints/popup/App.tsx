@@ -27,54 +27,61 @@ export default function App() {
   } | null>(null);
   const [justSaved, setJustSaved] = createSignal(false);
 
+  // Resolves instantly from the tab object — no content-script round-trip — so
+  // the popup paints immediately instead of waiting on GET_METADATA.
   const [activeTab] = createResource(async () => {
     const [tab] = await browser.tabs.query({
       active: true,
       currentWindow: true,
     });
     if (!tab) return null;
-
-    let ogTitle: string | null = null;
-    let ogDescription: string | null = null;
-    let ogImage: string | null = null;
-    let creator: string | null = null;
-
-    try {
-      const response = await browser.tabs.sendMessage(tab.id!, {
-        type: "GET_METADATA",
-      });
-      if (response) {
-        ogTitle = response.ogTitle || null;
-        ogDescription = response.ogDescription || null;
-        ogImage = response.ogImage || null;
-        creator = response.creator || null;
-      }
-    } catch {}
-
-    // YouTube thumbnail fallback
-    if (!ogImage && tab.url) {
-      try {
-        const u = new URL(tab.url);
-        let videoId: string | null = null;
-        if (u.hostname.includes("youtube.com"))
-          videoId = u.searchParams.get("v");
-        else if (u.hostname === "youtu.be") videoId = u.pathname.slice(1);
-        if (videoId)
-          ogImage = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-      } catch {}
-    }
-
     return {
       title: tab.title || "Untitled",
       url: tab.url || "",
       favIconUrl: tab.favIconUrl || "",
       id: tab.id!,
-      ogTitle,
-      ogDescription,
-      ogImage,
-      creator,
     };
   });
+
+  // Instant YouTube thumbnail derived from the URL — shown while real og:image loads.
+  const ytThumb = () => {
+    const url = activeTab()?.url;
+    if (!url) return null;
+    try {
+      const u = new URL(url);
+      let videoId: string | null = null;
+      if (u.hostname.includes("youtube.com")) videoId = u.searchParams.get("v");
+      else if (u.hostname === "youtu.be") videoId = u.pathname.slice(1);
+      return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Richer metadata (og tags, creator) fetched separately so it never blocks
+  // the popup's first paint. The card fills in when the content script responds.
+  const [pageMeta] = createResource(
+    () => activeTab()?.id,
+    async (tabId) => {
+      try {
+        const response = await browser.tabs.sendMessage(tabId, { type: "GET_METADATA" });
+        if (response) {
+          return {
+            ogTitle: response.ogTitle || null,
+            ogDescription: response.ogDescription || null,
+            ogImage: response.ogImage || null,
+            creator: response.creator || null,
+          };
+        }
+      } catch {}
+      return { ogTitle: null, ogDescription: null, ogImage: null, creator: null };
+    },
+  );
+
+  const cardImage = () => pageMeta()?.ogImage || ytThumb();
+  const cardTitle = () => pageMeta()?.ogTitle || activeTab()?.title;
+  const cardCreator = () => pageMeta()?.creator || domain();
+  const cardDescription = () => pageMeta()?.ogDescription;
 
   const [uncapturedCount, { refetch: refetchCount }] = createResource(async () => {
     const response = await sendMessage({ type: "GET_UNCAPTURED_COUNT" });
@@ -225,7 +232,7 @@ export default function App() {
 
       {/* Unified tab card */}
       <Show when={!isBlocked() && activeTab()}>
-        {(tab) => (
+        {(_tab) => (
           <button
             class={`group/card w-full text-left rounded-xl overflow-hidden mb-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${
               saved()
@@ -236,9 +243,9 @@ export default function App() {
           >
             {/* Thumbnail */}
             <div class="aspect-video overflow-hidden">
-              {tab().ogImage ? (
+              {cardImage() ? (
                 <img
-                  src={tab().ogImage!}
+                  src={cardImage()!}
                   alt=""
                   class="w-full h-full object-cover object-top"
                   onError={(e) => {
@@ -282,18 +289,18 @@ export default function App() {
                   <h3
                     class="text-sm font-medium leading-snug line-clamp-2 text-foreground"
                   >
-                    {tab().ogTitle || tab().title}
+                    {cardTitle()}
                   </h3>
                   <p
                     class="text-xs mt-1 text-muted-foreground"
                   >
-                    {tab().creator || domain()}
+                    {cardCreator()}
                   </p>
-                  <Show when={tab().ogDescription}>
+                  <Show when={cardDescription()}>
                     <p
                       class="text-xs mt-0.5 line-clamp-1 text-muted-foreground"
                     >
-                      {tab().ogDescription}
+                      {cardDescription()}
                     </p>
                   </Show>
                 </div>

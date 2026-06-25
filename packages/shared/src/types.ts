@@ -29,6 +29,13 @@ export interface Page {
   transcript?: TranscriptSegment[];
   content?: string;
   chapters?: { title: string; startMs: number }[];
+  /**
+   * When the auto transcript queue last *attempted* a fetch for this page
+   * (local-only; not synced). Lets the UI distinguish "transcript pending"
+   * from "checked, no captions available" so caption-less videos don't show
+   * the pending indicator forever. Absent = never attempted.
+   */
+  transcriptCheckedAt?: string | null;
 }
 
 export interface MigrationAction {

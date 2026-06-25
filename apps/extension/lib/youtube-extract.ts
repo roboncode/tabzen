@@ -40,6 +40,10 @@ export async function extractYouTubeTranscriptDirect(
 
     if (!tabId) return null;
 
+    // Mute immediately: a heavy-YouTube account can autoplay even in a
+    // background tab, and this tab only exists to read the transcript API.
+    browser.tabs.update(tabId, { muted: true }).catch(() => {});
+
     // Wait for the page to finish loading
     await new Promise<void>((resolve) => {
       const listener = (id: number, info: any) => {

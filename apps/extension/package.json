@@ -2,7 +2,7 @@
   "name": "extension",
   "description": "Tab Zen Chrome Extension",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.6",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -22,6 +22,7 @@
     "@tab-zen/chat": "workspace:*",
     "@tab-zen/shared": "workspace:*",
     "@wxt-dev/storage": "^1.2.8",
+    "fflate": "^0.8.2",
     "idb": "^8.0.3",
     "linkedom": "^0.18.12",
     "lucide-solid": "^1.7.0",
@@ -35,6 +36,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
     "@tailwindcss/typography": "^0.5.19",
+    "@testing-library/jest-dom": "^6.9.1",
     "@types/turndown": "^5.0.6",
     "@types/uuid": "^10.0.0",
     "@vitest/browser": "^4.1.2",

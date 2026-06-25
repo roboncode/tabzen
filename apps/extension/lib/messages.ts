@@ -12,6 +12,8 @@ export type MessageRequest =
   | { type: "GET_TRANSCRIPT"; pageId: string }
   | { type: "GET_CONTENT"; pageId: string }
   | { type: "RE_EXTRACT_CONTENT"; pageId: string }
+  | { type: "BACKFILL_TRANSCRIPTS" }
+  | { type: "COUNT_MISSING_TRANSCRIPTS" }
   | { type: "SYNC_NOW" }
   | { type: "QUICK_CAPTURE" }
   | { type: "CAPTURE_URL"; url: string }
@@ -27,6 +29,8 @@ export type MessageResponse =
   | { type: "METADATA"; ogTitle: string | null; ogDescription: string | null; ogImage: string | null; metaDescription: string | null }
   | { type: "TRANSCRIPT"; transcript: { text: string; startMs: number; durationMs: number }[] | null }
   | { type: "CONTENT"; content: string | null }
+  | { type: "BACKFILL_DONE"; fetched: number; failed: number; total: number }
+  | { type: "MISSING_TRANSCRIPTS_COUNT"; count: number }
   | { type: "ERROR"; message: string }
   | { type: "SUCCESS" }
   | { type: "SYNC_COMPLETE"; pushed: number; pulled: number }

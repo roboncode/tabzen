@@ -1,7 +1,8 @@
 import { Show, createMemo } from "solid-js";
-import { Eye, Star, ExternalLink, Undo2, Trash2 } from "lucide-solid";
+import { Eye, Star, ExternalLink, Undo2, Trash2, Clock } from "lucide-solid";
 import type { Page } from "@/lib/types";
 import { getDomain, getFaviconUrl } from "@/lib/domains";
+import { isTranscriptPending } from "@/lib/capture-utils";
 import Highlight from "./Highlight";
 import TagList from "./TagList";
 
@@ -23,6 +24,7 @@ export default function PageRow(props: PageRowProps) {
   const domain = createMemo(() => getDomain(props.page.url) || props.page.url);
 
   const faviconSrc = createMemo(() => getFaviconUrl(props.page));
+  const pending = createMemo(() => isTranscriptPending(props.page));
 
   return (
     <div class="group">
@@ -64,6 +66,14 @@ export default function PageRow(props: PageRowProps) {
           </div>
         </div>
         <div class="flex items-center gap-3 flex-shrink-0">
+          <Show when={pending()}>
+            <span
+              class="text-muted-foreground/50 flex items-center"
+              title="Transcript queued — fetching in the background"
+            >
+              <Clock size={12} />
+            </span>
+          </Show>
           {props.page.viewCount > 0 && (
             <span class="text-xs text-muted-foreground flex items-center gap-1">
               <Eye size={12} /> {props.page.viewCount}

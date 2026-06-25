@@ -1,6 +1,7 @@
 import {
   createSignal,
   createMemo,
+  createEffect,
   onMount,
   onCleanup,
   For,
@@ -16,12 +17,14 @@ import {
   Calendar,
   Archive,
   Inbox,
+  RefreshCw,
 } from "lucide-solid";
 import UserMenu from "./UserMenu";
 import AddUrlInput from "./AddUrlInput";
 import Tip from "./Tip";
 import EmptyBlock from "./EmptyBlock";
 import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
+import { isTranscriptPending } from "@/lib/capture-utils";
 import AppSidebar from "./AppSidebar";
 import StorageBadge from "./StorageBadge";
 import type {
@@ -106,6 +109,21 @@ export default function PageCollection(props: PageCollectionProps) {
 
   // Full refresh (for captures, syncs, bulk changes)
   const refresh = () => loadData();
+
+  // Count of YouTube items still waiting on a transcript — drives the live
+  // "queued" cue. Updates automatically as the background queue persists each
+  // result (each one fires DATA_CHANGED → loadData → allPages changes).
+  const pendingTranscriptCount = createMemo(
+    () => (allPages() || []).filter((t) => isTranscriptPending(t)).length,
+  );
+
+  // When the queue drains to zero, drop out of the "queued" filter so the user
+  // isn't left staring at an empty view.
+  createEffect(() => {
+    if (pendingTranscriptCount() === 0 && filter() === "queued") {
+      setFilter("all");
+    }
+  });
 
   // Listen for data changes from background worker
   onMount(() => {
@@ -256,6 +274,7 @@ export default function PageCollection(props: PageCollectionProps) {
     if (f === "archived") return pages.filter((t) => t.archived);
     if (f === "starred") return pages.filter((t) => t.starred && !t.archived);
     if (f === "notes") return pages.filter((t) => t.notes && !t.archived);
+    if (f === "queued") return pages.filter((t) => isTranscriptPending(t) && !t.archived);
     if (f === "duplicates") {
       const live = pages.filter((t) => !t.archived);
       const urlCount = new Map<string, number>();
@@ -583,6 +602,23 @@ export default function PageCollection(props: PageCollectionProps) {
           <div class="flex-1 overflow-x-auto scrollbar-hide">
             <FilterPills active={filter()} onChange={setFilter} />
           </div>
+          {/* Live transcript-queue cue: shows the pending count while the
+              background queue works, and filters to those items when clicked.
+              Disappears when the queue drains. */}
+          <Show when={pendingTranscriptCount() > 0}>
+            <button
+              class={`flex items-center gap-1.5 px-3 py-0.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap flex-shrink-0 ${
+                filter() === "queued"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+              onClick={() => setFilter(filter() === "queued" ? "all" : "queued")}
+              title="Transcripts fetching in the background — click to see them"
+            >
+              <RefreshCw size={13} class="animate-spin" />
+              {pendingTranscriptCount()} queued
+            </button>
+          </Show>
           <Show when={uniqueDevices().length > 1}>
             <select
               class="bg-muted/40 text-sm text-foreground rounded-lg px-3 py-1.5 outline-none focus:bg-muted/60 transition-colors flex-shrink-0"

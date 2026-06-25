@@ -20,7 +20,7 @@ export interface Settings {
   openMode: "new-tab" | "current-tab";
   syncError: string | null;
   viewMode: "cards" | "rows";
-  activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates" | "trash";
+  activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates" | "trash" | "queued";
   socialVoice: string;
   socialDefaultLength: "brief" | "standard" | "detailed" | "thread";
   socialHashtags: boolean;
@@ -44,7 +44,7 @@ export const DEFAULT_SETTINGS: Settings = {
   syncEnabled: false,
   syncToken: null,
   syncLocalToken: null,
-  syncUrl: "",
+  syncUrl: import.meta.env.VITE_SYNC_URL || "",
   syncLocalUrl: "http://localhost:8787",
   syncEnv: "local",
   openMode: "new-tab",

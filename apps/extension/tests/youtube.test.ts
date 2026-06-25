@@ -64,6 +64,19 @@ describe("parseTimedTextXml", () => {
     expect(segments[0].text).toBe("It's & it<works>");
   });
 
+  it("decodes YouTube's double-encoded entities", () => {
+    // YouTube timedtext double-encodes: &amp;#39; -> ' and &amp;quot; -> "
+    const xml = `<transcript><text start="0" dur="1">We&amp;#39;re &amp;quot;here&amp;quot;</text></transcript>`;
+    const segments = parseTimedTextXml(xml);
+    expect(segments[0].text).toBe(`We're "here"`);
+  });
+
+  it("strips styling tags but keeps entity-encoded angle brackets", () => {
+    const xml = `<transcript><text start="0" dur="1"><font color="#fff">a &lt;b&gt; c</font></text></transcript>`;
+    const segments = parseTimedTextXml(xml);
+    expect(segments[0].text).toBe("a <b> c");
+  });
+
   it("returns empty array for empty input", () => {
     expect(parseTimedTextXml("")).toEqual([]);
   });

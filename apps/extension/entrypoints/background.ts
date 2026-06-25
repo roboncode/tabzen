@@ -18,6 +18,7 @@ import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate, shouldSkipUrl } from "@/lib/duplicates";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { CURRENT_CONTENT_VERSION } from "@/lib/page-extract";
+import { isInjectableTab, mapWithConcurrency, youtubeThumbnailUrl } from "@/lib/capture-utils";
 import type { TranscriptSegment } from "@tab-zen/shared";
 import { aiSearch, generateTags, generateChapters } from "@/lib/ai";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
@@ -32,6 +33,15 @@ import type {
 import type { MessageRequest, MessageResponse } from "@/lib/messages";
 import { seedTemplatesIfNeeded } from "@/lib/templates";
 import { initDataLayer, refreshAdapterIfNeeded } from "@/lib/data-layer";
+
+// Max number of tabs to extract from concurrently during capture. Keeps us from
+// waking/flooding many background tabs (and their media) all at once.
+const CAPTURE_EXTRACT_CONCURRENCY = 3;
+
+// Guards the auto transcript queue so only one drain runs at a time. Module-level
+// (not inside defineBackground) so the startup trigger can't reference it inside a
+// temporal dead zone before it's initialized.
+let transcriptQueueRunning = false;
 
 export default defineBackground(() => {
   // --- Notify UI views of data changes ---
@@ -181,10 +191,16 @@ export default defineBackground(() => {
   // Pull on startup
   syncPullIfNeeded();
 
+  // Drain any pending YouTube transcripts in the background (auto queue).
+  processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+
   // Pull on interval (every 5 minutes) and refresh data layer adapter
   setInterval(() => {
     syncPullIfNeeded();
     refreshAdapterIfNeeded().catch((e) => console.warn("[TabZen] Adapter refresh failed:", e));
+    // Resume the transcript queue in case a previous drain was interrupted
+    // (e.g. the MV3 service worker was suspended mid-run).
+    processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
   }, SYNC_INTERVAL);
 
   // Pull when browser regains focus
@@ -352,6 +368,10 @@ export default defineBackground(() => {
         return handleGetContent(message.pageId);
       case "RE_EXTRACT_CONTENT":
         return handleReExtractContent(message.pageId);
+      case "BACKFILL_TRANSCRIPTS":
+        return handleBackfillTranscripts();
+      case "COUNT_MISSING_TRANSCRIPTS":
+        return handleCountMissingTranscripts();
       case "SYNC_NOW":
         return handleSyncNow();
       case "QUICK_CAPTURE":
@@ -405,6 +425,8 @@ export default defineBackground(() => {
   ): Promise<MessageResponse> {
     try {
       await confirmCapture(captureData);
+      // Auto-fetch transcripts for the newly captured YouTube pages in the background.
+      processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
       return { type: "SUCCESS" };
     } catch (e) {
       console.error("[TabZen] Confirm capture error:", e);
@@ -495,66 +517,155 @@ export default defineBackground(() => {
     return { type: "PAGE_OPENED", page: updated! };
   }
 
-  async function handleGetTranscript(pageId: string): Promise<MessageResponse> {
-    const page = await getPage(pageId);
-    if (!page) return { type: "ERROR", message: "Page not found" };
-
-    // 1. Check if transcript is already stored locally on the page record
-    if (page.transcript) {
-      return { type: "TRANSCRIPT", transcript: page.transcript };
-    }
-
-    // 2. Try extracting from open browser tab using executeScript
-    const openTabs = await browser.tabs.query({ url: page.url });
-    if (openTabs.length > 0 && openTabs[0].id) {
-      try {
-        const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
-        const result = await extractYouTubeTranscript(openTabs[0].id, page.url);
-        if (result?.hasTranscript) {
-          const { addPage } = await import("@/lib/db");
-          await addPage({
-            ...page,
-            transcript: result.segments,
-            contentKey: `transcripts/${page.id}`,
-            contentType: "transcript",
-            contentFetchedAt: new Date().toISOString(),
-          });
-
-          const { storeTranscriptToApi } = await import("@/lib/content-api");
-          storeTranscriptToApi(page.id, result.segments).catch(() => {});
-
-          notifyDataChanged();
-          return { type: "TRANSCRIPT", transcript: result.segments };
-        }
-      } catch (e) {
-        console.warn("[TabZen] executeScript transcript extraction failed:", e);
-      }
-    }
-
-    // 3. Fallback: content-youtube API (only if sync is configured, meaning we have a backend)
-    const settings = await getSettings();
-    const hasApi = settings.syncEnabled && (settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken);
-    if (!hasApi) {
-      return { type: "TRANSCRIPT", transcript: null };
-    }
-    const { fetchTranscriptFromApi, storeTranscriptToApi } = await import("@/lib/content-api");
-    const segments = await fetchTranscriptFromApi(page.url);
-    if (segments) {
+  // Shared single-page transcript fetch: already-open AWAKE tab → throwaway
+  // (muted, background) tab → content API. Persists on success and returns the
+  // segments (or null). Used by both the on-demand button and the bulk backfill.
+  async function fetchAndStoreTranscript(page: Page): Promise<TranscriptSegment[] | null> {
+    const persist = async (segments: TranscriptSegment[]) => {
       const { addPage } = await import("@/lib/db");
+      // Re-read so a concurrent backfill doesn't clobber other fields.
+      const current = (await getPage(page.id)) || page;
       await addPage({
-        ...page,
+        ...current,
         transcript: segments,
         contentKey: `transcripts/${page.id}`,
         contentType: "transcript",
         contentFetchedAt: new Date().toISOString(),
       });
-
+      const { storeTranscriptToApi } = await import("@/lib/content-api");
       storeTranscriptToApi(page.id, segments).catch(() => {});
       notifyDataChanged();
-      return { type: "TRANSCRIPT", transcript: segments };
+    };
+
+    if (isYouTubeWatchUrl(page.url)) {
+      const { extractYouTubeTranscript, extractYouTubeTranscriptDirect } =
+        await import("@/lib/youtube-extract");
+
+      // Use an already-open AWAKE tab (fast, and never reloads a discarded tab).
+      let awakeTabId: number | undefined;
+      try {
+        const openTabs = await browser.tabs.query({ url: page.url });
+        awakeTabId = openTabs.find((t) => isInjectableTab(t))?.id;
+      } catch {
+        // tabs.query can throw when a stored URL isn't a valid match pattern; fall back.
+      }
+      if (awakeTabId != null) {
+        try {
+          const result = await extractYouTubeTranscript(awakeTabId, page.url);
+          if (result?.hasTranscript) {
+            await persist(result.segments);
+            return result.segments;
+          }
+        } catch (e) {
+          console.warn("[TabZen] Transcript extraction (open tab) failed:", e);
+        }
+      }
+
+      // No awake tab — open a single throwaway (muted, background) tab, extract,
+      // and close it. One at a time, so it can't cause the mass-reload lockup.
+      try {
+        const result = await extractYouTubeTranscriptDirect(page.url);
+        if (result?.hasTranscript) {
+          await persist(result.segments);
+          return result.segments;
+        }
+      } catch (e) {
+        console.warn("[TabZen] Transcript extraction (background tab) failed:", e);
+      }
     }
 
-    return { type: "TRANSCRIPT", transcript: null };
+    // Last resort: content-youtube API (only if a backend token is configured)
+    const settings = await getSettings();
+    const hasApi = settings.syncEnabled && (settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken);
+    if (hasApi) {
+      const { fetchTranscriptFromApi } = await import("@/lib/content-api");
+      const segments = await fetchTranscriptFromApi(page.url);
+      if (segments) {
+        await persist(segments);
+        return segments;
+      }
+    }
+
+    return null;
+  }
+
+  async function handleGetTranscript(pageId: string): Promise<MessageResponse> {
+    const page = await getPage(pageId);
+    if (!page) return { type: "ERROR", message: "Page not found" };
+    if (page.transcript) {
+      return { type: "TRANSCRIPT", transcript: page.transcript };
+    }
+    const segments = await fetchAndStoreTranscript(page);
+    return { type: "TRANSCRIPT", transcript: segments };
+  }
+
+  // Pages still waiting on a transcript: YouTube, no transcript yet, and the
+  // queue hasn't already tried them (so caption-less videos aren't retried
+  // forever). Also drives the "pending" indicator in the UI.
+  function pendingTranscriptPages(pages: Page[]): Page[] {
+    return pages.filter(
+      (p) => !p.deletedAt && !p.transcript && !p.transcriptCheckedAt && isYouTubeWatchUrl(p.url),
+    );
+  }
+
+  async function handleCountMissingTranscripts(): Promise<MessageResponse> {
+    const count = pendingTranscriptPages(await getAllPages()).length;
+    return { type: "MISSING_TRANSCRIPTS_COUNT", count };
+  }
+
+  // Mark that the queue attempted this page but found no transcript, so it stops
+  // showing as pending and isn't retried automatically. Manual Fetch Transcript
+  // ignores this flag, so the user can always force a retry.
+  async function markTranscriptChecked(pageId: string): Promise<void> {
+    const p = await getPage(pageId);
+    if (p && !p.transcript) {
+      await updatePage(pageId, { transcriptCheckedAt: new Date().toISOString() });
+      notifyDataChanged();
+    }
+  }
+
+  // Auto transcript queue: drains every pending YouTube page, a few at a time
+  // via muted background tabs (never wakes/floods all tabs at once). Re-queries
+  // each round so items captured mid-run get picked up; stops when none remain.
+  // Guarded (module-level transcriptQueueRunning) so only one drain runs at a time.
+  async function processTranscriptQueue(): Promise<{ fetched: number; failed: number; total: number }> {
+    if (transcriptQueueRunning) return { fetched: 0, failed: 0, total: 0 };
+    transcriptQueueRunning = true;
+    let fetched = 0;
+    let failed = 0;
+    let total = 0;
+    try {
+      for (;;) {
+        const targets = pendingTranscriptPages(await getAllPages());
+        if (targets.length === 0) break;
+        total += targets.length;
+        console.log(`[TabZen] Transcript queue: draining ${targets.length} pending page(s)`);
+        await mapWithConcurrency(targets, CAPTURE_EXTRACT_CONCURRENCY, async (page) => {
+          try {
+            const segments = await fetchAndStoreTranscript(page);
+            if (segments) fetched++;
+            else {
+              await markTranscriptChecked(page.id);
+              failed++;
+            }
+          } catch {
+            await markTranscriptChecked(page.id);
+            failed++;
+          }
+        });
+      }
+    } finally {
+      transcriptQueueRunning = false;
+    }
+    if (total > 0) {
+      console.log(`[TabZen] Transcript queue done: ${fetched} fetched, ${failed} without captions/failed (of ${total})`);
+    }
+    return { fetched, failed, total };
+  }
+
+  async function handleBackfillTranscripts(): Promise<MessageResponse> {
+    const { fetched, failed, total } = await processTranscriptQueue();
+    return { type: "BACKFILL_DONE", fetched, failed, total };
   }
 
   async function handleGetContent(pageId: string): Promise<MessageResponse> {
@@ -764,7 +875,7 @@ export default defineBackground(() => {
           favicon: bt.favIconUrl || "",
           ogTitle: null,
           ogDescription: null,
-          ogImage: null,
+          ogImage: isYouTubeWatchUrl(bt.url!) ? youtubeThumbnailUrl(bt.url!) : null,
           metaDescription: null,
           creator: null,
           creatorAvatar: null,
@@ -821,7 +932,9 @@ export default defineBackground(() => {
         for (const page of pages) {
           try {
             const browserTab = newBrowserTabs.find((bt) => bt.url === page.url);
-            if (browserTab?.id) {
+            // Only enrich awake tabs — never wake a discarded tab (forces a
+            // reload + media autoplay across every background tab).
+            if (browserTab && isInjectableTab(browserTab)) {
               const meta = await fetchMetadata(browserTab.id, page.url);
               const updates: Partial<Page> = {};
               if (meta.ogTitle) updates.ogTitle = meta.ogTitle;
@@ -945,6 +1058,8 @@ export default defineBackground(() => {
 
       })();
 
+      // Auto-fetch transcripts for the newly captured YouTube pages in the background.
+      processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
       return { type: "QUICK_CAPTURE_DONE", saved: pages.length, skipped: candidateTabs.length - newBrowserTabs.length };
     } catch (e) {
       console.error("[TabZen] Quick capture error:", e);
@@ -1234,73 +1349,84 @@ export default defineBackground(() => {
       return true;
     });
 
-    const pagesWithMeta: Page[] = await Promise.all(
-      newBrowserTabs.map(async (bt) => {
+    // Build lightweight records for EVERY tab first — no tab injection.
+    // Title/url/favicon come from the tab object; YouTube gets a thumbnail
+    // derived from the video id. This alone never wakes a sleeping tab.
+    const pagesWithMeta: Page[] = newBrowserTabs.map((bt): Page => ({
+      id: uuidv4(),
+      url: bt.url!,
+      title: bt.title || "Untitled",
+      favicon: bt.favIconUrl || "",
+      ogTitle: null,
+      ogDescription: null,
+      ogImage: isYouTubeWatchUrl(bt.url!) ? youtubeThumbnailUrl(bt.url!) : null,
+      metaDescription: null,
+      creator: null,
+      creatorAvatar: null,
+      creatorUrl: null,
+      publishedAt: null,
+      tags: [],
+      notes: null,
+      viewCount: 0,
+      lastViewedAt: null,
+      capturedAt: new Date().toISOString(),
+      sourceLabel: settings.sourceLabel,
+      deviceId: settings.deviceId,
+      archived: false,
+      starred: false,
+      deletedAt: null,
+      groupId: "",
+      contentKey: null,
+      contentType: null,
+      contentFetchedAt: null,
+    }));
+
+    // Enrich only AWAKE tabs (active + non-discarded), at most a few at a time.
+    // We never inject into discarded/asleep tabs — that forces a reload and
+    // autoplays media across every background tab, which freezes the browser.
+    const enrichable = newBrowserTabs
+      .map((bt, i) => ({ bt, page: pagesWithMeta[i] }))
+      .filter(({ bt }) => isInjectableTab(bt));
+
+    await mapWithConcurrency(enrichable, CAPTURE_EXTRACT_CONCURRENCY, async ({ bt, page }) => {
+      try {
         const meta = await fetchMetadata(bt.id!, bt.url!);
-        const pageId = uuidv4();
+        if (meta.ogTitle) page.ogTitle = meta.ogTitle;
+        if (meta.ogDescription) page.ogDescription = meta.ogDescription;
+        if (meta.ogImage) page.ogImage = meta.ogImage;
+        if (meta.metaDescription) page.metaDescription = meta.metaDescription;
+        if (meta.creator) page.creator = meta.creator;
+        if (meta.creatorAvatar) page.creatorAvatar = meta.creatorAvatar;
+        if (meta.creatorUrl) page.creatorUrl = meta.creatorUrl;
+        if (meta.publishedAt) page.publishedAt = meta.publishedAt;
+      } catch {}
 
-        // Extract transcript for YouTube videos, or page content for other pages
-        let transcriptSegments: TranscriptSegment[] | null = null;
-        let markdownContent: string | null = null;
-
+      try {
         if (isYouTubeWatchUrl(bt.url!)) {
-          try {
-            const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
-            const result = await extractYouTubeTranscript(bt.id!, bt.url!);
-            if (result?.hasTranscript) {
-              transcriptSegments = result.segments;
-            }
-          } catch (e) {
-            console.warn("[TabZen] Transcript extraction failed:", e);
+          const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
+          const result = await extractYouTubeTranscript(bt.id!, bt.url!);
+          if (result?.hasTranscript) {
+            page.contentKey = `transcripts/${page.id}`;
+            page.contentType = "transcript";
+            page.contentFetchedAt = new Date().toISOString();
+            page.contentVersion = CURRENT_CONTENT_VERSION;
+            page.transcript = result.segments;
           }
         } else {
-          try {
-            const { extractPageContent } = await import("@/lib/page-extract");
-            const result = await extractPageContent(bt.id!, bt.url!);
-            if (result) {
-              markdownContent = result.content;
-            }
-          } catch (e) {
-            console.warn("[TabZen] Page content extraction failed:", e);
+          const { extractPageContent } = await import("@/lib/page-extract");
+          const result = await extractPageContent(bt.id!, bt.url!);
+          if (result) {
+            page.contentKey = `content/${page.id}`;
+            page.contentType = "markdown";
+            page.contentFetchedAt = new Date().toISOString();
+            page.contentVersion = CURRENT_CONTENT_VERSION;
+            page.content = result.content;
           }
         }
-
-        const hasTranscript = transcriptSegments && transcriptSegments.length > 0;
-        const hasContent = !!markdownContent;
-        const page: Page = {
-          id: pageId,
-          url: bt.url!,
-          title: bt.title || "Untitled",
-          favicon: bt.favIconUrl || "",
-          ogTitle: meta.ogTitle,
-          ogDescription: meta.ogDescription,
-          ogImage: meta.ogImage,
-          metaDescription: meta.metaDescription,
-          creator: meta.creator || null,
-          creatorAvatar: meta.creatorAvatar || null,
-          creatorUrl: meta.creatorUrl || null,
-          publishedAt: meta.publishedAt || null,
-          tags: [],
-          notes: null,
-          viewCount: 0,
-          lastViewedAt: null,
-          capturedAt: new Date().toISOString(),
-          sourceLabel: settings.sourceLabel,
-          deviceId: settings.deviceId,
-          archived: false,
-          starred: false,
-          deletedAt: null,
-          groupId: "",
-          contentKey: hasTranscript ? `transcripts/${pageId}` : hasContent ? `content/${pageId}` : null,
-          contentType: hasTranscript ? "transcript" : hasContent ? "markdown" : null,
-          contentFetchedAt: (hasTranscript || hasContent) ? new Date().toISOString() : null,
-          contentVersion: (hasTranscript || hasContent) ? CURRENT_CONTENT_VERSION : undefined,
-          transcript: hasTranscript ? transcriptSegments! : undefined,
-          content: hasContent ? markdownContent! : undefined,
-        };
-        return page;
-      }),
-    );
+      } catch (e) {
+        console.warn("[TabZen] Capture extraction failed for", bt.url, e);
+      }
+    });
 
     let aiGroups: { groupName: string; pageIds: string[] }[];
     {
