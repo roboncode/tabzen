@@ -62,7 +62,14 @@ interface PageCollectionProps {
 
 export default function PageCollection(props: PageCollectionProps) {
   const navigate = useNavigate();
-  const [filter, setFilter] = createSignal<Settings["activeFilter"]>("all");
+  const [filter, setFilterRaw] = createSignal<Settings["activeFilter"]>("all");
+  // Persist the active filter so the chosen tab survives navigation and browser
+  // sessions. Stored in local settings (browser.storage.local), not the synced
+  // DB. Wrapping the setter means every call site persists automatically.
+  const setFilter = (f: Settings["activeFilter"]) => {
+    setFilterRaw(f);
+    void updateSettings({ activeFilter: f });
+  };
   const [deviceFilter, setDeviceFilter] = createSignal<string>("all");
   const [domainFilter, setDomainFilter] = createSignal<string | null>(null);
   const [creatorFilter, setCreatorFilter] = createSignal<string | null>(null);
@@ -130,6 +137,8 @@ export default function PageCollection(props: PageCollectionProps) {
     loadData();
     getSettings().then((s) => {
       if (s.syncError) setSyncError(s.syncError);
+      // Restore the last-selected filter tab (e.g. "By Date").
+      setFilterRaw(s.activeFilter);
     });
 
     const listener = (message: any) => {

@@ -1,8 +1,15 @@
 import { DropdownMenu as KDropdown } from '@kobalte/core/dropdown-menu';
-import { type JSX, splitProps } from 'solid-js';
+import { type JSX, type ComponentProps, splitProps } from 'solid-js';
 import { cn } from '../utils/cn';
 
-export const Dropdown = KDropdown;
+// Default to non-modal. A *modal* Kobalte dropdown sets aria-hidden on
+// everything outside its content (including #app, which contains the trigger);
+// when the trigger keeps focus the browser logs "Blocked aria-hidden on a
+// focused element". These menus don't need to trap focus or hide the page, so
+// non-modal is the correct default. Callers can still pass `modal` to override.
+export function Dropdown(props: ComponentProps<typeof KDropdown>) {
+  return <KDropdown modal={false} {...props} />;
+}
 export const DropdownTrigger = KDropdown.Trigger;
 
 export function DropdownContent(props: { children: JSX.Element; class?: string }) {

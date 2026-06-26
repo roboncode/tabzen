@@ -540,7 +540,7 @@ export default function KbChatPage() {
                                 {linkifyCitations(msg.content, msg.citations)}
                               </MessageContent>
                               <Show when={(msg.citations?.length ?? 0) > 0}>
-                                <Collapsible class="mt-3">
+                                <Collapsible class="mt-3 w-full min-w-0">
                                   <CollapsibleTrigger class="group/src flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/50 hover:text-muted-foreground transition-colors outline-none">
                                     <ChevronRight
                                       size={12}
