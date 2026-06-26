@@ -57,4 +57,15 @@ describe("buildTypeIndex", () => {
     expect(work.count).toBe(3);
     expect(idx.find((g) => g.type.id === "video")).toBeUndefined();
   });
+
+  it("routes an override pointing at a deleted/unknown custom type to 'other'", () => {
+    // youtube.com override points at a custom id that is not in customTypes
+    const idx = buildTypeIndex(pages, { "youtube.com": "custom-gone" }, []);
+    expect(idx.find((g) => g.type.id === "video")).toBeUndefined();
+    const other = idx.find((g) => g.type.id === "other")!;
+    // youtube.com has 3 pages (>2 threshold) so it lands in domains, not otherSites
+    expect(other.domains.map((d) => d.domain)).toContain("youtube.com");
+    const ytDomain = other.domains.find((d) => d.domain === "youtube.com")!;
+    expect(ytDomain.count).toBe(3);
+  });
 });

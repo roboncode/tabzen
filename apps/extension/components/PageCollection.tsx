@@ -479,7 +479,7 @@ export default function PageCollection(props: PageCollectionProps) {
 
   const createTypeAndAssign = async (domain: string, label: string) => {
     const cur = settings();
-    const id = `t-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(cur?.customTypes?.length ?? 0)}`;
+    const id = `custom-${crypto.randomUUID()}`;
     const customTypes = [
       ...(cur?.customTypes ?? []),
       { id, label, color: "#6366f1", builtIn: false },

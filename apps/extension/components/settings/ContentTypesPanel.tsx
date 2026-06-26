@@ -22,7 +22,7 @@ export default function ContentTypesPanel(props: ContentTypesPanelProps) {
   const addType = () => {
     const label = newName().trim();
     if (!label) return;
-    const id = `t-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${props.settings.customTypes.length}`;
+    const id = `custom-${crypto.randomUUID()}`;
     props.save({
       customTypes: [...props.settings.customTypes, { id, label, color: "#6366f1", builtIn: false }],
     });
