@@ -86,6 +86,7 @@ export default function PageCollection(props: PageCollectionProps) {
   const [pastedUrl, setPastedUrl] = createSignal<string | null>(null);
   const [pasteSaving, setPasteSaving] = createSignal(false);
   const [showPasteTip, setShowPasteTip] = createSignal(false);
+  const [showGroupTip, setShowGroupTip] = createSignal(false);
   const [capturePreview, setCapturePreview] =
     createSignal<CapturePreviewData | null>(null);
   const [moveDomain, setMoveDomain] = createSignal<string | null>(null);
@@ -230,9 +231,21 @@ export default function PageCollection(props: PageCollectionProps) {
   const domainIndex = createMemo(() => buildDomainIndex(allPages() || []));
 
   const groupBy = (): "domain" | "type" => settings()?.navGroupBy ?? "domain";
+  // First time the user opens the Type view, surface the easy-to-miss
+  // "Move to group" folder icon. Shown once, persisted in local storage
+  // (mirrors the first-paste tip).
+  const maybeShowGroupTip = async () => {
+    const key = "moveToGroupTipDismissed";
+    const state = await browser.storage.local.get(key);
+    if (!state[key]) {
+      setShowGroupTip(true);
+      await browser.storage.local.set({ [key]: true });
+    }
+  };
   const setGroupBy = (mode: "domain" | "type") => {
     setSettings((s) => (s ? { ...s, navGroupBy: mode } : s));
     void updateSettings({ navGroupBy: mode });
+    if (mode === "type") void maybeShowGroupTip();
   };
 
   const typeIndex = createMemo(() =>
@@ -966,6 +979,20 @@ export default function PageCollection(props: PageCollectionProps) {
           ]}
           onDismiss={() => setShowPasteTip(false)}
           onDontShowAgain={() => setShowPasteTip(false)}
+        />
+      </Show>
+
+      {/* First time opening the Type view — teach the Move-to-group icon */}
+      <Show when={showGroupTip()}>
+        <Tip
+          tips={[
+            {
+              title: "Make your own groups",
+              message:
+                "Hover any item — or a domain in the sidebar — and click the folder icon to move its whole site into a group. Future tabs from that site follow, and you can spin up your own groups with “+ New group”.",
+            },
+          ]}
+          onDismiss={() => setShowGroupTip(false)}
         />
       </Show>
     </div>
