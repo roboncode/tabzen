@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Database,
   ExternalLink,
+  ChevronRight,
 } from "lucide-solid";
 import {
   ChatConfig,
@@ -30,6 +31,9 @@ import {
   Loader,
   ModelSwitcher,
   Button,
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
 } from "@tab-zen/chat";
 import type {
   ChatMessage,
@@ -350,6 +354,18 @@ export default function KbChatPage() {
     navigate(`/page/${c.documentId}`);
   }
 
+  // Turn inline [n] markers in an answer into in-app links to their source page
+  // (the hash router navigates on click). Non-citation [n] are left untouched.
+  function linkifyCitations(content: string, citations?: Citation[]): string {
+    if (!citations?.length) return content;
+    const byNumber = new Map<number, Citation>();
+    for (const c of citations) if (c.number != null) byNumber.set(c.number, c);
+    return content.replace(/\[(\d+)\]/g, (match, num) => {
+      const c = byNumber.get(Number(num));
+      return c ? `[\\[${num}\\]](#/page/${c.documentId})` : match;
+    });
+  }
+
   const messages = () => activeConv()?.messages ?? [];
 
   return (
@@ -521,41 +537,47 @@ export default function KbChatPage() {
                                 markdown
                                 class="bg-transparent p-0 pt-1.5"
                               >
-                                {msg.content}
+                                {linkifyCitations(msg.content, msg.citations)}
                               </MessageContent>
                               <Show when={(msg.citations?.length ?? 0) > 0}>
-                                <div class="mt-3 bg-muted/30 rounded-xl px-3 py-2.5">
-                                  <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground/50 mb-1.5">
-                                    Sources
-                                  </p>
-                                  <div class="flex flex-col gap-0.5">
-                                    <For each={msg.citations}>
-                                      {(c) => (
-                                        <button
-                                          onClick={() => openCitation(c)}
-                                          title={`Open ${c.title}${c.timestamp ? ` at ${c.timestamp}` : ""}`}
-                                          class="group/cite flex items-center gap-2 rounded-lg px-2 py-1 -mx-1 text-left hover:bg-muted/50 transition-colors"
-                                        >
-                                          <span class="text-xs font-mono text-muted-foreground/60 flex-shrink-0 tabular-nums">
-                                            [{c.number}]
-                                          </span>
-                                          <span class="text-sm text-foreground/90 truncate flex-1 min-w-0">
-                                            {c.title}
-                                          </span>
-                                          <Show when={c.timestamp}>
-                                            <span class="text-xs text-muted-foreground/60 tabular-nums flex-shrink-0">
-                                              {c.timestamp}
+                                <Collapsible class="mt-3">
+                                  <CollapsibleTrigger class="group/src flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/50 hover:text-muted-foreground transition-colors outline-none">
+                                    <ChevronRight
+                                      size={12}
+                                      class="transition-transform duration-150 group-data-[expanded]/src:rotate-90"
+                                    />
+                                    Sources ({msg.citations!.length})
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent class="mt-1.5">
+                                    <div class="bg-muted/30 rounded-xl px-3 py-2.5 flex flex-col gap-0.5">
+                                      <For each={msg.citations}>
+                                        {(c) => (
+                                          <button
+                                            onClick={() => openCitation(c)}
+                                            title={`Open ${c.title}${c.timestamp ? ` at ${c.timestamp}` : ""}`}
+                                            class="group/cite flex items-center gap-2 rounded-lg px-2 py-1 -mx-1 text-left hover:bg-muted/50 transition-colors"
+                                          >
+                                            <span class="text-xs font-mono text-muted-foreground/60 flex-shrink-0 tabular-nums">
+                                              [{c.number}]
                                             </span>
-                                          </Show>
-                                          <ExternalLink
-                                            size={12}
-                                            class="flex-shrink-0 text-muted-foreground/40 group-hover/cite:text-foreground/70 transition-colors"
-                                          />
-                                        </button>
-                                      )}
-                                    </For>
-                                  </div>
-                                </div>
+                                            <span class="text-sm text-foreground/90 truncate flex-1 min-w-0">
+                                              {c.title}
+                                            </span>
+                                            <Show when={c.timestamp}>
+                                              <span class="text-xs text-muted-foreground/60 tabular-nums flex-shrink-0">
+                                                {c.timestamp}
+                                              </span>
+                                            </Show>
+                                            <ExternalLink
+                                              size={12}
+                                              class="flex-shrink-0 text-muted-foreground/40 group-hover/cite:text-foreground/70 transition-colors"
+                                            />
+                                          </button>
+                                        )}
+                                      </For>
+                                    </div>
+                                  </CollapsibleContent>
+                                </Collapsible>
                               </Show>
                               <MessageActions class="mt-1 [&>button]:p-1 [&>button]:rounded [&>button]:text-foreground/60 [&>button]:hover:text-foreground [&>button]:transition-colors">
                                 <MessageCopyButton content={msg.content} />
