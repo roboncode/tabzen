@@ -16,6 +16,7 @@ import {
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate, shouldSkipUrl } from "@/lib/duplicates";
+import { includeUrlForCapture } from "@/lib/media-types";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { CURRENT_CONTENT_VERSION } from "@/lib/page-extract";
 import { isInjectableTab, mapWithConcurrency, youtubeThumbnailUrl } from "@/lib/capture-utils";
@@ -855,7 +856,8 @@ export default defineBackground(() => {
         (t) =>
           t.url &&
           !shouldSkipUrl(t.url!, settings.blockedDomains) &&
-          !isDuplicate(t.url!, existingUrls),
+          !isDuplicate(t.url!, existingUrls) &&
+          includeUrlForCapture(t.url!, settings.captureTypes, settings.domainTypeOverrides),
       );
 
       const seenUrls = new Set<string>();
