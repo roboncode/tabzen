@@ -230,7 +230,7 @@ export default function KbChatPage() {
 
   async function handleSend(text: string) {
     const s = settings();
-    if (!s?.openRouterApiKey) return;
+    if (!s?.syncUrl) return;
 
     let conv = activeConv();
     if (!conv) {
@@ -280,9 +280,8 @@ export default function KbChatPage() {
 
       let full = "";
       for await (const chunk of streamChatCompletion(
-        s.openRouterApiKey,
-        currentModel(),
         llmMessages,
+        currentModel(),
       )) {
         full += chunk;
         setStreamingContent(full);
@@ -490,9 +489,9 @@ export default function KbChatPage() {
             </div>
           </Show>
 
-          {/* No API key state */}
+          {/* Worker not configured state */}
           <Show
-            when={settings() && !settings()!.openRouterApiKey}
+            when={settings() && !settings()!.syncUrl}
             fallback={
               <>
                 {/* Messages */}
@@ -617,7 +616,7 @@ export default function KbChatPage() {
             <div class="flex-1 flex flex-col items-center justify-center px-6 text-center">
               <MessagesSquare size={28} class="mb-3 text-muted-foreground/20" />
               <p class="text-sm text-muted-foreground mb-3">
-                Set your OpenRouter API key in Settings to chat with your
+                Configure the sync worker URL in Settings to chat with your
                 collection.
               </p>
               <button

@@ -167,9 +167,10 @@ ${messagesText}
 Write the summary:`;
 
   let summary = "";
-  for await (const chunk of streamChatCompletion(apiKey, modelId, [
-    { role: "user", content: prompt },
-  ])) {
+  for await (const chunk of streamChatCompletion(
+    [{ role: "user", content: prompt }],
+    modelId,
+  )) {
     summary += chunk;
   }
 

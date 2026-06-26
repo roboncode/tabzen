@@ -1,22 +1,27 @@
-const OPENROUTER_EMBEDDINGS_URL = 'https://openrouter.ai/api/v1/embeddings';
+import { getAiEndpoint } from "../ai-client";
 
-export async function generateEmbedding(
-  apiKey: string,
-  model: string,
-  text: string,
-): Promise<number[]> {
-  const response = await fetch(OPENROUTER_EMBEDDINGS_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ model, input: text }),
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Embedding error (${response.status}): ${error}`);
+export async function generateEmbedding(text: string): Promise<number[]> {
+  const ep = await getAiEndpoint();
+  if (!ep) {
+    throw new Error(
+      "Knowledge base unavailable: configure the sync worker URL",
+    );
   }
-  const data = await response.json();
-  return data.data[0].embedding;
+
+  const res = await fetch(`${ep.baseUrl}/ai/embeddings`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${ep.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ input: text }),
+  });
+
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(`Embedding error (${res.status}): ${error}`);
+  }
+
+  const data: { embedding: number[] } = await res.json();
+  return data.embedding;
 }

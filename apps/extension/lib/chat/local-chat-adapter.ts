@@ -7,25 +7,11 @@ import type {
   ConversationSummary,
   SearchFilters,
 } from '@tab-zen/shared';
-import { getSettings } from '@/lib/settings';
 import { getChatDB } from './chat-db';
 import { cosineSimilarity } from './rag/vector-store';
 import { generateEmbedding as generateEmbeddingApi } from './rag/embeddings';
 
-interface LocalChatAdapterConfig {
-  openRouterApiKey: string;
-  embeddingModel: string;
-}
-
-const DEFAULT_EMBEDDING_MODEL = 'openai/text-embedding-3-small';
-
 export class LocalChatAdapter implements ChatDataAdapter {
-  private config: LocalChatAdapterConfig;
-
-  constructor(config: LocalChatAdapterConfig) {
-    this.config = config;
-  }
-
   async storeDocumentContext(context: DocumentContext): Promise<void> {
     const db = await getChatDB();
     await db.put('documentContexts', context);
@@ -122,16 +108,10 @@ export class LocalChatAdapter implements ChatDataAdapter {
   }
 
   async generateEmbedding(text: string): Promise<number[]> {
-    return generateEmbeddingApi(this.config.openRouterApiKey, this.config.embeddingModel, text);
+    return generateEmbeddingApi(text);
   }
 }
 
 export async function createLocalChatAdapter(): Promise<LocalChatAdapter> {
-  const settings = await getSettings();
-  const embeddingModel =
-    (settings as { embeddingModel?: string }).embeddingModel ?? DEFAULT_EMBEDDING_MODEL;
-  return new LocalChatAdapter({
-    openRouterApiKey: settings.openRouterApiKey,
-    embeddingModel,
-  });
+  return new LocalChatAdapter();
 }

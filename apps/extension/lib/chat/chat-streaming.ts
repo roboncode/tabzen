@@ -1,5 +1,5 @@
 // apps/extension/lib/chat/chat-streaming.ts
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+import { getAiEndpoint } from './ai-client';
 
 interface LLMMessage {
   role: 'system' | 'user' | 'assistant';
@@ -7,24 +7,24 @@ interface LLMMessage {
 }
 
 export async function* streamChatCompletion(
-  apiKey: string,
-  model: string,
   messages: LLMMessage[],
+  model?: string,
 ): AsyncGenerator<string> {
-  const response = await fetch(OPENROUTER_URL, {
+  const ep = await getAiEndpoint();
+  if (!ep) throw new Error('Chat unavailable: configure the sync worker URL');
+
+  const response = await fetch(`${ep.baseUrl}/ai/chat`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${ep.token}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://tab-zen.app',
-      'X-Title': 'Tab Zen Chat',
     },
-    body: JSON.stringify({ model, messages, stream: true, temperature: 0.7 }),
+    body: JSON.stringify({ messages, model }),
   });
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`OpenRouter error (${response.status}): ${error}`);
+    throw new Error(`Chat error (${response.status}): ${error}`);
   }
 
   if (!response.body) throw new Error('Response body is null — streaming not supported');

@@ -35,9 +35,10 @@ export async function getOrCompressContent(
   const prompt = compressPromptRaw.replace("{{content}}", originalContent);
   let compressedText = "";
 
-  for await (const chunk of streamChatCompletion(apiKey, modelId, [
-    { role: "user", content: prompt },
-  ])) {
+  for await (const chunk of streamChatCompletion(
+    [{ role: "user", content: prompt }],
+    modelId,
+  )) {
     compressedText += chunk;
   }
 
