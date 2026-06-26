@@ -1,5 +1,6 @@
 // Re-export shared types so existing imports continue to work
 import type { Page, Group, Capture, SyncPayload, AITemplate, AIDocument } from "@tab-zen/shared";
+import type { MediaTypeDef } from "./media-types";
 export type { Page, Group, Capture, SyncPayload, AITemplate, AIDocument };
 
 export interface Settings {
@@ -31,6 +32,14 @@ export interface Settings {
   notchEnabled: boolean;
   notchSide: "left" | "right";
   dataSource: "local" | "service" | "auto";
+  /** User-created custom media types (built-ins live in media-types.ts). */
+  customTypes: MediaTypeDef[];
+  /** Bare domain → type id. Reassignments + custom-type routing. */
+  domainTypeOverrides: Record<string, string>;
+  /** Type ids to save on "save all tabs". Empty = save all types. */
+  captureTypes: string[];
+  /** Domains-nav grouping mode. */
+  navGroupBy: "domain" | "type";
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -85,6 +94,10 @@ export const DEFAULT_SETTINGS: Settings = {
   notchEnabled: true,
   notchSide: "right",
   dataSource: "local" as const,
+  customTypes: [],
+  domainTypeOverrides: {},
+  captureTypes: [],
+  navGroupBy: "domain",
 };
 
 export interface AIGroupSuggestion {
