@@ -36,6 +36,19 @@ export interface Page {
    * the pending indicator forever. Absent = never attempted.
    */
   transcriptCheckedAt?: string | null;
+  /**
+   * When the auto embed queue last successfully chunked + embedded this page's
+   * content into the knowledge base (local-only; not synced). Absent = never
+   * embedded. Paired with `embedHash` to detect staleness and skip re-embedding
+   * unchanged content on startup.
+   */
+  embeddedAt?: string | null;
+  /**
+   * Stable content hash captured at the time of embedding (local-only; not
+   * synced). When the page's embeddable content changes, this no longer matches
+   * the freshly computed hash and the page is re-queued for embedding.
+   */
+  embedHash?: string | null;
 }
 
 export interface MigrationAction {

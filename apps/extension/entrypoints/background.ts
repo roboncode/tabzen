@@ -33,6 +33,7 @@ import type {
 import type { MessageRequest, MessageResponse } from "@/lib/messages";
 import { seedTemplatesIfNeeded } from "@/lib/templates";
 import { initDataLayer, refreshAdapterIfNeeded } from "@/lib/data-layer";
+import { processEmbedQueue, countPendingEmbeds } from "@/lib/chat/embed-queue";
 
 // Max number of tabs to extract from concurrently during capture. Keeps us from
 // waking/flooding many background tabs (and their media) all at once.
@@ -194,6 +195,10 @@ export default defineBackground(() => {
   // Drain any pending YouTube transcripts in the background (auto queue).
   processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
 
+  // Embed any pending content into the local knowledge base (rides behind the
+  // transcript/content queues, since a page is only embeddable once it has content).
+  processEmbedQueue().catch((e) => console.warn("[TabZen] Embed queue failed:", e));
+
   // Pull on interval (every 5 minutes) and refresh data layer adapter
   setInterval(() => {
     syncPullIfNeeded();
@@ -201,6 +206,8 @@ export default defineBackground(() => {
     // Resume the transcript queue in case a previous drain was interrupted
     // (e.g. the MV3 service worker was suspended mid-run).
     processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+    // Resume the embed queue (safety net for an interrupted drain / new content).
+    processEmbedQueue().catch((e) => console.warn("[TabZen] Embed queue failed:", e));
   }, SYNC_INTERVAL);
 
   // Pull when browser regains focus
@@ -372,6 +379,10 @@ export default defineBackground(() => {
         return handleBackfillTranscripts();
       case "COUNT_MISSING_TRANSCRIPTS":
         return handleCountMissingTranscripts();
+      case "INDEX_COLLECTION":
+        return handleIndexCollection();
+      case "COUNT_PENDING_EMBEDS":
+        return handleCountPendingEmbeds();
       case "SYNC_NOW":
         return handleSyncNow();
       case "QUICK_CAPTURE":
@@ -427,6 +438,9 @@ export default defineBackground(() => {
       await confirmCapture(captureData);
       // Auto-fetch transcripts for the newly captured YouTube pages in the background.
       processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+      // Embed any pages that already have content (transcript pages get embedded
+      // on a later drain once their transcript lands).
+      processEmbedQueue().catch((e) => console.warn("[TabZen] Embed queue failed:", e));
       return { type: "SUCCESS" };
     } catch (e) {
       console.error("[TabZen] Confirm capture error:", e);
@@ -666,6 +680,17 @@ export default defineBackground(() => {
   async function handleBackfillTranscripts(): Promise<MessageResponse> {
     const { fetched, failed, total } = await processTranscriptQueue();
     return { type: "BACKFILL_DONE", fetched, failed, total };
+  }
+
+  // Manual "Index existing collection" action: drain the embed queue now.
+  async function handleIndexCollection(): Promise<MessageResponse> {
+    const { embedded, failed, total } = await processEmbedQueue();
+    return { type: "INDEX_DONE", embedded, failed, total };
+  }
+
+  async function handleCountPendingEmbeds(): Promise<MessageResponse> {
+    const count = countPendingEmbeds(await getAllPages());
+    return { type: "PENDING_EMBEDS_COUNT", count };
   }
 
   async function handleGetContent(pageId: string): Promise<MessageResponse> {
@@ -1060,6 +1085,8 @@ export default defineBackground(() => {
 
       // Auto-fetch transcripts for the newly captured YouTube pages in the background.
       processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+      // Embed any pages that already have content into the knowledge base.
+      processEmbedQueue().catch((e) => console.warn("[TabZen] Embed queue failed:", e));
       return { type: "QUICK_CAPTURE_DONE", saved: pages.length, skipped: candidateTabs.length - newBrowserTabs.length };
     } catch (e) {
       console.error("[TabZen] Quick capture error:", e);

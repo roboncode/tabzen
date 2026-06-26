@@ -14,6 +14,8 @@ export type MessageRequest =
   | { type: "RE_EXTRACT_CONTENT"; pageId: string }
   | { type: "BACKFILL_TRANSCRIPTS" }
   | { type: "COUNT_MISSING_TRANSCRIPTS" }
+  | { type: "INDEX_COLLECTION" }
+  | { type: "COUNT_PENDING_EMBEDS" }
   | { type: "SYNC_NOW" }
   | { type: "QUICK_CAPTURE" }
   | { type: "CAPTURE_URL"; url: string }
@@ -31,6 +33,8 @@ export type MessageResponse =
   | { type: "CONTENT"; content: string | null }
   | { type: "BACKFILL_DONE"; fetched: number; failed: number; total: number }
   | { type: "MISSING_TRANSCRIPTS_COUNT"; count: number }
+  | { type: "INDEX_DONE"; embedded: number; failed: number; total: number }
+  | { type: "PENDING_EMBEDS_COUNT"; count: number }
   | { type: "ERROR"; message: string }
   | { type: "SUCCESS" }
   | { type: "SYNC_COMPLETE"; pushed: number; pulled: number }
