@@ -1,5 +1,5 @@
 import { Show, createMemo } from "solid-js";
-import { Eye, Star, ExternalLink, Undo2, Trash2, Clock } from "lucide-solid";
+import { Eye, Star, ExternalLink, Undo2, Trash2, Clock, FolderInput } from "lucide-solid";
 import type { Page } from "@/lib/types";
 import { getDomain, getFaviconUrl } from "@/lib/domains";
 import { isTranscriptPending } from "@/lib/capture-utils";
@@ -17,6 +17,7 @@ interface PageRowProps {
   onHardDelete?: (page: Page) => void;
   onSelectCreator?: (domain: string, creator: string) => void;
   onTagClick?: (tag: string) => void;
+  onMove?: (page: Page) => void;
   isTrash?: boolean;
 }
 
@@ -127,6 +128,15 @@ export default function PageRow(props: PageRowProps) {
               title="Open source URL"
             >
               <ExternalLink size={15} />
+            </button>
+          </Show>
+          <Show when={!props.isTrash && props.onMove}>
+            <button
+              class="p-1.5 rounded-md bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
+              title="Move domain to group"
+              onClick={(e) => { e.stopPropagation(); props.onMove!(props.page); }}
+            >
+              <FolderInput size={14} />
             </button>
           </Show>
         </div>

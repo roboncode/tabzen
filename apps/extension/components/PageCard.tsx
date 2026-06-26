@@ -1,5 +1,5 @@
 import { Show, createMemo } from "solid-js";
-import { Star, ExternalLink, Undo2, Trash2, Clock } from "lucide-solid";
+import { Star, ExternalLink, Undo2, Trash2, Clock, FolderInput } from "lucide-solid";
 import type { Page } from "@/lib/types";
 import { extractCreator, getDomain, getFaviconUrl } from "@/lib/domains";
 import { isTranscriptPending } from "@/lib/capture-utils";
@@ -19,6 +19,7 @@ interface PageCardProps {
   onHardDelete?: (page: Page) => void;
   onSelectCreator?: (domain: string, creator: string) => void;
   onTagClick?: (tag: string) => void;
+  onMove?: (page: Page) => void;
   isTrash?: boolean;
 }
 
@@ -105,6 +106,15 @@ export default function PageCard(props: PageCardProps) {
             >
               <Star size={18} fill={props.page.starred ? "currentColor" : "none"} />
             </button>
+            <Show when={props.onMove}>
+              <button
+                class="p-2 rounded-lg text-foreground/90 bg-black/70 hover:bg-sky-500/80 transition-colors opacity-0 group-hover:opacity-100"
+                title="Move domain to group"
+                onClick={(e) => { e.stopPropagation(); props.onMove!(props.page); }}
+              >
+                <FolderInput size={16} />
+              </button>
+            </Show>
           </Show>
         </div>
         {/* External link - right side */}

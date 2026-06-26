@@ -54,6 +54,8 @@ import CapturePreview from "./CapturePreview";
 import EmptyState from "./EmptyState";
 import NoteCard from "./NoteCard";
 import ConfirmDialog from "./ConfirmDialog";
+import MoveToGroupDialog from "./MoveToGroupDialog";
+import { classifyDomain } from "@/lib/media-types";
 
 interface PageCollectionProps {
   viewMode: Settings["viewMode"];
@@ -86,6 +88,7 @@ export default function PageCollection(props: PageCollectionProps) {
   const [showPasteTip, setShowPasteTip] = createSignal(false);
   const [capturePreview, setCapturePreview] =
     createSignal<CapturePreviewData | null>(null);
+  const [moveDomain, setMoveDomain] = createSignal<string | null>(null);
   const [settings, setSettings] = createSignal<Settings | null>(null);
 
   const [allPages, setAllPages] = createSignal<Page[]>([]);
@@ -456,6 +459,37 @@ export default function PageCollection(props: PageCollectionProps) {
     loadData(); // Full reload for new captures
   };
 
+  const openMoveDialog = (domain: string) => setMoveDomain(domain);
+
+  const moveItemCount = createMemo(() => {
+    const d = moveDomain();
+    if (!d) return 0;
+    return (allPages() || []).filter(
+      (p) => !p.deletedAt && !p.archived && getDomain(p.url) === d,
+    ).length;
+  });
+
+  const assignDomainType = async (domain: string, typeId: string) => {
+    const cur = settings();
+    const overrides = { ...(cur?.domainTypeOverrides ?? {}), [domain]: typeId };
+    setSettings((s) => (s ? { ...s, domainTypeOverrides: overrides } : s));
+    await updateSettings({ domainTypeOverrides: overrides });
+    setMoveDomain(null);
+  };
+
+  const createTypeAndAssign = async (domain: string, label: string) => {
+    const cur = settings();
+    const id = `t-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(cur?.customTypes?.length ?? 0)}`;
+    const customTypes = [
+      ...(cur?.customTypes ?? []),
+      { id, label, color: "#6366f1", builtIn: false },
+    ];
+    const overrides = { ...(cur?.domainTypeOverrides ?? {}), [domain]: id };
+    setSettings((s) => (s ? { ...s, customTypes, domainTypeOverrides: overrides } : s));
+    await updateSettings({ customTypes, domainTypeOverrides: overrides });
+    setMoveDomain(null);
+  };
+
   return (
     <div class="flex h-full bg-background text-foreground @container">
       {/* Sidebar - persistent when container is wide enough */}
@@ -478,6 +512,7 @@ export default function PageCollection(props: PageCollectionProps) {
           typeGroups={typeIndex()}
           groupBy={groupBy()}
           onSetGroupBy={setGroupBy}
+          onMoveDomain={openMoveDialog}
         />
       </div>
 
@@ -505,6 +540,7 @@ export default function PageCollection(props: PageCollectionProps) {
               typeGroups={typeIndex()}
               groupBy={groupBy()}
               onSetGroupBy={setGroupBy}
+              onMoveDomain={openMoveDialog}
             />
           </div>
           <div
@@ -723,6 +759,7 @@ export default function PageCollection(props: PageCollectionProps) {
                       onEditNotes={setEditingPage}
                       onRenameGroup={() => {}}
                       onToggleStar={handleToggleStar}
+                      onMove={(p) => openMoveDialog(getDomain(p.url))}
                       onOpenSource={handleOpenSource}
                       onSelectCreator={(d, c) => {
                         setDomainFilter(d);
@@ -780,6 +817,7 @@ export default function PageCollection(props: PageCollectionProps) {
                   onEditNotes={setEditingPage}
                   onRenameGroup={() => {}}
                   onToggleStar={handleToggleStar}
+                  onMove={(p) => openMoveDialog(getDomain(p.url))}
                   onRestore={handleRestore}
                   onHardDelete={handleHardDelete}
                   isTrash
@@ -833,6 +871,7 @@ export default function PageCollection(props: PageCollectionProps) {
                           onEditNotes={setEditingPage}
                           onRenameGroup={handleRenameGroup}
                           onToggleStar={handleToggleStar}
+                          onMove={(p) => openMoveDialog(getDomain(p.url))}
                           onOpenSource={handleOpenSource}
                         />
                       </Show>
@@ -865,6 +904,21 @@ export default function PageCollection(props: PageCollectionProps) {
               defaultTypes={settings()?.captureTypes ?? []}
               onConfirm={handleConfirmCapture}
               onCancel={() => setCapturePreview(null)}
+            />
+          )}
+        </Show>
+
+        {/* Move Domain to Group Dialog */}
+        <Show when={moveDomain()}>
+          {(domain) => (
+            <MoveToGroupDialog
+              domain={domain()}
+              itemCount={moveItemCount()}
+              customTypes={settings()?.customTypes ?? []}
+              currentTypeId={classifyDomain(domain(), settings()?.domainTypeOverrides ?? {})}
+              onPick={(typeId) => assignDomainType(domain(), typeId)}
+              onCreate={(label) => createTypeAndAssign(domain(), label)}
+              onCancel={() => setMoveDomain(null)}
             />
           )}
         </Show>
