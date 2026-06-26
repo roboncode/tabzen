@@ -1,5 +1,6 @@
 import { createSignal, For, Show } from "solid-js";
-import { ChevronDown, ChevronRight, Globe } from "lucide-solid";
+import { useNavigate } from "@solidjs/router";
+import { ChevronDown, ChevronRight, Globe, MessagesSquare } from "lucide-solid";
 import type { DomainInfo } from "@/lib/domains";
 import Avatar from "./Avatar";
 
@@ -13,6 +14,7 @@ interface AppSidebarProps {
 }
 
 export default function AppSidebar(props: AppSidebarProps) {
+  const navigate = useNavigate();
   const [expandedDomains, setExpandedDomains] = createSignal<Set<string>>(
     new Set(),
   );
@@ -36,6 +38,15 @@ export default function AppSidebar(props: AppSidebarProps) {
       <div class="mx-5 border-b-3 border-muted-foreground/10" />
 
       <div class="flex flex-col gap-0.5 px-5 pt-6">
+        {/* Ask the collection (knowledge-base chat) */}
+        <button
+          class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors mb-2"
+          onClick={() => navigate("/chat")}
+        >
+          <MessagesSquare size={15} class="flex-shrink-0" />
+          <span class="flex-1 text-left truncate">Ask Collection</span>
+        </button>
+
         {/* All domains */}
         <button
           class={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors ${
