@@ -23,7 +23,7 @@ import UserMenu from "./UserMenu";
 import AddUrlInput from "./AddUrlInput";
 import Tip from "./Tip";
 import EmptyBlock from "./EmptyBlock";
-import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
+import { buildDomainIndex, buildTypeIndex, getDomain, extractCreator } from "@/lib/domains";
 import { isTranscriptPending } from "@/lib/capture-utils";
 import AppSidebar from "./AppSidebar";
 import StorageBadge from "./StorageBadge";
@@ -44,7 +44,7 @@ import {
   restorePage,
 } from "@/lib/db";
 import { sendMessage } from "@/lib/messages";
-import { getSettings, updateSettings } from "@/lib/settings";
+import { getSettings, updateSettings, watchSettings } from "@/lib/settings";
 import GroupSection from "./GroupSection";
 import SearchBar from "./SearchBar";
 import FilterPills from "./FilterPills";
@@ -86,6 +86,7 @@ export default function PageCollection(props: PageCollectionProps) {
   const [showPasteTip, setShowPasteTip] = createSignal(false);
   const [capturePreview, setCapturePreview] =
     createSignal<CapturePreviewData | null>(null);
+  const [settings, setSettings] = createSignal<Settings | null>(null);
 
   const [allPages, setAllPages] = createSignal<Page[]>([]);
   const [allGroups, setAllGroups] = createSignal<Group[]>([]);
@@ -136,10 +137,12 @@ export default function PageCollection(props: PageCollectionProps) {
   onMount(() => {
     loadData();
     getSettings().then((s) => {
+      setSettings(s);
       if (s.syncError) setSyncError(s.syncError);
-      // Restore the last-selected filter tab (e.g. "By Date").
       setFilterRaw(s.activeFilter);
     });
+    const unwatchSettings = watchSettings((s) => setSettings(s));
+    onCleanup(unwatchSettings);
 
     const listener = (message: any) => {
       if (message.type === "DATA_CHANGED") {
@@ -222,6 +225,20 @@ export default function PageCollection(props: PageCollectionProps) {
   });
 
   const domainIndex = createMemo(() => buildDomainIndex(allPages() || []));
+
+  const groupBy = (): "domain" | "type" => settings()?.navGroupBy ?? "domain";
+  const setGroupBy = (mode: "domain" | "type") => {
+    setSettings((s) => (s ? { ...s, navGroupBy: mode } : s));
+    void updateSettings({ navGroupBy: mode });
+  };
+
+  const typeIndex = createMemo(() =>
+    buildTypeIndex(
+      allPages() || [],
+      settings()?.domainTypeOverrides ?? {},
+      settings()?.customTypes ?? [],
+    ),
+  );
 
   const tagIndex = createMemo(() => {
     const pages = allPages() || [];
@@ -458,6 +475,9 @@ export default function PageCollection(props: PageCollectionProps) {
           totalCount={
             (allPages() || []).filter((t) => !t.deletedAt && !t.archived).length
           }
+          typeGroups={typeIndex()}
+          groupBy={groupBy()}
+          onSetGroupBy={setGroupBy}
         />
       </div>
 
@@ -482,6 +502,9 @@ export default function PageCollection(props: PageCollectionProps) {
                 (allPages() || []).filter((t) => !t.deletedAt && !t.archived)
                   .length
               }
+              typeGroups={typeIndex()}
+              groupBy={groupBy()}
+              onSetGroupBy={setGroupBy}
             />
           </div>
           <div
@@ -837,9 +860,9 @@ export default function PageCollection(props: PageCollectionProps) {
           {(preview) => (
             <CapturePreview
               data={preview()}
-              overrides={{}}
-              customTypes={[]}
-              defaultTypes={[]}
+              overrides={settings()?.domainTypeOverrides ?? {}}
+              customTypes={settings()?.customTypes ?? []}
+              defaultTypes={settings()?.captureTypes ?? []}
               onConfirm={handleConfirmCapture}
               onCancel={() => setCapturePreview(null)}
             />
