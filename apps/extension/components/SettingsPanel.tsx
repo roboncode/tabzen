@@ -18,6 +18,7 @@ import SyncConfigPanel from "./settings/SyncConfigPanel";
 import BlockedDomainsManager from "./settings/BlockedDomainsManager";
 import TemplateManager from "./settings/TemplateManager";
 import SkillManager from "./settings/SkillManager";
+import ContentTypesPanel from "./settings/ContentTypesPanel";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -32,6 +33,7 @@ type SettingsSection =
   | "skills"
   | "storage"
   | "domains"
+  | "content-types"
   | "data";
 
 const navGroups: { items: { key: SettingsSection; label: string }[] }[] = [
@@ -51,6 +53,7 @@ const navGroups: { items: { key: SettingsSection; label: string }[] }[] = [
     items: [
       { key: "storage", label: "Storage" },
       { key: "domains", label: "Blocked Domains" },
+      { key: "content-types", label: "Content Types" },
     ],
   },
   {
@@ -601,6 +604,11 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 {/* Blocked Domains */}
                 <Show when={activeSection() === "domains"}>
                   <BlockedDomainsManager settings={s()} save={save} />
+                </Show>
+
+                {/* Content Types */}
+                <Show when={activeSection() === "content-types"}>
+                  <ContentTypesPanel settings={s()} save={save} />
                 </Show>
 
                 {/* Data */}
