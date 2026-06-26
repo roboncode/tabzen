@@ -433,13 +433,10 @@ export default function PageCollection(props: PageCollectionProps) {
     notifyChanged();
   };
 
-  const handleConfirmCapture = async () => {
-    const preview = capturePreview();
-    if (preview) {
-      await sendMessage({ type: "CONFIRM_CAPTURE", captureData: preview });
-      setCapturePreview(null);
-      loadData(); // Full reload for new captures
-    }
+  const handleConfirmCapture = async (filtered: CapturePreviewData) => {
+    await sendMessage({ type: "CONFIRM_CAPTURE", captureData: filtered });
+    setCapturePreview(null);
+    loadData(); // Full reload for new captures
   };
 
   return (
@@ -840,6 +837,9 @@ export default function PageCollection(props: PageCollectionProps) {
           {(preview) => (
             <CapturePreview
               data={preview()}
+              overrides={{}}
+              customTypes={[]}
+              defaultTypes={[]}
               onConfirm={handleConfirmCapture}
               onCancel={() => setCapturePreview(null)}
             />
