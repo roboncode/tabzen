@@ -44,15 +44,15 @@ export default function AppSidebar(props: AppSidebarProps) {
     setExpandedOther(next);
   };
 
-  const DomainRow = (domainInfo: DomainInfo) => {
-    const isActive = () => props.activeDomain === domainInfo.domain;
-    const isExpanded = () => expandedDomains().has(domainInfo.domain);
+  const DomainRow = (p: { domainInfo: DomainInfo }) => {
+    const isActive = () => props.activeDomain === p.domainInfo.domain;
+    const isExpanded = () => expandedDomains().has(p.domainInfo.domain);
     const hasSocialCreators = () =>
-      domainInfo.isSocial && domainInfo.creators.length > 0;
+      p.domainInfo.isSocial && p.domainInfo.creators.length > 0;
     const favSrc =
-      domainInfo.favicon && !domainInfo.favicon.startsWith("chrome://")
-        ? domainInfo.favicon
-        : `https://www.google.com/s2/favicons?domain=${domainInfo.domain}&sz=32`;
+      p.domainInfo.favicon && !p.domainInfo.favicon.startsWith("chrome://")
+        ? p.domainInfo.favicon
+        : `https://www.google.com/s2/favicons?domain=${p.domainInfo.domain}&sz=32`;
 
     return (
       <div class={hasSocialCreators() && isExpanded() ? "mb-2 pb-1" : ""}>
@@ -64,9 +64,9 @@ export default function AppSidebar(props: AppSidebarProps) {
                 : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
             }`}
             onClick={() => {
-              if (hasSocialCreators()) toggleExpand(domainInfo.domain);
-              props.onSelectDomain(domainInfo.domain);
-              props.onSelectCreator(domainInfo.domain, null);
+              if (hasSocialCreators()) toggleExpand(p.domainInfo.domain);
+              props.onSelectDomain(p.domainInfo.domain);
+              props.onSelectCreator(p.domainInfo.domain, null);
             }}
           >
             <Show when={hasSocialCreators()} fallback={<div class="w-3" />}>
@@ -75,8 +75,8 @@ export default function AppSidebar(props: AppSidebarProps) {
               </span>
             </Show>
             <img src={favSrc} alt="" class="w-4 h-4 rounded flex-shrink-0" />
-            <span class="flex-1 text-left truncate">{domainInfo.domain}</span>
-            <span class="text-xs text-muted-foreground/60">{domainInfo.count}</span>
+            <span class="flex-1 text-left truncate">{p.domainInfo.domain}</span>
+            <span class="text-xs text-muted-foreground/60">{p.domainInfo.count}</span>
           </button>
           <Show when={props.onMoveDomain}>
             <button
@@ -84,7 +84,7 @@ export default function AppSidebar(props: AppSidebarProps) {
               title="Move to group"
               onClick={(e) => {
                 e.stopPropagation();
-                props.onMoveDomain!(domainInfo.domain);
+                props.onMoveDomain!(p.domainInfo.domain);
               }}
             >
               <FolderInput size={13} />
@@ -94,10 +94,10 @@ export default function AppSidebar(props: AppSidebarProps) {
 
         <Show when={hasSocialCreators() && isExpanded()}>
           <div class="ml-5 mt-0.5 space-y-0.5">
-            <For each={domainInfo.creators}>
+            <For each={p.domainInfo.creators}>
               {(creator) => {
                 const isCreatorActive = () =>
-                  props.activeDomain === domainInfo.domain &&
+                  props.activeDomain === p.domainInfo.domain &&
                   props.activeCreator === creator.name;
                 return (
                   <button
@@ -107,8 +107,8 @@ export default function AppSidebar(props: AppSidebarProps) {
                         : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
                     }`}
                     onClick={() => {
-                      props.onSelectDomain(domainInfo.domain);
-                      props.onSelectCreator(domainInfo.domain, creator.name);
+                      props.onSelectDomain(p.domainInfo.domain);
+                      props.onSelectCreator(p.domainInfo.domain, creator.name);
                     }}
                   >
                     <Avatar src={creator.avatar} size="sm" />
@@ -180,7 +180,7 @@ export default function AppSidebar(props: AppSidebarProps) {
         {/* Domain view */}
         <Show when={mode() === "domain"}>
           <div class="mt-1 space-y-0.5">
-            <For each={props.domains}>{(d) => DomainRow(d)}</For>
+            <For each={props.domains}>{(d) => <DomainRow domainInfo={d} />}</For>
           </div>
         </Show>
 
@@ -206,7 +206,7 @@ export default function AppSidebar(props: AppSidebarProps) {
                     </button>
                     <Show when={isOpen()}>
                       <div class="ml-3 mt-0.5 space-y-0.5">
-                        <For each={tg.domains}>{(d) => DomainRow(d)}</For>
+                        <For each={tg.domains}>{(d) => <DomainRow domainInfo={d} />}</For>
                         <Show when={tg.otherSites}>
                           <button
                             class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm text-muted-foreground/70 hover:bg-muted/30 hover:text-foreground transition-colors"
@@ -222,7 +222,7 @@ export default function AppSidebar(props: AppSidebarProps) {
                           </button>
                           <Show when={otherOpen()}>
                             <div class="ml-3 space-y-0.5">
-                              <For each={tg.otherSites!.domains}>{(d) => DomainRow(d)}</For>
+                              <For each={tg.otherSites!.domains}>{(d) => <DomainRow domainInfo={d} />}</For>
                             </div>
                           </Show>
                         </Show>
