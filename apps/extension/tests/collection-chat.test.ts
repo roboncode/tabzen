@@ -168,6 +168,7 @@ describe('parseCitations', () => {
 
     expect(citations).toHaveLength(1);
     expect(citations[0]).toEqual({
+      number: 1,
       documentId: 'doc-1',
       chunkId: 'chunk-1',
       title: 'One',
@@ -181,14 +182,16 @@ describe('parseCitations', () => {
     const citations = parseCitations('Per [9] and [2].', results);
 
     expect(citations).toHaveLength(1);
+    expect(citations[0].number).toBe(2);
     expect(citations[0].documentId).toBe('doc-2');
     expect(citations[0].timestamp).toBeUndefined();
   });
 
-  it('returns citations in ascending source-number order', () => {
+  it('returns citations in ascending source-number order with matching numbers', () => {
     const citations = parseCitations('Look at [2] then [1].', results);
 
     expect(citations.map((c) => c.documentId)).toEqual(['doc-1', 'doc-2']);
+    expect(citations.map((c) => c.number)).toEqual([1, 2]);
   });
 
   it('returns an empty array when there are no references', () => {

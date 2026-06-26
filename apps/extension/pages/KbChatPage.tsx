@@ -510,6 +510,7 @@ export default function KbChatPage() {
                       </div>
                     }
                   >
+                    <div class="mx-auto w-full max-w-3xl">
                     <For each={messages()}>
                       {(msg) => (
                         <Show
@@ -523,27 +524,37 @@ export default function KbChatPage() {
                                 {msg.content}
                               </MessageContent>
                               <Show when={(msg.citations?.length ?? 0) > 0}>
-                                <div class="flex flex-wrap gap-1.5 mt-2.5">
-                                  <For each={msg.citations}>
-                                    {(c) => (
-                                      <button
-                                        onClick={() => openCitation(c)}
-                                        title={`${c.title}${c.timestamp ? ` (${c.timestamp})` : ""}`}
-                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground transition-colors max-w-[240px]"
-                                      >
-                                        <ExternalLink
-                                          size={11}
-                                          class="flex-shrink-0 opacity-60"
-                                        />
-                                        <span class="truncate">{c.title}</span>
-                                        <Show when={c.timestamp}>
-                                          <span class="text-muted-foreground/60 tabular-nums">
-                                            {c.timestamp}
+                                <div class="mt-3 bg-muted/30 rounded-xl px-3 py-2.5">
+                                  <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground/50 mb-1.5">
+                                    Sources
+                                  </p>
+                                  <div class="flex flex-col gap-0.5">
+                                    <For each={msg.citations}>
+                                      {(c) => (
+                                        <button
+                                          onClick={() => openCitation(c)}
+                                          title={`Open ${c.title}${c.timestamp ? ` at ${c.timestamp}` : ""}`}
+                                          class="group/cite flex items-center gap-2 rounded-lg px-2 py-1 -mx-1 text-left hover:bg-muted/50 transition-colors"
+                                        >
+                                          <span class="text-xs font-mono text-muted-foreground/60 flex-shrink-0 tabular-nums">
+                                            [{c.number}]
                                           </span>
-                                        </Show>
-                                      </button>
-                                    )}
-                                  </For>
+                                          <span class="text-sm text-foreground/90 truncate flex-1 min-w-0">
+                                            {c.title}
+                                          </span>
+                                          <Show when={c.timestamp}>
+                                            <span class="text-xs text-muted-foreground/60 tabular-nums flex-shrink-0">
+                                              {c.timestamp}
+                                            </span>
+                                          </Show>
+                                          <ExternalLink
+                                            size={12}
+                                            class="flex-shrink-0 text-muted-foreground/40 group-hover/cite:text-foreground/70 transition-colors"
+                                          />
+                                        </button>
+                                      )}
+                                    </For>
+                                  </div>
                                 </div>
                               </Show>
                               <MessageActions class="mt-1 [&>button]:p-1 [&>button]:rounded [&>button]:text-foreground/60 [&>button]:hover:text-foreground [&>button]:transition-colors">
@@ -577,6 +588,7 @@ export default function KbChatPage() {
                         </Show>
                       </Message>
                     </Show>
+                    </div>
                   </Show>
                   <div class="sticky bottom-2 flex justify-center">
                     <ScrollButton class="shadow-md" />
@@ -585,6 +597,7 @@ export default function KbChatPage() {
 
                 {/* Input */}
                 <div class="px-4 pb-4 pt-1 flex-shrink-0">
+                  <div class="mx-auto w-full max-w-3xl">
                   <PromptInput
                     isLoading={isStreaming()}
                     value={promptText()}
@@ -609,6 +622,7 @@ export default function KbChatPage() {
                       </Button>
                     </PromptInputActions>
                   </PromptInput>
+                  </div>
                 </div>
               </>
             }

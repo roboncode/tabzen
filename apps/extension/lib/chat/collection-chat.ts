@@ -136,6 +136,7 @@ export function parseCitations(text: string, results: ChunkResult[]): Citation[]
     .map((n) => {
       const { chunk, context } = results[n - 1];
       return {
+        number: n,
         documentId: context.documentId,
         chunkId: chunk.chunkId,
         title: context.title,
