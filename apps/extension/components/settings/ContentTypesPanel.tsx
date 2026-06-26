@@ -1,6 +1,6 @@
 import { createSignal, For, Show } from "solid-js";
 import type { Settings } from "@/lib/types";
-import { allMediaTypes, BUILT_IN_TYPES, type MediaTypeDef } from "@/lib/media-types";
+import { allMediaTypes } from "@/lib/media-types";
 
 interface ContentTypesPanelProps {
   settings: Settings;
