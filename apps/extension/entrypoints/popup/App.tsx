@@ -88,6 +88,13 @@ export default function App() {
     return response.type === "UNCAPTURED_COUNT" ? response.count : 0;
   });
 
+  const [capturedCount, { refetch: refetchCapturedCount }] = createResource(async () => {
+    const response = await sendMessage({ type: "GET_CAPTURED_TABS_COUNT" });
+    return response.type === "CAPTURED_TABS_COUNT" ? response.count : 0;
+  });
+
+  const [confirmingClose, setConfirmingClose] = createSignal(false);
+
   const domain = () => getDomain(activeTab()?.url || "");
 
   const faviconSrc = () => {
@@ -336,6 +343,44 @@ export default function App() {
             </p>
           </div>
         )}
+      </Show>
+
+      {/* Close captured tabs */}
+      <Show when={!capturedCount.loading && (capturedCount() ?? 0) > 0}>
+        <div class="mb-3">
+          <Show
+            when={confirmingClose()}
+            fallback={
+              <button
+                class="w-full text-sm text-muted-foreground hover:text-foreground bg-muted/20 hover:bg-muted/40 rounded-lg px-3 py-2 transition-colors text-left"
+                onClick={() => setConfirmingClose(true)}
+              >
+                Close captured ({capturedCount()})
+              </button>
+            }
+          >
+            <div class="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+              <span class="text-sm text-foreground flex-1">
+                Close {capturedCount()} tabs?
+              </span>
+              <button
+                class="text-sm text-red-400 hover:text-red-300 transition-colors px-2 py-0.5"
+                onClick={async () => {
+                  await sendMessage({ type: "CLOSE_CAPTURED_TABS" });
+                  window.close();
+                }}
+              >
+                Close
+              </button>
+              <button
+                class="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-0.5"
+                onClick={() => setConfirmingClose(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </Show>
+        </div>
       </Show>
 
       {/* Navigation buttons */}

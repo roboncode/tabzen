@@ -21,7 +21,9 @@ export type MessageRequest =
   | { type: "CAPTURE_URL"; url: string }
   | { type: "IS_URL_SAVED"; url: string }
   | { type: "LOOKUP_PRODUCT"; name: string }
-  | { type: "LOOKUP_WIKI_IMAGE"; title: string };
+  | { type: "LOOKUP_WIKI_IMAGE"; title: string }
+  | { type: "GET_CAPTURED_TABS_COUNT" }
+  | { type: "CLOSE_CAPTURED_TABS" };
 
 export type MessageResponse =
   | { type: "CAPTURE_PREVIEW"; data: CapturePreviewData }
@@ -41,7 +43,9 @@ export type MessageResponse =
   | { type: "QUICK_CAPTURE_DONE"; saved: number; skipped: number }
   | { type: "URL_SAVED"; saved: boolean; pageId?: string }
   | { type: "PRODUCT_LOOKUP"; url: string | null; image: string | null; description: string | null }
-  | { type: "WIKI_IMAGE"; url: string | null };
+  | { type: "WIKI_IMAGE"; url: string | null }
+  | { type: "CAPTURED_TABS_COUNT"; count: number }
+  | { type: "CLOSE_CAPTURED_TABS_DONE"; closed: number };
 
 export function sendMessage(message: MessageRequest): Promise<MessageResponse> {
   return browser.runtime.sendMessage(message);

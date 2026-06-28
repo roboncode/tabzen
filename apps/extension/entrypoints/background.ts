@@ -16,6 +16,7 @@ import {
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate, shouldSkipUrl } from "@/lib/duplicates";
+import { closeableCapturedTabIds } from "@/lib/tab-status";
 import { includeUrlForCapture } from "@/lib/media-types";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { CURRENT_CONTENT_VERSION } from "@/lib/page-extract";
@@ -398,6 +399,10 @@ export default defineBackground(() => {
         return handleCaptureUrl(message.url);
       case "IS_URL_SAVED":
         return handleIsUrlSaved(message.url);
+      case "GET_CAPTURED_TABS_COUNT":
+        return handleGetCapturedTabsCount();
+      case "CLOSE_CAPTURED_TABS":
+        return handleCloseCapturedTabs();
       default:
         return { type: "ERROR", message: "Unknown message type" };
     }
@@ -466,6 +471,31 @@ export default defineBackground(() => {
       }
     }
     return { type: "UNCAPTURED_COUNT", count };
+  }
+
+  async function handleGetCapturedTabsCount(): Promise<MessageResponse> {
+    try {
+      const existingPages = await getAllPages();
+      const capturedUrlSet = buildUrlSet(existingPages.map((p) => p.url));
+      const tabs = await browser.tabs.query({});
+      const count = closeableCapturedTabIds(tabs, capturedUrlSet).length;
+      return { type: "CAPTURED_TABS_COUNT", count };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleCloseCapturedTabs(): Promise<MessageResponse> {
+    try {
+      const existingPages = await getAllPages();
+      const capturedUrlSet = buildUrlSet(existingPages.map((p) => p.url));
+      const tabs = await browser.tabs.query({});
+      const ids = closeableCapturedTabIds(tabs, capturedUrlSet);
+      if (ids.length) await browser.tabs.remove(ids);
+      return { type: "CLOSE_CAPTURED_TABS_DONE", closed: ids.length };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
   }
 
   async function handleSearchPages(query: string): Promise<MessageResponse> {
