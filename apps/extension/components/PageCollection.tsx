@@ -23,7 +23,7 @@ import UserMenu from "./UserMenu";
 import AddUrlInput from "./AddUrlInput";
 import Tip from "./Tip";
 import EmptyBlock from "./EmptyBlock";
-import { buildDomainIndex, buildTypeIndex, getDomain, extractCreator } from "@/lib/domains";
+import { buildDomainIndex, buildTypeIndex, buildFolderIndex, getDomain, extractCreator } from "@/lib/domains";
 import { isTranscriptPending } from "@/lib/capture-utils";
 import AppSidebar from "./AppSidebar";
 import StorageBadge from "./StorageBadge";
@@ -75,6 +75,7 @@ export default function PageCollection(props: PageCollectionProps) {
   const [deviceFilter, setDeviceFilter] = createSignal<string>("all");
   const [domainFilter, setDomainFilter] = createSignal<string | null>(null);
   const [creatorFilter, setCreatorFilter] = createSignal<string | null>(null);
+  const [activeFolder, setActiveFolder] = createSignal<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
   const [syncError, setSyncError] = createSignal<string | null>(null);
   let searchBarApi: { setSearch: (q: string) => void } | undefined;
@@ -230,7 +231,7 @@ export default function PageCollection(props: PageCollectionProps) {
 
   const domainIndex = createMemo(() => buildDomainIndex(allPages() || []));
 
-  const groupBy = (): "domain" | "type" => settings()?.navGroupBy ?? "domain";
+  const groupBy = (): "domain" | "type" | "folders" => settings()?.navGroupBy ?? "domain";
   // First time the user opens the Type view, surface the easy-to-miss
   // "Move to group" folder icon. Shown once, persisted in local storage
   // (mirrors the first-paste tip).
@@ -242,10 +243,11 @@ export default function PageCollection(props: PageCollectionProps) {
       await browser.storage.local.set({ [key]: true });
     }
   };
-  const setGroupBy = (mode: "domain" | "type") => {
+  const setGroupBy = (mode: "domain" | "type" | "folders") => {
     setSettings((s) => (s ? { ...s, navGroupBy: mode } : s));
     void updateSettings({ navGroupBy: mode });
     if (mode === "type") void maybeShowGroupTip();
+    if (mode !== "folders") setActiveFolder(null);
   };
 
   const typeIndex = createMemo(() =>
@@ -255,6 +257,8 @@ export default function PageCollection(props: PageCollectionProps) {
       settings()?.customTypes ?? [],
     ),
   );
+
+  const folderIndex = createMemo(() => buildFolderIndex(allPages() || [], allGroups() || []));
 
   const tagIndex = createMemo(() => {
     const pages = allPages() || [];
@@ -302,14 +306,25 @@ export default function PageCollection(props: PageCollectionProps) {
     // All non-trash views exclude soft-deleted pages
     pages = pages.filter((t) => !t.deletedAt);
 
-    // Apply domain filter
-    const domain = domainFilter();
-    if (domain) {
-      pages = pages.filter((t) => getDomain(t.url) === domain);
-      // Apply creator filter within domain
-      const creator = creatorFilter();
-      if (creator) {
-        pages = pages.filter((t) => extractCreator(t) === creator);
+    // Apply folder filter (takes priority over domain/creator when active)
+    const folder = activeFolder();
+    if (folder) {
+      // Build a groupId → name map for lookup
+      const groupNameMap = new Map<string, string>();
+      for (const g of allGroups() || []) {
+        if (!g.archived && g.name.trim()) groupNameMap.set(g.id, g.name.trim());
+      }
+      pages = pages.filter((t) => groupNameMap.get(t.groupId) === folder);
+    } else {
+      // Apply domain filter
+      const domain = domainFilter();
+      if (domain) {
+        pages = pages.filter((t) => getDomain(t.url) === domain);
+        // Apply creator filter within domain
+        const creator = creatorFilter();
+        if (creator) {
+          pages = pages.filter((t) => extractCreator(t) === creator);
+        }
       }
     }
 
@@ -526,6 +541,13 @@ export default function PageCollection(props: PageCollectionProps) {
           groupBy={groupBy()}
           onSetGroupBy={setGroupBy}
           onMoveDomain={openMoveDialog}
+          folders={folderIndex()}
+          activeFolder={activeFolder()}
+          onSelectFolder={(name) => {
+            setActiveFolder(name);
+            setDomainFilter(null);
+            setCreatorFilter(null);
+          }}
         />
       </div>
 
@@ -554,6 +576,14 @@ export default function PageCollection(props: PageCollectionProps) {
               groupBy={groupBy()}
               onSetGroupBy={setGroupBy}
               onMoveDomain={openMoveDialog}
+              folders={folderIndex()}
+              activeFolder={activeFolder()}
+              onSelectFolder={(name) => {
+                setActiveFolder(name);
+                setDomainFilter(null);
+                setCreatorFilter(null);
+                if (name) setSidebarOpen(false);
+              }}
             />
           </div>
           <div
@@ -578,7 +608,13 @@ export default function PageCollection(props: PageCollectionProps) {
 
           <span class="text-sm font-medium text-foreground truncate flex-1 min-w-0">
             Collections
-            <Show when={domainFilter()}>
+            <Show when={activeFolder()}>
+              <span class="text-muted-foreground font-normal">
+                {" / "}
+                {activeFolder()}
+              </span>
+            </Show>
+            <Show when={!activeFolder() && domainFilter()}>
               <span class="text-muted-foreground font-normal">
                 {" / "}
                 {domainFilter()}

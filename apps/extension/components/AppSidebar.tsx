@@ -1,7 +1,7 @@
 import { createSignal, For, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { ChevronDown, ChevronRight, Globe, MessagesSquare, FolderInput, Layers, AppWindow } from "lucide-solid";
-import type { DomainInfo, TypeGroup } from "@/lib/domains";
+import { ChevronDown, ChevronRight, Globe, MessagesSquare, FolderInput, Layers, AppWindow, Folder } from "lucide-solid";
+import type { DomainInfo, TypeGroup, FolderInfo } from "@/lib/domains";
 import Avatar from "./Avatar";
 
 interface AppSidebarProps {
@@ -13,9 +13,13 @@ interface AppSidebarProps {
   totalCount: number;
   // Optional — wired in Task 8
   typeGroups?: TypeGroup[];
-  groupBy?: "domain" | "type";
-  onSetGroupBy?: (mode: "domain" | "type") => void;
+  groupBy?: "domain" | "type" | "folders";
+  onSetGroupBy?: (mode: "domain" | "type" | "folders") => void;
   onMoveDomain?: (domain: string) => void;
+  // Folder view
+  folders?: FolderInfo[];
+  activeFolder?: string | null;
+  onSelectFolder?: (name: string | null) => void;
 }
 
 export default function AppSidebar(props: AppSidebarProps) {
@@ -169,7 +173,7 @@ export default function AppSidebar(props: AppSidebarProps) {
         <div class="flex items-center gap-1 mt-3 mb-1 px-1">
           <span class="text-xs text-muted-foreground/60 flex-1">Group by</span>
           <div class="flex gap-1 bg-muted/30 rounded-full p-0.5">
-            <For each={["domain", "type"] as const}>
+            <For each={["domain", "type", "folders"] as const}>
               {(m) => (
                 <button
                   class={`px-2.5 py-0.5 text-xs font-medium rounded-full transition-colors ${
@@ -179,7 +183,7 @@ export default function AppSidebar(props: AppSidebarProps) {
                   }`}
                   onClick={() => props.onSetGroupBy?.(m)}
                 >
-                  {m === "domain" ? "Domain" : "Type"}
+                  {m === "domain" ? "Domain" : m === "type" ? "Type" : "Folders"}
                 </button>
               )}
             </For>
@@ -238,6 +242,31 @@ export default function AppSidebar(props: AppSidebarProps) {
                       </div>
                     </Show>
                   </div>
+                );
+              }}
+            </For>
+          </div>
+        </Show>
+
+        {/* Folders view */}
+        <Show when={mode() === "folders"}>
+          <div class="mt-1 space-y-0.5">
+            <For each={props.folders ?? []}>
+              {(folder) => {
+                const isActive = () => props.activeFolder === folder.name;
+                return (
+                  <button
+                    class={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
+                      isActive()
+                        ? "bg-muted/50 text-foreground"
+                        : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+                    }`}
+                    onClick={() => props.onSelectFolder?.(isActive() ? null : folder.name)}
+                  >
+                    <Folder size={14} class="flex-shrink-0 text-muted-foreground/60" />
+                    <span class="flex-1 text-left truncate">{folder.name}</span>
+                    <span class="text-xs text-muted-foreground/60">{folder.count}</span>
+                  </button>
                 );
               }}
             </For>

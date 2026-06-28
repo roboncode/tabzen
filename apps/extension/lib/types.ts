@@ -39,7 +39,7 @@ export interface Settings {
   /** Type ids to save on "save all tabs". Empty = save all types. */
   captureTypes: string[];
   /** Domains-nav grouping mode. */
-  navGroupBy: "domain" | "type";
+  navGroupBy: "domain" | "type" | "folders";
   /** Where organized tabs are persisted: browser bookmarks, in-app collection, or both. */
   organizeDestination: "browser" | "app" | "both";
 }

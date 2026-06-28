@@ -1,4 +1,4 @@
-import type { Page } from "./types";
+import type { Page, Group } from "./types";
 import { classifyDomain, allMediaTypes, type MediaTypeDef } from "./media-types";
 
 const SOCIAL_PLATFORMS = new Set([
@@ -233,4 +233,50 @@ export function buildTypeIndex(
     });
   }
   return groups;
+}
+
+export interface FolderInfo {
+  name: string;
+  count: number;
+  groupIds: string[];
+}
+
+/**
+ * Group the collection's pages by their Group's NAME, folding same-named groups
+ * across captures into a single folder entry. Excludes archived groups, blank/empty
+ * names, and folders with zero live (non-deleted, non-archived) pages.
+ * Sorted by count descending.
+ */
+export function buildFolderIndex(pages: Page[], groups: Group[]): FolderInfo[] {
+  // Build groupId → group name map, skipping archived and blank-named groups
+  const groupNameMap = new Map<string, string>();
+  for (const g of groups) {
+    if (g.archived) continue;
+    const trimmed = g.name.trim();
+    if (!trimmed) continue;
+    groupNameMap.set(g.id, trimmed);
+  }
+
+  // Tally live pages by folder name, accumulating contributing groupIds
+  const folderMap = new Map<string, { count: number; groupIds: Set<string> }>();
+  for (const page of pages) {
+    if (page.deletedAt || page.archived) continue;
+    const name = groupNameMap.get(page.groupId);
+    if (!name) continue;
+    let entry = folderMap.get(name);
+    if (!entry) {
+      entry = { count: 0, groupIds: new Set() };
+      folderMap.set(name, entry);
+    }
+    entry.count++;
+    entry.groupIds.add(page.groupId);
+  }
+
+  return Array.from(folderMap.entries())
+    .map(([name, { count, groupIds }]) => ({
+      name,
+      count,
+      groupIds: Array.from(groupIds),
+    }))
+    .sort((a, b) => b.count - a.count);
 }
