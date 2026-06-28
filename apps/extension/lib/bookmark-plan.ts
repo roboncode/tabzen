@@ -4,6 +4,9 @@
  */
 
 import { classifyMediaType, resolveMediaType } from "@/lib/media-types";
+import { isDuplicate } from "@/lib/duplicates";
+import { youtubeThumbnailUrl } from "@/lib/capture-utils";
+import type { Group, Page } from "@tab-zen/shared";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -167,4 +170,109 @@ export function buildDeterministicAssignments(
     const def = resolveMediaType(typeId, []);
     return { url: tab.url, folder: def.label };
   });
+}
+
+// ---------------------------------------------------------------------------
+// planToCollectionSet
+// ---------------------------------------------------------------------------
+
+/**
+ * Maps a `BookmarkPlan` to `Group[]` and `Page[]` ready to be persisted into
+ * the Tab Zen in-app collection.
+ *
+ * - Each `BookmarkFolder` becomes a `Group` (unless every one of its tab URLs
+ *   is already in `existingUrlSet`, in which case the folder is omitted).
+ * - Each `TabEntry` whose URL is NOT in `existingUrlSet` becomes a `Page`.
+ *   Dedup is against the COLLECTION (`existingUrlSet`), not the browser-bookmark
+ *   `alreadyBookmarked` flag (that flag is bookmark-specific; ignore it here).
+ * - `ogImage` is set to the YouTube thumbnail URL for YouTube watch URLs.
+ *
+ * Pure — no I/O.
+ */
+export function planToCollectionSet(input: {
+  plan: BookmarkPlan;
+  captureId: string;
+  /** Called once per included folder; caller supplies id generator (e.g. uuidv4). */
+  groupId: (folderIndex: number) => string;
+  /** Called once per included page; folderIndex = index in plan.folders. */
+  pageId: (folderIndex: number, tabIndex: number) => string;
+  deviceId: string;
+  sourceLabel: string;
+  /** ISO string for capturedAt on every page/capture. */
+  capturedAt: string;
+  /** Normalised URL set of the existing collection for dedup. */
+  existingUrlSet: Set<string>;
+}): { groups: Group[]; pages: Page[] } {
+  const { plan, captureId, groupId, pageId, deviceId, sourceLabel, capturedAt, existingUrlSet } = input;
+
+  const groups: Group[] = [];
+  const pages: Page[] = [];
+
+  let groupPosition = 0;
+
+  for (let fi = 0; fi < plan.folders.length; fi++) {
+    const folder = plan.folders[fi];
+
+    // Collect tabs that are not already in the collection
+    const newTabs = folder.tabs.filter((t) => !isDuplicate(t.url, existingUrlSet));
+
+    // Skip folder if every tab is already in the collection
+    if (newTabs.length === 0) continue;
+
+    const gId = groupId(fi);
+
+    groups.push({
+      id: gId,
+      name: folder.name,
+      captureId,
+      position: groupPosition,
+      archived: false,
+    });
+    groupPosition++;
+
+    for (let ti = 0; ti < folder.tabs.length; ti++) {
+      const tab = folder.tabs[ti];
+      if (isDuplicate(tab.url, existingUrlSet)) continue;
+
+      let domain: string;
+      try {
+        domain = new URL(tab.url).hostname.replace("www.", "");
+      } catch {
+        domain = "unknown";
+      }
+
+      const pId = pageId(fi, ti);
+
+      pages.push({
+        id: pId,
+        url: tab.url,
+        title: tab.title,
+        favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
+        ogTitle: null,
+        ogDescription: null,
+        ogImage: youtubeThumbnailUrl(tab.url),
+        metaDescription: null,
+        creator: null,
+        creatorAvatar: null,
+        creatorUrl: null,
+        publishedAt: null,
+        tags: [],
+        notes: null,
+        viewCount: 0,
+        lastViewedAt: null,
+        capturedAt,
+        sourceLabel,
+        deviceId,
+        archived: false,
+        starred: false,
+        deletedAt: null,
+        groupId: gId,
+        contentKey: null,
+        contentType: null,
+        contentFetchedAt: null,
+      });
+    }
+  }
+
+  return { groups, pages };
 }

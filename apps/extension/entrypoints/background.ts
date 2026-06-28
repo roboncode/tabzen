@@ -24,7 +24,7 @@ import { isInjectableTab, mapWithConcurrency, youtubeThumbnailUrl } from "@/lib/
 import { needsMetadataBackfill, parseOgFromHtml } from "@/lib/metadata";
 import type { TranscriptSegment } from "@tab-zen/shared";
 import { aiSearch, generateTags, generateChapters, groupTabsForBookmarks } from "@/lib/ai";
-import { buildBookmarkPlan, buildDeterministicAssignments } from "@/lib/bookmark-plan";
+import { buildBookmarkPlan, buildDeterministicAssignments, planToCollectionSet } from "@/lib/bookmark-plan";
 import type { TabFolderAssignment, BookmarkPlan } from "@/lib/bookmark-plan";
 import { executeBookmarkPlan, getOtherBookmarksFolderId } from "@/lib/bookmark-writer";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
@@ -429,7 +429,7 @@ export default defineBackground(() => {
       case "GET_ORGANIZE_PLAN":
         return handleGetOrganizePlan();
       case "CONFIRM_ORGANIZE":
-        return handleConfirmOrganize(message.plan);
+        return handleConfirmOrganize(message.plan, message.destination);
       default:
         return { type: "ERROR", message: "Unknown message type" };
     }
@@ -545,10 +545,64 @@ export default defineBackground(() => {
     }
   }
 
-  async function handleConfirmOrganize(plan: BookmarkPlan): Promise<MessageResponse> {
+  async function handleConfirmOrganize(
+    plan: BookmarkPlan,
+    destination: "browser" | "app" | "both",
+  ): Promise<MessageResponse> {
     try {
-      const { created } = await executeBookmarkPlan(plan);
-      return { type: "ORGANIZE_DONE", created };
+      let created = 0;
+      let saved = 0;
+
+      // ── browser bookmarks path ──────────────────────────────────────────
+      if (destination === "browser" || destination === "both") {
+        const result = await executeBookmarkPlan(plan);
+        created = result.created;
+      }
+
+      // ── in-app collection path ──────────────────────────────────────────
+      if (destination === "app" || destination === "both") {
+        const settings = await getSettings();
+        const existingPages = await getAllPages();
+        const existingUrlSet = buildUrlSet(existingPages.map((p) => p.url));
+
+        const captureId = uuidv4();
+        const capturedAt = new Date().toISOString();
+
+        const { groups, pages } = planToCollectionSet({
+          plan,
+          captureId,
+          groupId: () => uuidv4(),
+          pageId: () => uuidv4(),
+          deviceId: settings.deviceId,
+          sourceLabel: settings.sourceLabel,
+          capturedAt,
+          existingUrlSet,
+        });
+
+        if (pages.length > 0) {
+          const capture: Capture = {
+            id: captureId,
+            capturedAt,
+            sourceLabel: settings.sourceLabel,
+            tabCount: pages.length,
+          };
+
+          await addCapture(capture);
+          await addGroups(groups);
+          await addPages(pages);
+          await updateBadge();
+          notifyDataChanged();
+
+          // Trigger the same post-capture queues that handleConfirmCapture runs
+          processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+          processMetadataQueue().catch((e) => console.warn("[TabZen] Metadata queue failed:", e));
+          processEmbedQueue().catch((e) => console.warn("[TabZen] Embed queue failed:", e));
+
+          saved = pages.length;
+        }
+      }
+
+      return { type: "ORGANIZE_DONE", created, saved };
     } catch (e) {
       return { type: "ERROR", message: String(e) };
     }

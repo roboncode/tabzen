@@ -33,7 +33,7 @@ export type MessageRequest =
   | { type: "FOCUS_TAB"; tabId: number }
   | { type: "ORGANIZE_TABS_PREVIEW" }
   | { type: "GET_ORGANIZE_PLAN" }
-  | { type: "CONFIRM_ORGANIZE"; plan: BookmarkPlan };
+  | { type: "CONFIRM_ORGANIZE"; plan: BookmarkPlan; destination: "browser" | "app" | "both" };
 
 export type MessageResponse =
   | { type: "CAPTURE_PREVIEW"; data: CapturePreviewData }
@@ -62,7 +62,7 @@ export type MessageResponse =
   | { type: "UNCAPTURED_TABS"; tabs: UncapturedTab[] }
   | { type: "ORGANIZE_PREVIEW_READY" }
   | { type: "ORGANIZE_PLAN"; plan: BookmarkPlan }
-  | { type: "ORGANIZE_DONE"; created: number };
+  | { type: "ORGANIZE_DONE"; created: number; saved: number };
 
 export function sendMessage(message: MessageRequest): Promise<MessageResponse> {
   return browser.runtime.sendMessage(message);

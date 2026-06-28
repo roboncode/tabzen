@@ -54,7 +54,7 @@ export default function OrganizePage() {
     setConfirming(true);
     setConfirmError(null);
     try {
-      const res = await sendMessage({ type: "CONFIRM_ORGANIZE", plan: p });
+      const res = await sendMessage({ type: "CONFIRM_ORGANIZE", plan: p, destination: "browser" });
       if (res.type === "ORGANIZE_DONE") {
         setSuccessMsg(`Added ${res.created} bookmark${res.created !== 1 ? "s" : ""}`);
         setTimeout(() => navigate("/"), 1500);

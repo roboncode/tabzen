@@ -2,8 +2,11 @@ import { describe, it, expect } from "vitest";
 import {
   buildBookmarkPlan,
   buildDeterministicAssignments,
+  planToCollectionSet,
   type TabFolderAssignment,
+  type BookmarkPlan,
 } from "@/lib/bookmark-plan";
+import { buildUrlSet } from "@/lib/duplicates";
 
 // ---------------------------------------------------------------------------
 // buildBookmarkPlan
@@ -260,5 +263,141 @@ describe("buildDeterministicAssignments", () => {
     expect(assignments[0].folder).toBe("Video");
     expect(assignments[1].folder).toBe("Social");
     expect(assignments[2].folder).toBe("Other");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// planToCollectionSet
+// ---------------------------------------------------------------------------
+
+function makePlan(folders: Array<{ name: string; tabs: Array<{ title: string; url: string }> }>): BookmarkPlan {
+  return {
+    rootId: null,
+    mode: "ai",
+    totalTabs: folders.flatMap((f) => f.tabs).length,
+    skippedCount: 0,
+    folders: folders.map((f) => ({
+      name: f.name,
+      existingId: null,
+      tabs: f.tabs.map((t) => ({ ...t, alreadyBookmarked: false })),
+    })),
+  };
+}
+
+describe("planToCollectionSet", () => {
+  const baseInput = {
+    captureId: "cap-1",
+    groupId: (fi: number) => `group-${fi}`,
+    pageId: (fi: number, ti: number) => `page-${fi}-${ti}`,
+    deviceId: "dev-1",
+    sourceLabel: "Chrome - Default",
+    capturedAt: "2026-01-01T00:00:00.000Z",
+    existingUrlSet: new Set<string>(),
+  };
+
+  it("produces one Group per folder, names and positions correct", () => {
+    const plan = makePlan([
+      { name: "Work", tabs: [{ title: "GitHub", url: "https://github.com" }] },
+      { name: "Video", tabs: [{ title: "YouTube", url: "https://youtube.com/watch?v=abc" }] },
+    ]);
+
+    const { groups } = planToCollectionSet({ plan, ...baseInput });
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0].name).toBe("Work");
+    expect(groups[0].position).toBe(0);
+    expect(groups[0].captureId).toBe("cap-1");
+    expect(groups[1].name).toBe("Video");
+    expect(groups[1].position).toBe(1);
+  });
+
+  it("wires groupId into each page", () => {
+    const plan = makePlan([
+      { name: "Work", tabs: [{ title: "GitHub", url: "https://github.com" }] },
+    ]);
+
+    const { groups, pages } = planToCollectionSet({ plan, ...baseInput });
+
+    expect(pages).toHaveLength(1);
+    expect(pages[0].groupId).toBe(groups[0].id);
+  });
+
+  it("skips a tab whose url is in existingUrlSet", () => {
+    const plan = makePlan([
+      {
+        name: "Work",
+        tabs: [
+          { title: "GitHub", url: "https://github.com" },
+          { title: "Existing", url: "https://existing.com/page" },
+        ],
+      },
+    ]);
+    const existingUrlSet = buildUrlSet(["https://existing.com/page"]);
+
+    const { pages } = planToCollectionSet({ plan, ...baseInput, existingUrlSet });
+
+    expect(pages).toHaveLength(1);
+    expect(pages[0].url).toBe("https://github.com");
+  });
+
+  it("omits a folder whose every tab is in existingUrlSet", () => {
+    const plan = makePlan([
+      { name: "Empty", tabs: [{ title: "Already", url: "https://already.com" }] },
+      { name: "Work",  tabs: [{ title: "GitHub", url: "https://github.com" }] },
+    ]);
+    const existingUrlSet = buildUrlSet(["https://already.com"]);
+
+    const { groups, pages } = planToCollectionSet({ plan, ...baseInput, existingUrlSet });
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].name).toBe("Work");
+    expect(pages).toHaveLength(1);
+  });
+
+  it("page count and group count match the non-deduped content", () => {
+    const plan = makePlan([
+      {
+        name: "Mix",
+        tabs: [
+          { title: "A", url: "https://a.com" },
+          { title: "B", url: "https://b.com" },
+          { title: "C", url: "https://c.com" },
+        ],
+      },
+      { name: "Solo", tabs: [{ title: "D", url: "https://d.com" }] },
+    ]);
+    const existingUrlSet = buildUrlSet(["https://b.com"]);
+
+    const { groups, pages } = planToCollectionSet({ plan, ...baseInput, existingUrlSet });
+
+    expect(groups).toHaveLength(2);
+    expect(pages).toHaveLength(3); // A, C, D — B is deduped
+  });
+
+  it("YouTube tab gets ogImage set to thumbnail URL", () => {
+    const plan = makePlan([
+      { name: "Video", tabs: [{ title: "YT", url: "https://youtube.com/watch?v=testId" }] },
+    ]);
+
+    const { pages } = planToCollectionSet({ plan, ...baseInput });
+
+    expect(pages[0].ogImage).toMatch(/testId/);
+  });
+
+  it("non-YouTube tab has ogImage null", () => {
+    const plan = makePlan([
+      { name: "Work", tabs: [{ title: "GitHub", url: "https://github.com" }] },
+    ]);
+
+    const { pages } = planToCollectionSet({ plan, ...baseInput });
+
+    expect(pages[0].ogImage).toBeNull();
+  });
+
+  it("empty plan produces empty groups and pages", () => {
+    const plan = makePlan([]);
+    const { groups, pages } = planToCollectionSet({ plan, ...baseInput });
+    expect(groups).toHaveLength(0);
+    expect(pages).toHaveLength(0);
   });
 });

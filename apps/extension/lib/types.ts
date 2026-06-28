@@ -40,6 +40,8 @@ export interface Settings {
   captureTypes: string[];
   /** Domains-nav grouping mode. */
   navGroupBy: "domain" | "type";
+  /** Where organized tabs are persisted: browser bookmarks, in-app collection, or both. */
+  organizeDestination: "browser" | "app" | "both";
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -98,6 +100,7 @@ export const DEFAULT_SETTINGS: Settings = {
   domainTypeOverrides: {},
   captureTypes: [],
   navGroupBy: "domain",
+  organizeDestination: "browser",
 };
 
 export interface AIGroupSuggestion {
