@@ -1,6 +1,6 @@
 // apps/extension/lib/chat/chat-db.ts
 import { openDB, type IDBPDatabase } from 'idb';
-import type { Conversation, ConversationGroup } from '@tab-zen/shared';
+import type { Conversation, ConversationGroup, DocumentContext, Chunk } from '@tab-zen/shared';
 
 export interface CompressedContent {
   pageId: string;
@@ -44,13 +44,23 @@ interface ChatDB {
     key: string;
     value: ChatSkill;
   };
+  documentContexts: {
+    key: string;
+    value: DocumentContext;
+    indexes: { 'by-author': string };
+  };
+  chunks: {
+    key: string;
+    value: Chunk;
+    indexes: { 'by-documentId': string };
+  };
 }
 
 let dbInstance: IDBPDatabase<ChatDB> | null = null;
 
 export async function getChatDB(): Promise<IDBPDatabase<ChatDB>> {
   if (dbInstance) return dbInstance;
-  dbInstance = await openDB<ChatDB>('tab-zen-chat', 3, {
+  dbInstance = await openDB<ChatDB>('tab-zen-chat', 4, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         const convStore = db.createObjectStore('conversations', { keyPath: 'id' });
@@ -65,6 +75,15 @@ export async function getChatDB(): Promise<IDBPDatabase<ChatDB>> {
       }
       if (oldVersion < 3) {
         db.createObjectStore('skills', { keyPath: 'id' });
+      }
+      if (oldVersion < 4) {
+        const docContextStore = db.createObjectStore('documentContexts', {
+          keyPath: 'documentId',
+        });
+        docContextStore.createIndex('by-author', 'author');
+
+        const chunkStore = db.createObjectStore('chunks', { keyPath: 'chunkId' });
+        chunkStore.createIndex('by-documentId', 'documentId');
       }
     },
   });

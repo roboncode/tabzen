@@ -1,5 +1,6 @@
 import type { AIGroupSuggestion } from "./types";
 import type { TranscriptSegment } from "@tab-zen/shared";
+import type { TabFolderAssignment } from "@/lib/bookmark-plan";
 
 interface OpenRouterMessage {
   role: "system" | "user" | "assistant";
@@ -199,4 +200,96 @@ Rules:
   const response = await callOpenRouter(apiKey, model, messages);
   const parsed = JSON.parse(response);
   return parsed.chapters;
+}
+
+// ---------------------------------------------------------------------------
+// Bookmark organiser: groupTabsForBookmarks + parseBookmarkAssignments
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse the raw JSON string returned by the model into `TabFolderAssignment[]`.
+ *
+ * Validation rules:
+ * - Content must be valid JSON that parses to an object with an `assignments` array.
+ * - Each entry must have a string `url` and a string `folder`; malformed entries are
+ *   dropped silently.
+ * - Missing or non-array `assignments` key throws.
+ *
+ * Kept as a pure, exported function so it can be unit-tested independently of
+ * the private `callOpenRouter` helper.
+ */
+export function parseBookmarkAssignments(content: string): TabFolderAssignment[] {
+  // JSON.parse throws on invalid input — let it propagate
+  const parsed: unknown = JSON.parse(content);
+
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error("parseBookmarkAssignments: expected a JSON object at root");
+  }
+
+  const obj = parsed as Record<string, unknown>;
+
+  if (!Array.isArray(obj.assignments)) {
+    throw new Error(
+      "parseBookmarkAssignments: response missing 'assignments' array",
+    );
+  }
+
+  const results: TabFolderAssignment[] = [];
+  for (const entry of obj.assignments) {
+    if (
+      typeof entry === "object" &&
+      entry !== null &&
+      typeof (entry as Record<string, unknown>).url === "string" &&
+      typeof (entry as Record<string, unknown>).folder === "string"
+    ) {
+      const e = entry as { url: string; folder: string };
+      results.push({ url: e.url, folder: e.folder });
+    }
+    // silently drop malformed entries
+  }
+
+  return results;
+}
+
+/**
+ * Call the OpenRouter AI to assign each open tab to a named bookmark folder.
+ *
+ * Passes `existingFolderNames` so the model can reuse existing folder names
+ * when a tab clearly belongs to one of them, reducing folder proliferation on
+ * re-runs.
+ *
+ * Throws when the model returns unparseable JSON or the response is
+ * structurally invalid.  The caller (background.ts) is expected to catch and
+ * fall back to the deterministic path.
+ */
+export async function groupTabsForBookmarks(
+  apiKey: string,
+  model: string,
+  tabs: { title: string; url: string }[],
+  existingFolderNames: string[],
+): Promise<TabFolderAssignment[]> {
+  const tabList = tabs
+    .map((t) => `- "${t.title}" (${t.url})`)
+    .join("\n");
+
+  const folderHint =
+    existingFolderNames.length > 0
+      ? `\nExisting folder names (prefer reusing these when a tab clearly belongs there): ${existingFolderNames.join(", ")}`
+      : "";
+
+  const messages: OpenRouterMessage[] = [
+    {
+      role: "system",
+      content: `You are a bookmark organiser. Given a list of open browser tabs, assign each tab to a named bookmark folder.${folderHint}
+Rules:
+- Prefer reusing an existing folder name when the tab clearly belongs there.
+- Otherwise create a short, descriptive folder name (2–4 words).
+- Every tab must appear exactly once in the output.
+- Return JSON with this exact structure: {"assignments": [{"url": "...", "folder": "..."}]}`,
+    },
+    { role: "user", content: `Assign these tabs to folders:\n${tabList}` },
+  ];
+
+  const content = await callOpenRouter(apiKey, model, messages);
+  return parseBookmarkAssignments(content);
 }

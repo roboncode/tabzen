@@ -64,6 +64,8 @@ export interface Citation {
   snippet: string;
   url: string;
   timestamp?: string;
+  /** The bracketed source number it was cited as in the answer text ([n]). */
+  number?: number;
 }
 
 export interface Conversation {

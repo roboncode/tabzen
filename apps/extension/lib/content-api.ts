@@ -26,13 +26,15 @@ export async function fetchTranscriptFromApi(url: string): Promise<TranscriptSeg
 
     const data = await response.json();
 
-    // content-youtube returns segments as { text, start, duration } (seconds)
-    // Map to our format { text, startMs, durationMs } (milliseconds)
-    if (Array.isArray(data)) {
-      return data.map((seg: any) => ({
+    // content-youtube returns { transcript: [{ text, start, duration }] } with
+    // times in SECONDS. (Older/raw shapes returned a bare array.) Accept both,
+    // then map to our { text, startMs, durationMs } in milliseconds.
+    const segments = Array.isArray(data) ? data : data?.transcript;
+    if (Array.isArray(segments)) {
+      return segments.map((seg: any) => ({
         text: seg.text,
-        startMs: Math.round((seg.start || seg.offset || 0) * 1000),
-        durationMs: Math.round((seg.duration || 0) * 1000),
+        startMs: Math.round((seg.start ?? seg.offset ?? 0) * 1000),
+        durationMs: Math.round((seg.duration ?? 0) * 1000),
       }));
     }
 

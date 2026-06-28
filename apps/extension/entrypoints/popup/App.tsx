@@ -27,59 +27,105 @@ export default function App() {
   } | null>(null);
   const [justSaved, setJustSaved] = createSignal(false);
 
+  // Resolves instantly from the tab object — no content-script round-trip — so
+  // the popup paints immediately instead of waiting on GET_METADATA.
   const [activeTab] = createResource(async () => {
     const [tab] = await browser.tabs.query({
       active: true,
       currentWindow: true,
     });
     if (!tab) return null;
-
-    let ogTitle: string | null = null;
-    let ogDescription: string | null = null;
-    let ogImage: string | null = null;
-    let creator: string | null = null;
-
-    try {
-      const response = await browser.tabs.sendMessage(tab.id!, {
-        type: "GET_METADATA",
-      });
-      if (response) {
-        ogTitle = response.ogTitle || null;
-        ogDescription = response.ogDescription || null;
-        ogImage = response.ogImage || null;
-        creator = response.creator || null;
-      }
-    } catch {}
-
-    // YouTube thumbnail fallback
-    if (!ogImage && tab.url) {
-      try {
-        const u = new URL(tab.url);
-        let videoId: string | null = null;
-        if (u.hostname.includes("youtube.com"))
-          videoId = u.searchParams.get("v");
-        else if (u.hostname === "youtu.be") videoId = u.pathname.slice(1);
-        if (videoId)
-          ogImage = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-      } catch {}
-    }
-
     return {
       title: tab.title || "Untitled",
       url: tab.url || "",
       favIconUrl: tab.favIconUrl || "",
       id: tab.id!,
-      ogTitle,
-      ogDescription,
-      ogImage,
-      creator,
     };
   });
+
+  // Instant YouTube thumbnail derived from the URL — shown while real og:image loads.
+  const ytThumb = () => {
+    const url = activeTab()?.url;
+    if (!url) return null;
+    try {
+      const u = new URL(url);
+      let videoId: string | null = null;
+      if (u.hostname.includes("youtube.com")) videoId = u.searchParams.get("v");
+      else if (u.hostname === "youtu.be") videoId = u.pathname.slice(1);
+      return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Richer metadata (og tags, creator) fetched separately so it never blocks
+  // the popup's first paint. The card fills in when the content script responds.
+  const [pageMeta] = createResource(
+    () => activeTab()?.id,
+    async (tabId) => {
+      try {
+        const response = await browser.tabs.sendMessage(tabId, { type: "GET_METADATA" });
+        if (response) {
+          return {
+            ogTitle: response.ogTitle || null,
+            ogDescription: response.ogDescription || null,
+            ogImage: response.ogImage || null,
+            creator: response.creator || null,
+          };
+        }
+      } catch {}
+      return { ogTitle: null, ogDescription: null, ogImage: null, creator: null };
+    },
+  );
+
+  const cardImage = () => pageMeta()?.ogImage || ytThumb();
+  const cardTitle = () => pageMeta()?.ogTitle || activeTab()?.title;
+  const cardCreator = () => pageMeta()?.creator || domain();
+  const cardDescription = () => pageMeta()?.ogDescription;
 
   const [uncapturedCount, { refetch: refetchCount }] = createResource(async () => {
     const response = await sendMessage({ type: "GET_UNCAPTURED_COUNT" });
     return response.type === "UNCAPTURED_COUNT" ? response.count : 0;
   });
+
+  const [capturedCount, { refetch: refetchCapturedCount }] = createResource(async () => {
+    const response = await sendMessage({ type: "GET_CAPTURED_TABS_COUNT" });
+    return response.type === "CAPTURED_TABS_COUNT" ? response.count : 0;
+  });
+
+  const [confirmingClose, setConfirmingClose] = createSignal(false);
+
+  const [duplicateCount] = createResource(async () => {
+    const res = await sendMessage({ type: "GET_DUPLICATE_TABS_COUNT" });
+    if (res.type === "DUPLICATE_TABS_COUNT") return res.count;
+    return 0;
+  });
+  const [confirmingCloseDuplicates, setConfirmingCloseDuplicates] = createSignal(false);
+
+  const hasBookmarks = typeof browser.bookmarks !== "undefined";
+  const [organizing, setOrganizing] = createSignal(false);
+  const [organizeError, setOrganizeError] = createSignal<string | null>(null);
+
+  const handleOrganizeTabs = async () => {
+    setOrganizing(true);
+    setOrganizeError(null);
+    try {
+      const res = await sendMessage({ type: "ORGANIZE_TABS_PREVIEW" });
+      if (res.type === "ORGANIZE_PREVIEW_READY") {
+        await openOrFocusSPA("organize");
+        // openOrFocusSPA calls window.close() internally
+      } else if (res.type === "ERROR") {
+        setOrganizeError(res.message);
+        setOrganizing(false);
+      } else {
+        setOrganizeError("Unexpected response.");
+        setOrganizing(false);
+      }
+    } catch (err) {
+      setOrganizeError(err instanceof Error ? err.message : "Failed to organize.");
+      setOrganizing(false);
+    }
+  };
 
   const domain = () => getDomain(activeTab()?.url || "");
 
@@ -225,7 +271,7 @@ export default function App() {
 
       {/* Unified tab card */}
       <Show when={!isBlocked() && activeTab()}>
-        {(tab) => (
+        {(_tab) => (
           <button
             class={`group/card w-full text-left rounded-xl overflow-hidden mb-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${
               saved()
@@ -236,9 +282,9 @@ export default function App() {
           >
             {/* Thumbnail */}
             <div class="aspect-video overflow-hidden">
-              {tab().ogImage ? (
+              {cardImage() ? (
                 <img
-                  src={tab().ogImage!}
+                  src={cardImage()!}
                   alt=""
                   class="w-full h-full object-cover object-top"
                   onError={(e) => {
@@ -282,18 +328,18 @@ export default function App() {
                   <h3
                     class="text-sm font-medium leading-snug line-clamp-2 text-foreground"
                   >
-                    {tab().ogTitle || tab().title}
+                    {cardTitle()}
                   </h3>
                   <p
                     class="text-xs mt-1 text-muted-foreground"
                   >
-                    {tab().creator || domain()}
+                    {cardCreator()}
                   </p>
-                  <Show when={tab().ogDescription}>
+                  <Show when={cardDescription()}>
                     <p
                       class="text-xs mt-0.5 line-clamp-1 text-muted-foreground"
                     >
-                      {tab().ogDescription}
+                      {cardDescription()}
                     </p>
                   </Show>
                 </div>
@@ -329,6 +375,98 @@ export default function App() {
             </p>
           </div>
         )}
+      </Show>
+
+      {/* Close captured tabs */}
+      <Show when={!capturedCount.loading && (capturedCount() ?? 0) > 0}>
+        <div class="mb-3">
+          <Show
+            when={confirmingClose()}
+            fallback={
+              <button
+                class="w-full text-sm text-muted-foreground hover:text-foreground bg-muted/20 hover:bg-muted/40 rounded-lg px-3 py-2 transition-colors text-left"
+                onClick={() => setConfirmingClose(true)}
+              >
+                Close captured ({capturedCount()})
+              </button>
+            }
+          >
+            <div class="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+              <span class="text-sm text-foreground flex-1">
+                Close {capturedCount()} tabs?
+              </span>
+              <button
+                class="text-sm text-red-400 hover:text-red-300 transition-colors px-2 py-0.5"
+                onClick={async () => {
+                  await sendMessage({ type: "CLOSE_CAPTURED_TABS" });
+                  window.close();
+                }}
+              >
+                Close
+              </button>
+              <button
+                class="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-0.5"
+                onClick={() => setConfirmingClose(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </Show>
+        </div>
+      </Show>
+
+      {/* Close duplicate tabs */}
+      <Show when={!duplicateCount.loading && (duplicateCount() ?? 0) > 0}>
+        <div class="mb-3">
+          <Show
+            when={confirmingCloseDuplicates()}
+            fallback={
+              <button
+                class="w-full text-sm text-muted-foreground hover:text-foreground bg-muted/20 hover:bg-muted/40 rounded-lg px-3 py-2 transition-colors text-left"
+                onClick={() => setConfirmingCloseDuplicates(true)}
+              >
+                Close duplicates ({duplicateCount()})
+              </button>
+            }
+          >
+            <div class="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+              <span class="text-sm text-foreground flex-1">
+                Close {duplicateCount()} duplicate tabs?
+              </span>
+              <button
+                class="text-sm text-red-400 hover:text-red-300 transition-colors px-2 py-0.5"
+                onClick={async () => {
+                  await sendMessage({ type: "CLOSE_DUPLICATE_TABS" });
+                  window.close();
+                }}
+              >
+                Close
+              </button>
+              <button
+                class="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-0.5"
+                onClick={() => setConfirmingCloseDuplicates(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </Show>
+        </div>
+      </Show>
+
+      {/* Organize tabs */}
+      <Show when={hasBookmarks}>
+        <div class="mb-3">
+          <button
+            class="w-full text-sm text-muted-foreground hover:text-foreground bg-muted/20 hover:bg-muted/40 rounded-lg px-3 py-2 transition-colors text-left disabled:opacity-60"
+            onClick={handleOrganizeTabs}
+            disabled={organizing()}
+          >
+            {organizing() ? "Analyzing tabs…" : "Organize tabs"}
+          </button>
+          <Show when={organizeError()}>
+            <p class="text-xs text-red-400 mt-1 px-1">{organizeError()}</p>
+          </Show>
+        </div>
       </Show>
 
       {/* Navigation buttons */}

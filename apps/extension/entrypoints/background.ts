@@ -16,10 +16,17 @@ import {
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate, shouldSkipUrl } from "@/lib/duplicates";
+import { closeableCapturedTabIds, duplicateTabIdsToClose, selectUncapturedTabs } from "@/lib/tab-status";
+import { includeUrlForCapture } from "@/lib/media-types";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { CURRENT_CONTENT_VERSION } from "@/lib/page-extract";
+import { isInjectableTab, mapWithConcurrency, youtubeThumbnailUrl } from "@/lib/capture-utils";
+import { needsMetadataBackfill, parseOgFromHtml } from "@/lib/metadata";
 import type { TranscriptSegment } from "@tab-zen/shared";
-import { aiSearch, generateTags, generateChapters } from "@/lib/ai";
+import { aiSearch, generateTags, generateChapters, groupTabsForBookmarks } from "@/lib/ai";
+import { buildBookmarkPlan, buildDeterministicAssignments, planToCollectionSet } from "@/lib/bookmark-plan";
+import type { TabFolderAssignment, BookmarkPlan } from "@/lib/bookmark-plan";
+import { executeBookmarkPlan, getOtherBookmarksFolderId } from "@/lib/bookmark-writer";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
 import { encrypt, decrypt } from "@/lib/crypto";
 import { updateSettings } from "@/lib/settings";
@@ -32,6 +39,21 @@ import type {
 import type { MessageRequest, MessageResponse } from "@/lib/messages";
 import { seedTemplatesIfNeeded } from "@/lib/templates";
 import { initDataLayer, refreshAdapterIfNeeded } from "@/lib/data-layer";
+import { processEmbedQueue, countPendingEmbeds } from "@/lib/chat/embed-queue";
+
+// Max number of tabs to extract from concurrently during capture. Keeps us from
+// waking/flooding many background tabs (and their media) all at once.
+const CAPTURE_EXTRACT_CONCURRENCY = 3;
+
+// Guards the auto transcript queue so only one drain runs at a time. Module-level
+// (not inside defineBackground) so the startup trigger can't reference it inside a
+// temporal dead zone before it's initialized.
+let transcriptQueueRunning = false;
+
+// Guards the auto metadata queue so only one drain runs at a time. Module-level
+// (not inside defineBackground) so the startup trigger can't reference it inside
+// a temporal dead zone before it's initialized.
+let metadataQueueRunning = false;
 
 export default defineBackground(() => {
   // --- Notify UI views of data changes ---
@@ -181,10 +203,24 @@ export default defineBackground(() => {
   // Pull on startup
   syncPullIfNeeded();
 
+  // Drain any pending YouTube transcripts in the background (auto queue).
+  processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+  processMetadataQueue().catch((e) => console.warn("[TabZen] Metadata queue failed:", e));
+
+  // Embed any pending content into the local knowledge base (rides behind the
+  // transcript/content queues, since a page is only embeddable once it has content).
+  processEmbedQueue().catch((e) => console.warn("[TabZen] Embed queue failed:", e));
+
   // Pull on interval (every 5 minutes) and refresh data layer adapter
   setInterval(() => {
     syncPullIfNeeded();
     refreshAdapterIfNeeded().catch((e) => console.warn("[TabZen] Adapter refresh failed:", e));
+    // Resume the transcript queue in case a previous drain was interrupted
+    // (e.g. the MV3 service worker was suspended mid-run).
+    processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+    processMetadataQueue().catch((e) => console.warn("[TabZen] Metadata queue failed:", e));
+    // Resume the embed queue (safety net for an interrupted drain / new content).
+    processEmbedQueue().catch((e) => console.warn("[TabZen] Embed queue failed:", e));
   }, SYNC_INTERVAL);
 
   // Pull when browser regains focus
@@ -352,6 +388,16 @@ export default defineBackground(() => {
         return handleGetContent(message.pageId);
       case "RE_EXTRACT_CONTENT":
         return handleReExtractContent(message.pageId);
+      case "RE_EXTRACT_METADATA":
+        return handleReExtractMetadata(message.pageId);
+      case "BACKFILL_TRANSCRIPTS":
+        return handleBackfillTranscripts();
+      case "COUNT_MISSING_TRANSCRIPTS":
+        return handleCountMissingTranscripts();
+      case "INDEX_COLLECTION":
+        return handleIndexCollection();
+      case "COUNT_PENDING_EMBEDS":
+        return handleCountPendingEmbeds();
       case "SYNC_NOW":
         return handleSyncNow();
       case "QUICK_CAPTURE":
@@ -366,8 +412,199 @@ export default defineBackground(() => {
         return handleCaptureUrl(message.url);
       case "IS_URL_SAVED":
         return handleIsUrlSaved(message.url);
+      case "GET_CAPTURED_TABS_COUNT":
+        return handleGetCapturedTabsCount();
+      case "CLOSE_CAPTURED_TABS":
+        return handleCloseCapturedTabs();
+      case "GET_DUPLICATE_TABS_COUNT":
+        return handleGetDuplicateTabsCount();
+      case "CLOSE_DUPLICATE_TABS":
+        return handleCloseDuplicateTabs();
+      case "GET_UNCAPTURED_TABS":
+        return handleGetUncapturedTabs();
+      case "FOCUS_TAB":
+        return handleFocusTab(message.tabId);
+      case "ORGANIZE_TABS_PREVIEW":
+        return handleOrganizeTabsPreview();
+      case "GET_ORGANIZE_PLAN":
+        return handleGetOrganizePlan();
+      case "CONFIRM_ORGANIZE":
+        return handleConfirmOrganize(message.plan, message.destination);
       default:
         return { type: "ERROR", message: "Unknown message type" };
+    }
+  }
+
+  // --- Bookmark organizer handlers ---
+
+  async function handleOrganizeTabsPreview(): Promise<MessageResponse> {
+    try {
+      const settings = await getSettings();
+      const allTabs = await browser.tabs.query({});
+
+      // Filter out system/blocked URLs
+      const filteredTabs = allTabs.filter(
+        (tab) => tab.url && !shouldSkipUrl(tab.url, settings.blockedDomains),
+      );
+
+      if (filteredTabs.length === 0) {
+        return { type: "ERROR", message: "No organizable tabs found" };
+      }
+
+      // Find existing Tab Zen root bookmark folder. Among folder results
+      // (url undefined), prefer the one whose parent is "Other Bookmarks";
+      // fall back to the first folder result. null → writer creates a new root.
+      const searchResults = await browser.bookmarks.search({ title: "Tab Zen" });
+      const folderResults = searchResults.filter((r) => r.url === undefined);
+      const otherBookmarksId = await getOtherBookmarksFolderId();
+      const rootResult =
+        folderResults.find((r) => r.parentId === otherBookmarksId) ??
+        folderResults[0];
+      const rootId = rootResult?.id ?? null;
+
+      let existingFolders: { id: string; name: string }[] = [];
+      const existingBookmarkUrls = new Set<string>();
+
+      if (rootId) {
+        const children = await browser.bookmarks.getChildren(rootId);
+        existingFolders = children
+          .filter((child) => child.url === undefined)
+          .map((child) => ({ id: child.id, name: child.title }));
+
+        // Recursively collect all bookmark URLs under root
+        async function collectBookmarkUrls(nodeId: string): Promise<void> {
+          const nodeChildren = await browser.bookmarks.getChildren(nodeId);
+          for (const child of nodeChildren) {
+            if (child.url) {
+              existingBookmarkUrls.add(normalizeUrl(child.url));
+            } else {
+              await collectBookmarkUrls(child.id);
+            }
+          }
+        }
+        await collectBookmarkUrls(rootId);
+      }
+
+      // Build tabs array with alreadyBookmarked flag
+      const tabs = filteredTabs.map((tab) => ({
+        title: tab.title || "Untitled",
+        url: tab.url!,
+        alreadyBookmarked: existingBookmarkUrls.has(normalizeUrl(tab.url!)),
+      }));
+
+      // Choose assignment path
+      const existingFolderNames = existingFolders.map((f) => f.name);
+      let assignments: TabFolderAssignment[];
+      let mode: "ai" | "deterministic";
+
+      if (settings.openRouterApiKey) {
+        try {
+          assignments = await groupTabsForBookmarks(
+            settings.openRouterApiKey,
+            settings.aiModel,
+            tabs,
+            existingFolderNames,
+          );
+          mode = "ai";
+        } catch {
+          assignments = buildDeterministicAssignments(tabs, settings.domainTypeOverrides);
+          mode = "deterministic";
+        }
+      } else {
+        assignments = buildDeterministicAssignments(tabs, settings.domainTypeOverrides);
+        mode = "deterministic";
+      }
+
+      // Build plan
+      const plan = buildBookmarkPlan({
+        tabs,
+        existingFolders,
+        assignments,
+        rootId,
+        mode,
+      });
+
+      // Store plan in session storage
+      await browser.storage.session.set({ organize_plan: JSON.stringify(plan) });
+
+      return { type: "ORGANIZE_PREVIEW_READY" };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleGetOrganizePlan(): Promise<MessageResponse> {
+    try {
+      const result = await browser.storage.session.get("organize_plan");
+      if (result.organize_plan) {
+        return { type: "ORGANIZE_PLAN", plan: JSON.parse(result.organize_plan as string) };
+      }
+      return { type: "ERROR", message: "No organize plan found" };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleConfirmOrganize(
+    plan: BookmarkPlan,
+    destination: "browser" | "app" | "both",
+  ): Promise<MessageResponse> {
+    try {
+      let created = 0;
+      let saved = 0;
+
+      // ── browser bookmarks path ──────────────────────────────────────────
+      if (destination === "browser" || destination === "both") {
+        const result = await executeBookmarkPlan(plan);
+        created = result.created;
+      }
+
+      // ── in-app collection path ──────────────────────────────────────────
+      if (destination === "app" || destination === "both") {
+        const settings = await getSettings();
+        const existingPages = await getAllPages();
+        const existingUrlSet = buildUrlSet(existingPages.map((p) => p.url));
+
+        const captureId = uuidv4();
+        const capturedAt = new Date().toISOString();
+
+        const { groups, pages } = planToCollectionSet({
+          plan,
+          captureId,
+          groupId: () => uuidv4(),
+          pageId: () => uuidv4(),
+          deviceId: settings.deviceId,
+          sourceLabel: settings.sourceLabel,
+          capturedAt,
+          existingUrlSet,
+        });
+
+        if (pages.length > 0) {
+          const capture: Capture = {
+            id: captureId,
+            capturedAt,
+            sourceLabel: settings.sourceLabel,
+            tabCount: pages.length,
+          };
+
+          await addCapture(capture);
+          await addGroups(groups);
+          await addPages(pages);
+          await updateBadge();
+          notifyDataChanged();
+
+          // Trigger the same post-capture queues that handleConfirmCapture runs
+          processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+          processMetadataQueue().catch((e) => console.warn("[TabZen] Metadata queue failed:", e));
+          processEmbedQueue().catch((e) => console.warn("[TabZen] Embed queue failed:", e));
+
+          saved = pages.length;
+        }
+      }
+
+      return { type: "ORGANIZE_DONE", created, saved };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
     }
   }
 
@@ -405,6 +642,12 @@ export default defineBackground(() => {
   ): Promise<MessageResponse> {
     try {
       await confirmCapture(captureData);
+      // Auto-fetch transcripts for the newly captured YouTube pages in the background.
+      processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+      processMetadataQueue().catch((e) => console.warn("[TabZen] Metadata queue failed:", e));
+      // Embed any pages that already have content (transcript pages get embedded
+      // on a later drain once their transcript lands).
+      processEmbedQueue().catch((e) => console.warn("[TabZen] Embed queue failed:", e));
       return { type: "SUCCESS" };
     } catch (e) {
       console.error("[TabZen] Confirm capture error:", e);
@@ -429,6 +672,74 @@ export default defineBackground(() => {
       }
     }
     return { type: "UNCAPTURED_COUNT", count };
+  }
+
+  async function handleGetCapturedTabsCount(): Promise<MessageResponse> {
+    try {
+      const existingPages = await getAllPages();
+      const capturedUrlSet = buildUrlSet(existingPages.map((p) => p.url));
+      const tabs = await browser.tabs.query({});
+      const count = closeableCapturedTabIds(tabs, capturedUrlSet).length;
+      return { type: "CAPTURED_TABS_COUNT", count };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleCloseCapturedTabs(): Promise<MessageResponse> {
+    try {
+      const existingPages = await getAllPages();
+      const capturedUrlSet = buildUrlSet(existingPages.map((p) => p.url));
+      const tabs = await browser.tabs.query({});
+      const ids = closeableCapturedTabIds(tabs, capturedUrlSet);
+      if (ids.length) await browser.tabs.remove(ids);
+      return { type: "CLOSE_CAPTURED_TABS_DONE", closed: ids.length };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleGetDuplicateTabsCount(): Promise<MessageResponse> {
+    const tabs = await browser.tabs.query({});
+    return { type: "DUPLICATE_TABS_COUNT", count: duplicateTabIdsToClose(tabs).length };
+  }
+
+  async function handleCloseDuplicateTabs(): Promise<MessageResponse> {
+    try {
+      const tabs = await browser.tabs.query({});
+      const ids = duplicateTabIdsToClose(tabs);
+      if (ids.length) await browser.tabs.remove(ids);
+      return { type: "CLOSE_DUPLICATE_TABS_DONE", closed: ids.length };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleGetUncapturedTabs(): Promise<MessageResponse> {
+    try {
+      const settings = await getSettings();
+      const existingPages = await getAllPages();
+      const capturedUrlSet = buildUrlSet(existingPages.map((p) => p.url));
+      const tabs = await browser.tabs.query({});
+      return {
+        type: "UNCAPTURED_TABS",
+        tabs: selectUncapturedTabs(tabs, capturedUrlSet, settings.blockedDomains),
+      };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleFocusTab(tabId: number): Promise<MessageResponse> {
+    try {
+      const tab = await browser.tabs.update(tabId, { active: true });
+      if (tab?.windowId != null) {
+        await browser.windows.update(tab.windowId, { focused: true });
+      }
+      return { type: "SUCCESS" };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
   }
 
   async function handleSearchPages(query: string): Promise<MessageResponse> {
@@ -495,66 +806,194 @@ export default defineBackground(() => {
     return { type: "PAGE_OPENED", page: updated! };
   }
 
-  async function handleGetTranscript(pageId: string): Promise<MessageResponse> {
-    const page = await getPage(pageId);
-    if (!page) return { type: "ERROR", message: "Page not found" };
-
-    // 1. Check if transcript is already stored locally on the page record
-    if (page.transcript) {
-      return { type: "TRANSCRIPT", transcript: page.transcript };
-    }
-
-    // 2. Try extracting from open browser tab using executeScript
-    const openTabs = await browser.tabs.query({ url: page.url });
-    if (openTabs.length > 0 && openTabs[0].id) {
-      try {
-        const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
-        const result = await extractYouTubeTranscript(openTabs[0].id, page.url);
-        if (result?.hasTranscript) {
-          const { addPage } = await import("@/lib/db");
-          await addPage({
-            ...page,
-            transcript: result.segments,
-            contentKey: `transcripts/${page.id}`,
-            contentType: "transcript",
-            contentFetchedAt: new Date().toISOString(),
-          });
-
-          const { storeTranscriptToApi } = await import("@/lib/content-api");
-          storeTranscriptToApi(page.id, result.segments).catch(() => {});
-
-          notifyDataChanged();
-          return { type: "TRANSCRIPT", transcript: result.segments };
-        }
-      } catch (e) {
-        console.warn("[TabZen] executeScript transcript extraction failed:", e);
-      }
-    }
-
-    // 3. Fallback: content-youtube API (only if sync is configured, meaning we have a backend)
-    const settings = await getSettings();
-    const hasApi = settings.syncEnabled && (settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken);
-    if (!hasApi) {
-      return { type: "TRANSCRIPT", transcript: null };
-    }
-    const { fetchTranscriptFromApi, storeTranscriptToApi } = await import("@/lib/content-api");
-    const segments = await fetchTranscriptFromApi(page.url);
-    if (segments) {
+  // Shared single-page transcript fetch: already-open AWAKE tab → throwaway
+  // (muted, background) tab → content API. Persists on success and returns the
+  // segments (or null). Used by both the on-demand button and the bulk backfill.
+  async function fetchAndStoreTranscript(page: Page): Promise<TranscriptSegment[] | null> {
+    const persist = async (segments: TranscriptSegment[]) => {
       const { addPage } = await import("@/lib/db");
+      // Re-read so a concurrent backfill doesn't clobber other fields.
+      const current = (await getPage(page.id)) || page;
       await addPage({
-        ...page,
+        ...current,
         transcript: segments,
         contentKey: `transcripts/${page.id}`,
         contentType: "transcript",
         contentFetchedAt: new Date().toISOString(),
       });
-
+      const { storeTranscriptToApi } = await import("@/lib/content-api");
       storeTranscriptToApi(page.id, segments).catch(() => {});
       notifyDataChanged();
-      return { type: "TRANSCRIPT", transcript: segments };
+    };
+
+    if (isYouTubeWatchUrl(page.url)) {
+      const { extractYouTubeTranscript, extractYouTubeTranscriptDirect } =
+        await import("@/lib/youtube-extract");
+
+      // Use an already-open AWAKE tab (fast, and never reloads a discarded tab).
+      let awakeTabId: number | undefined;
+      try {
+        const openTabs = await browser.tabs.query({ url: page.url });
+        awakeTabId = openTabs.find((t) => isInjectableTab(t))?.id;
+      } catch {
+        // tabs.query can throw when a stored URL isn't a valid match pattern; fall back.
+      }
+      if (awakeTabId != null) {
+        try {
+          const result = await extractYouTubeTranscript(awakeTabId, page.url);
+          if (result?.hasTranscript) {
+            await persist(result.segments);
+            return result.segments;
+          }
+        } catch (e) {
+          console.warn("[TabZen] Transcript extraction (open tab) failed:", e);
+        }
+      }
+
+      // No awake tab — open a single throwaway (muted, background) tab, extract,
+      // and close it. One at a time, so it can't cause the mass-reload lockup.
+      try {
+        const result = await extractYouTubeTranscriptDirect(page.url);
+        if (result?.hasTranscript) {
+          await persist(result.segments);
+          return result.segments;
+        }
+      } catch (e) {
+        console.warn("[TabZen] Transcript extraction (background tab) failed:", e);
+      }
     }
 
-    return { type: "TRANSCRIPT", transcript: null };
+    // Last resort: content-youtube API (only if a backend token is configured)
+    const settings = await getSettings();
+    const hasApi = settings.syncEnabled && (settings.syncEnv === "local" ? settings.syncLocalToken : settings.syncToken);
+    if (hasApi) {
+      const { fetchTranscriptFromApi } = await import("@/lib/content-api");
+      const segments = await fetchTranscriptFromApi(page.url);
+      if (segments) {
+        await persist(segments);
+        return segments;
+      }
+    }
+
+    return null;
+  }
+
+  async function handleGetTranscript(pageId: string): Promise<MessageResponse> {
+    const page = await getPage(pageId);
+    if (!page) return { type: "ERROR", message: "Page not found" };
+    if (page.transcript) {
+      return { type: "TRANSCRIPT", transcript: page.transcript };
+    }
+    const segments = await fetchAndStoreTranscript(page);
+    return { type: "TRANSCRIPT", transcript: segments };
+  }
+
+  // Pages still waiting on a transcript: YouTube, no transcript yet, and the
+  // queue hasn't already tried them (so caption-less videos aren't retried
+  // forever). Also drives the "pending" indicator in the UI.
+  function pendingTranscriptPages(pages: Page[]): Page[] {
+    return pages.filter(
+      (p) => !p.deletedAt && !p.transcript && !p.transcriptCheckedAt && isYouTubeWatchUrl(p.url),
+    );
+  }
+
+  async function handleCountMissingTranscripts(): Promise<MessageResponse> {
+    const count = pendingTranscriptPages(await getAllPages()).length;
+    return { type: "MISSING_TRANSCRIPTS_COUNT", count };
+  }
+
+  // Mark that the queue attempted this page but found no transcript, so it stops
+  // showing as pending and isn't retried automatically. Manual Fetch Transcript
+  // ignores this flag, so the user can always force a retry.
+  async function markTranscriptChecked(pageId: string): Promise<void> {
+    const p = await getPage(pageId);
+    if (p && !p.transcript) {
+      await updatePage(pageId, { transcriptCheckedAt: new Date().toISOString() });
+      notifyDataChanged();
+    }
+  }
+
+  // Auto transcript queue: drains every pending YouTube page, a few at a time
+  // via muted background tabs (never wakes/floods all tabs at once). Re-queries
+  // each round so items captured mid-run get picked up; stops when none remain.
+  // Guarded (module-level transcriptQueueRunning) so only one drain runs at a time.
+  async function processTranscriptQueue(): Promise<{ fetched: number; failed: number; total: number }> {
+    if (transcriptQueueRunning) return { fetched: 0, failed: 0, total: 0 };
+    transcriptQueueRunning = true;
+    let fetched = 0;
+    let failed = 0;
+    let total = 0;
+    try {
+      for (;;) {
+        const targets = pendingTranscriptPages(await getAllPages());
+        if (targets.length === 0) break;
+        total += targets.length;
+        console.log(`[TabZen] Transcript queue: draining ${targets.length} pending page(s)`);
+        await mapWithConcurrency(targets, CAPTURE_EXTRACT_CONCURRENCY, async (page) => {
+          try {
+            const segments = await fetchAndStoreTranscript(page);
+            if (segments) fetched++;
+            else {
+              await markTranscriptChecked(page.id);
+              failed++;
+            }
+          } catch {
+            await markTranscriptChecked(page.id);
+            failed++;
+          }
+        });
+      }
+    } finally {
+      transcriptQueueRunning = false;
+    }
+    if (total > 0) {
+      console.log(`[TabZen] Transcript queue done: ${fetched} fetched, ${failed} without captions/failed (of ${total})`);
+    }
+    return { fetched, failed, total };
+  }
+
+  // Auto metadata backfill queue: drains every YouTube page with missing
+  // metadata (no ogTitle AND no creator) that the queue hasn't attempted yet.
+  // Runs a few at a time; always stamps metadataCheckedAt so each page is
+  // tried at most once (prevents infinite retry loops on truly metadata-less
+  // pages). Re-queries each round so pages captured mid-run are picked up.
+  // Guarded (module-level metadataQueueRunning) so only one drain runs at a time.
+  async function processMetadataQueue(): Promise<void> {
+    if (metadataQueueRunning) return;
+    metadataQueueRunning = true;
+    try {
+      for (;;) {
+        const targets = (await getAllPages()).filter(needsMetadataBackfill);
+        if (targets.length === 0) break;
+        console.log(`[TabZen] Metadata queue: backfilling ${targets.length} page(s)`);
+        await mapWithConcurrency(targets, CAPTURE_EXTRACT_CONCURRENCY, async (page) => {
+          const updates = await refetchMetadataForPage(page);
+          await updatePage(page.id, {
+            ...(updates ?? {}),
+            metadataCheckedAt: new Date().toISOString(),
+          });
+        });
+      }
+      notifyDataChanged();
+    } finally {
+      metadataQueueRunning = false;
+    }
+  }
+
+  async function handleBackfillTranscripts(): Promise<MessageResponse> {
+    const { fetched, failed, total } = await processTranscriptQueue();
+    return { type: "BACKFILL_DONE", fetched, failed, total };
+  }
+
+  // Manual "Index existing collection" action: drain the embed queue now.
+  async function handleIndexCollection(): Promise<MessageResponse> {
+    const { embedded, failed, total } = await processEmbedQueue();
+    return { type: "INDEX_DONE", embedded, failed, total };
+  }
+
+  async function handleCountPendingEmbeds(): Promise<MessageResponse> {
+    const count = countPendingEmbeds(await getAllPages());
+    return { type: "PENDING_EMBEDS_COUNT", count };
   }
 
   async function handleGetContent(pageId: string): Promise<MessageResponse> {
@@ -632,6 +1071,57 @@ export default defineBackground(() => {
     notifyDataChanged();
 
     return { type: "CONTENT", content: result.content };
+  }
+
+  // Shared helper used by both the manual re-extract handler and the auto
+  // metadata backfill queue. Prefers an awake injectable tab for best fidelity;
+  // falls back to HTTP fetch. Returns the Partial<Page> updates to apply, or
+  // null if nothing was retrieved.
+  async function refetchMetadataForPage(page: Page): Promise<Partial<Page> | null> {
+    try {
+      const openTabs = await browser.tabs.query({ url: page.url });
+      const awakeTab = openTabs.find((t) => isInjectableTab(t));
+
+      const meta =
+        awakeTab?.id != null
+          ? await fetchMetadata(awakeTab.id, page.url)
+          : await fetchMetadataViaHttp(page.url);
+
+      const updates: Partial<Page> = {};
+      if (meta.ogTitle) updates.ogTitle = meta.ogTitle;
+      if (meta.ogDescription) updates.ogDescription = meta.ogDescription;
+      if (meta.ogImage) updates.ogImage = meta.ogImage;
+      if (meta.metaDescription) updates.metaDescription = meta.metaDescription;
+      if (meta.creator) updates.creator = meta.creator;
+      if (meta.creatorAvatar) updates.creatorAvatar = meta.creatorAvatar;
+      if (meta.creatorUrl) updates.creatorUrl = meta.creatorUrl;
+      if (meta.publishedAt) updates.publishedAt = meta.publishedAt;
+      if (meta.ogTitle) updates.title = meta.ogTitle;
+
+      return Object.keys(updates).length > 0 ? updates : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function handleReExtractMetadata(pageId: string): Promise<MessageResponse> {
+    try {
+      const page = await getPage(pageId);
+      if (!page) return { type: "ERROR", message: "Page not found" };
+
+      // Delegate fetch + field-selection to shared helper (also used by the
+      // auto metadata backfill queue).
+      const updates = await refetchMetadataForPage(page);
+      if (updates && Object.keys(updates).length > 0) {
+        await updatePage(pageId, updates);
+        notifyDataChanged();
+      }
+
+      const updated = await getPage(pageId);
+      return { type: "METADATA_REFRESHED", page: updated! };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
   }
 
   async function handleSyncNow(): Promise<MessageResponse> {
@@ -719,7 +1209,8 @@ export default defineBackground(() => {
         (t) =>
           t.url &&
           !shouldSkipUrl(t.url!, settings.blockedDomains) &&
-          !isDuplicate(t.url!, existingUrls),
+          !isDuplicate(t.url!, existingUrls) &&
+          includeUrlForCapture(t.url!, settings.captureTypes, settings.domainTypeOverrides),
       );
 
       const seenUrls = new Set<string>();
@@ -764,7 +1255,7 @@ export default defineBackground(() => {
           favicon: bt.favIconUrl || "",
           ogTitle: null,
           ogDescription: null,
-          ogImage: null,
+          ogImage: isYouTubeWatchUrl(bt.url!) ? youtubeThumbnailUrl(bt.url!) : null,
           metaDescription: null,
           creator: null,
           creatorAvatar: null,
@@ -821,7 +1312,9 @@ export default defineBackground(() => {
         for (const page of pages) {
           try {
             const browserTab = newBrowserTabs.find((bt) => bt.url === page.url);
-            if (browserTab?.id) {
+            // Only enrich awake tabs — never wake a discarded tab (forces a
+            // reload + media autoplay across every background tab).
+            if (browserTab && isInjectableTab(browserTab)) {
               const meta = await fetchMetadata(browserTab.id, page.url);
               const updates: Partial<Page> = {};
               if (meta.ogTitle) updates.ogTitle = meta.ogTitle;
@@ -945,6 +1438,11 @@ export default defineBackground(() => {
 
       })();
 
+      // Auto-fetch transcripts for the newly captured YouTube pages in the background.
+      processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+      processMetadataQueue().catch((e) => console.warn("[TabZen] Metadata queue failed:", e));
+      // Embed any pages that already have content into the knowledge base.
+      processEmbedQueue().catch((e) => console.warn("[TabZen] Embed queue failed:", e));
       return { type: "QUICK_CAPTURE_DONE", saved: pages.length, skipped: candidateTabs.length - newBrowserTabs.length };
     } catch (e) {
       console.error("[TabZen] Quick capture error:", e);
@@ -1060,29 +1558,6 @@ export default defineBackground(() => {
   }
 
   // --- Capture helpers ---
-
-  function parseOgFromHtml(html: string): {
-    ogTitle: string | null;
-    ogDescription: string | null;
-    ogImage: string | null;
-    metaDescription: string | null;
-  } {
-    const getMetaContent = (pattern: RegExp): string | null => {
-      const match = html.match(pattern);
-      return match?.[1]?.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">") || null;
-    };
-
-    return {
-      ogTitle: getMetaContent(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']*)["']/i)
-        || getMetaContent(/<meta[^>]*content=["']([^"']*)["'][^>]*property=["']og:title["']/i),
-      ogDescription: getMetaContent(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']*)["']/i)
-        || getMetaContent(/<meta[^>]*content=["']([^"']*)["'][^>]*property=["']og:description["']/i),
-      ogImage: getMetaContent(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']*)["']/i)
-        || getMetaContent(/<meta[^>]*content=["']([^"']*)["'][^>]*property=["']og:image["']/i),
-      metaDescription: getMetaContent(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i)
-        || getMetaContent(/<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["']/i),
-    };
-  }
 
   function getYoutubeThumbnail(url: string): string | null {
     try {
@@ -1234,73 +1709,84 @@ export default defineBackground(() => {
       return true;
     });
 
-    const pagesWithMeta: Page[] = await Promise.all(
-      newBrowserTabs.map(async (bt) => {
+    // Build lightweight records for EVERY tab first — no tab injection.
+    // Title/url/favicon come from the tab object; YouTube gets a thumbnail
+    // derived from the video id. This alone never wakes a sleeping tab.
+    const pagesWithMeta: Page[] = newBrowserTabs.map((bt): Page => ({
+      id: uuidv4(),
+      url: bt.url!,
+      title: bt.title || "Untitled",
+      favicon: bt.favIconUrl || "",
+      ogTitle: null,
+      ogDescription: null,
+      ogImage: isYouTubeWatchUrl(bt.url!) ? youtubeThumbnailUrl(bt.url!) : null,
+      metaDescription: null,
+      creator: null,
+      creatorAvatar: null,
+      creatorUrl: null,
+      publishedAt: null,
+      tags: [],
+      notes: null,
+      viewCount: 0,
+      lastViewedAt: null,
+      capturedAt: new Date().toISOString(),
+      sourceLabel: settings.sourceLabel,
+      deviceId: settings.deviceId,
+      archived: false,
+      starred: false,
+      deletedAt: null,
+      groupId: "",
+      contentKey: null,
+      contentType: null,
+      contentFetchedAt: null,
+    }));
+
+    // Enrich only AWAKE tabs (active + non-discarded), at most a few at a time.
+    // We never inject into discarded/asleep tabs — that forces a reload and
+    // autoplays media across every background tab, which freezes the browser.
+    const enrichable = newBrowserTabs
+      .map((bt, i) => ({ bt, page: pagesWithMeta[i] }))
+      .filter(({ bt }) => isInjectableTab(bt));
+
+    await mapWithConcurrency(enrichable, CAPTURE_EXTRACT_CONCURRENCY, async ({ bt, page }) => {
+      try {
         const meta = await fetchMetadata(bt.id!, bt.url!);
-        const pageId = uuidv4();
+        if (meta.ogTitle) page.ogTitle = meta.ogTitle;
+        if (meta.ogDescription) page.ogDescription = meta.ogDescription;
+        if (meta.ogImage) page.ogImage = meta.ogImage;
+        if (meta.metaDescription) page.metaDescription = meta.metaDescription;
+        if (meta.creator) page.creator = meta.creator;
+        if (meta.creatorAvatar) page.creatorAvatar = meta.creatorAvatar;
+        if (meta.creatorUrl) page.creatorUrl = meta.creatorUrl;
+        if (meta.publishedAt) page.publishedAt = meta.publishedAt;
+      } catch {}
 
-        // Extract transcript for YouTube videos, or page content for other pages
-        let transcriptSegments: TranscriptSegment[] | null = null;
-        let markdownContent: string | null = null;
-
+      try {
         if (isYouTubeWatchUrl(bt.url!)) {
-          try {
-            const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
-            const result = await extractYouTubeTranscript(bt.id!, bt.url!);
-            if (result?.hasTranscript) {
-              transcriptSegments = result.segments;
-            }
-          } catch (e) {
-            console.warn("[TabZen] Transcript extraction failed:", e);
+          const { extractYouTubeTranscript } = await import("@/lib/youtube-extract");
+          const result = await extractYouTubeTranscript(bt.id!, bt.url!);
+          if (result?.hasTranscript) {
+            page.contentKey = `transcripts/${page.id}`;
+            page.contentType = "transcript";
+            page.contentFetchedAt = new Date().toISOString();
+            page.contentVersion = CURRENT_CONTENT_VERSION;
+            page.transcript = result.segments;
           }
         } else {
-          try {
-            const { extractPageContent } = await import("@/lib/page-extract");
-            const result = await extractPageContent(bt.id!, bt.url!);
-            if (result) {
-              markdownContent = result.content;
-            }
-          } catch (e) {
-            console.warn("[TabZen] Page content extraction failed:", e);
+          const { extractPageContent } = await import("@/lib/page-extract");
+          const result = await extractPageContent(bt.id!, bt.url!);
+          if (result) {
+            page.contentKey = `content/${page.id}`;
+            page.contentType = "markdown";
+            page.contentFetchedAt = new Date().toISOString();
+            page.contentVersion = CURRENT_CONTENT_VERSION;
+            page.content = result.content;
           }
         }
-
-        const hasTranscript = transcriptSegments && transcriptSegments.length > 0;
-        const hasContent = !!markdownContent;
-        const page: Page = {
-          id: pageId,
-          url: bt.url!,
-          title: bt.title || "Untitled",
-          favicon: bt.favIconUrl || "",
-          ogTitle: meta.ogTitle,
-          ogDescription: meta.ogDescription,
-          ogImage: meta.ogImage,
-          metaDescription: meta.metaDescription,
-          creator: meta.creator || null,
-          creatorAvatar: meta.creatorAvatar || null,
-          creatorUrl: meta.creatorUrl || null,
-          publishedAt: meta.publishedAt || null,
-          tags: [],
-          notes: null,
-          viewCount: 0,
-          lastViewedAt: null,
-          capturedAt: new Date().toISOString(),
-          sourceLabel: settings.sourceLabel,
-          deviceId: settings.deviceId,
-          archived: false,
-          starred: false,
-          deletedAt: null,
-          groupId: "",
-          contentKey: hasTranscript ? `transcripts/${pageId}` : hasContent ? `content/${pageId}` : null,
-          contentType: hasTranscript ? "transcript" : hasContent ? "markdown" : null,
-          contentFetchedAt: (hasTranscript || hasContent) ? new Date().toISOString() : null,
-          contentVersion: (hasTranscript || hasContent) ? CURRENT_CONTENT_VERSION : undefined,
-          transcript: hasTranscript ? transcriptSegments! : undefined,
-          content: hasContent ? markdownContent! : undefined,
-        };
-        return page;
-      }),
-    );
+      } catch (e) {
+        console.warn("[TabZen] Capture extraction failed for", bt.url, e);
+      }
+    });
 
     let aiGroups: { groupName: string; pageIds: string[] }[];
     {

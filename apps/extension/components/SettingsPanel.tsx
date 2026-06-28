@@ -6,16 +6,19 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { Menu, Download, Upload, Keyboard, Trash2, Home } from "lucide-solid";
 import StorageBadge from "./StorageBadge";
 import {
-  exportAsJson,
+  exportBackupBlob,
   exportAsHtmlBookmarks,
-  importFromJson,
+  importFromFile,
   downloadFile,
+  downloadBlob,
 } from "@/lib/export";
+import { exportAsMarkdownZip } from "@/lib/export-markdown";
 import { clearAllData, clearProfileData } from "@/lib/db";
 import SyncConfigPanel from "./settings/SyncConfigPanel";
 import BlockedDomainsManager from "./settings/BlockedDomainsManager";
 import TemplateManager from "./settings/TemplateManager";
 import SkillManager from "./settings/SkillManager";
+import ContentTypesPanel from "./settings/ContentTypesPanel";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -30,6 +33,7 @@ type SettingsSection =
   | "skills"
   | "storage"
   | "domains"
+  | "content-types"
   | "data";
 
 const navGroups: { items: { key: SettingsSection; label: string }[] }[] = [
@@ -49,6 +53,7 @@ const navGroups: { items: { key: SettingsSection; label: string }[] }[] = [
     items: [
       { key: "storage", label: "Storage" },
       { key: "domains", label: "Blocked Domains" },
+      { key: "content-types", label: "Content Types" },
     ],
   },
   {
@@ -98,9 +103,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   };
 
   const handleExportJson = async () => {
-    const json = await exportAsJson();
+    const blob = await exportBackupBlob();
     const date = new Date().toISOString().slice(0, 10);
-    downloadFile(json, `tab-zen-export-${date}.json`, "application/json");
+    downloadBlob(blob, `tab-zen-backup-${date}.json.gz`);
   };
 
   const handleExportBookmarks = async () => {
@@ -109,16 +114,21 @@ export default function SettingsPanel(props: SettingsPanelProps) {
     downloadFile(html, `tab-zen-bookmarks-${date}.html`, "text/html");
   };
 
+  const handleExportMarkdown = async () => {
+    const blob = await exportAsMarkdownZip();
+    const date = new Date().toISOString().slice(0, 10);
+    downloadBlob(blob, `tab-zen-markdown-${date}.zip`);
+  };
+
   const handleImport = () => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = ".json";
+    input.accept = ".json,.gz,.json.gz,application/gzip,application/json";
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
-      const text = await file.text();
       try {
-        const result = await importFromJson(text);
+        const result = await importFromFile(file);
         setImportResult(
           `Imported ${result.imported} pages, skipped ${result.skipped} duplicates`,
         );
@@ -596,6 +606,11 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   <BlockedDomainsManager settings={s()} save={save} />
                 </Show>
 
+                {/* Content Types */}
+                <Show when={activeSection() === "content-types"}>
+                  <ContentTypesPanel settings={s()} save={save} />
+                </Show>
+
                 {/* Data */}
                 <Show when={activeSection() === "data"}>
                   <div class="space-y-6">
@@ -612,9 +627,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                           <Download size={14} class="text-muted-foreground" />
                         </div>
                         <div>
-                          <p class="text-sm text-foreground">Export as JSON</p>
+                          <p class="text-sm text-foreground">Export Backup</p>
                           <p class="text-xs text-muted-foreground mt-0.5">
-                            Full backup of all pages, groups, and captures
+                            Compressed .json.gz of pages, transcripts, groups, captures & AI documents
                           </p>
                         </div>
                       </button>
@@ -634,6 +649,20 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                           </p>
                         </div>
                       </button>
+                      <button
+                        class="w-full flex items-center gap-3 px-4 py-3 bg-muted/30 rounded-lg hover:bg-muted/40 transition-colors text-left group"
+                        onClick={handleExportMarkdown}
+                      >
+                        <div class="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center flex-shrink-0 group-hover:bg-muted/70 transition-colors">
+                          <Download size={14} class="text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p class="text-sm text-foreground">Export as Markdown</p>
+                          <p class="text-xs text-muted-foreground mt-0.5">
+                            .zip of Markdown files (one per page, foldered by collection) for Obsidian, Notion, etc.
+                          </p>
+                        </div>
+                      </button>
                     </div>
 
                     {/* Import */}
@@ -650,10 +679,10 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                         </div>
                         <div>
                           <p class="text-sm text-foreground">
-                            Import from JSON
+                            Import Backup
                           </p>
                           <p class="text-xs text-muted-foreground mt-0.5">
-                            Restore from a previous Tab Zen export
+                            Restore from a .json.gz (or older .json) export
                           </p>
                         </div>
                       </button>

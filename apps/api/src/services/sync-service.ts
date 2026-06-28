@@ -201,7 +201,7 @@ export class SyncService {
       deletedAt: row.deleted_at as string | null,
       groupId: row.group_id as string,
       contentKey: row.content_key as string | null,
-      contentType: row.content_type as string | null,
+      contentType: row.content_type as "transcript" | "markdown" | null,
       contentFetchedAt: row.content_fetched_at as string | null,
     };
   }

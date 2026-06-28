@@ -123,8 +123,8 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
   };
 
   async function handleSendMessage(text: string) {
-    if (!props.settings.openRouterApiKey) {
-      alert("Please set your OpenRouter API key in Settings → AI");
+    if (!props.settings.syncUrl) {
+      alert("Chat unavailable: configure the sync worker URL in Settings → Sync");
       return;
     }
 
@@ -212,9 +212,8 @@ export default function ChatPanelContent(props: ChatPanelContentProps) {
     try {
       let fullContent = "";
       for await (const chunk of streamChatCompletion(
-        props.settings.openRouterApiKey,
-        currentModel(),
         llmMessages,
+        currentModel(),
       )) {
         fullContent += chunk;
         setStreamingContent(fullContent);

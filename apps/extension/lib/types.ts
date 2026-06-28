@@ -1,5 +1,6 @@
 // Re-export shared types so existing imports continue to work
 import type { Page, Group, Capture, SyncPayload, AITemplate, AIDocument } from "@tab-zen/shared";
+import type { MediaTypeDef } from "./media-types";
 export type { Page, Group, Capture, SyncPayload, AITemplate, AIDocument };
 
 export interface Settings {
@@ -20,7 +21,7 @@ export interface Settings {
   openMode: "new-tab" | "current-tab";
   syncError: string | null;
   viewMode: "cards" | "rows";
-  activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates" | "trash";
+  activeFilter: "all" | "starred" | "notes" | "byDate" | "archived" | "duplicates" | "trash" | "queued";
   socialVoice: string;
   socialDefaultLength: "brief" | "standard" | "detailed" | "thread";
   socialHashtags: boolean;
@@ -31,6 +32,16 @@ export interface Settings {
   notchEnabled: boolean;
   notchSide: "left" | "right";
   dataSource: "local" | "service" | "auto";
+  /** User-created custom media types (built-ins live in media-types.ts). */
+  customTypes: MediaTypeDef[];
+  /** Bare domain → type id. Reassignments + custom-type routing. */
+  domainTypeOverrides: Record<string, string>;
+  /** Type ids to save on "save all tabs". Empty = save all types. */
+  captureTypes: string[];
+  /** Domains-nav grouping mode. */
+  navGroupBy: "domain" | "type" | "folders";
+  /** Where organized tabs are persisted: browser bookmarks, in-app collection, or both. */
+  organizeDestination: "browser" | "app" | "both";
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -44,7 +55,7 @@ export const DEFAULT_SETTINGS: Settings = {
   syncEnabled: false,
   syncToken: null,
   syncLocalToken: null,
-  syncUrl: "",
+  syncUrl: import.meta.env.VITE_SYNC_URL || "",
   syncLocalUrl: "http://localhost:8787",
   syncEnv: "local",
   openMode: "new-tab",
@@ -85,6 +96,11 @@ export const DEFAULT_SETTINGS: Settings = {
   notchEnabled: true,
   notchSide: "right",
   dataSource: "local" as const,
+  customTypes: [],
+  domainTypeOverrides: {},
+  captureTypes: [],
+  navGroupBy: "domain",
+  organizeDestination: "browser",
 };
 
 export interface AIGroupSuggestion {

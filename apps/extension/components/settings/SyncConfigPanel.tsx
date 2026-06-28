@@ -1,4 +1,4 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal, createEffect, Show } from "solid-js";
 import { HardDrive, Cloud, Monitor, RefreshCw } from "lucide-solid";
 import { initSync, verifySync, checkConnection } from "@/lib/sync";
 import { sendMessage } from "@/lib/messages";
@@ -32,9 +32,24 @@ export default function SyncConfigPanel(props: SyncConfigPanelProps) {
   const [migrateResult, setMigrateResult] = createSignal<string | null>(null);
 
   const s = () => props.settings;
-  const mode = () => deriveStorageMode(s());
+
+  // The selected mode is local UI state, seeded from settings. Selecting
+  // "Browser + Cloud Sync" doesn't flip a setting until a token is generated,
+  // so deriving the selection purely from settings means the option can never
+  // appear selected and its config never expands. Track it locally instead.
+  const [selectedMode, setSelectedMode] = createSignal<StorageMode>(deriveStorageMode(props.settings));
+  const mode = selectedMode;
+
+  // Reflect an already-configured backend (settings may load async, or sync may
+  // already be enabled). Never downgrades to "browser", so an in-progress sync
+  // selection isn't wiped before its token is generated.
+  createEffect(() => {
+    const derived = deriveStorageMode(props.settings);
+    if (derived !== "browser") setSelectedMode(derived);
+  });
 
   async function handleStorageChange(newMode: StorageMode) {
+    setSelectedMode(newMode);
     if (newMode === "browser") {
       setServiceActive(false);
       await props.save({ dataSource: "local", syncEnabled: false });
@@ -276,7 +291,7 @@ function SyncConfig(props: {
         />
         <Show when={s().syncEnv === "local"}>
           <p class="text-sm text-muted-foreground mt-1.5">
-            Run <code class="text-foreground">bun run sync:dev</code> to start the local server
+            Run <code class="text-foreground">pnpm dev:api</code> to start the local server
           </p>
         </Show>
       </div>
@@ -315,7 +330,7 @@ function SyncConfig(props: {
           if (!ok) {
             props.setSyncStatus(
               isLocal()
-                ? "Cannot reach server. Run bun run sync:dev"
+                ? "Cannot reach server. Run pnpm dev:api"
                 : "Cannot reach server. Check the URL."
             );
           }
@@ -333,7 +348,7 @@ function SyncConfig(props: {
             props.setConnected(false);
             props.setSyncStatus(
               isLocal()
-                ? "Failed. Is the server running? (bun run sync:dev)"
+                ? "Failed. Is the server running? (pnpm dev:api)"
                 : `Failed: ${e}`
             );
           }

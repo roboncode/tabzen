@@ -1,4 +1,5 @@
-import type { Page } from "./types";
+import type { Page, Group } from "./types";
+import { classifyDomain, allMediaTypes, type MediaTypeDef } from "./media-types";
 
 const SOCIAL_PLATFORMS = new Set([
   "youtube.com",
@@ -178,6 +179,104 @@ export function buildDomainIndex(pages: Page[]): DomainInfo[] {
       creators: Array.from(info.creators.entries())
         .map(([name, { count, avatar }]) => ({ name, count, avatar }))
         .sort((a, b) => b.count - a.count),
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+export const ONE_OFF_MAX = 2;
+
+export interface TypeGroup {
+  type: MediaTypeDef;
+  count: number;
+  domains: DomainInfo[];
+  otherSites?: { count: number; domains: DomainInfo[] };
+}
+
+/**
+ * Group the domain index by media type. Domains with <= ONE_OFF_MAX pages are
+ * collapsed into a per-type `otherSites` bucket so the long tail of one-off
+ * domains doesn't bloat the Type view. Empty types are omitted; unknown domains
+ * fall back to "other".
+ */
+export function buildTypeIndex(
+  pages: Page[],
+  overrides: Record<string, string>,
+  customTypes: MediaTypeDef[],
+): TypeGroup[] {
+  const domainIndex = buildDomainIndex(pages);
+  const types = allMediaTypes(customTypes);
+  const validIds = new Set(types.map((t) => t.id));
+
+  const byType = new Map<string, DomainInfo[]>();
+  for (const info of domainIndex) {
+    const id0 = classifyDomain(info.domain, overrides);
+    const id = validIds.has(id0) ? id0 : "other";
+    const list = byType.get(id) || [];
+    list.push(info);
+    byType.set(id, list);
+  }
+
+  const groups: TypeGroup[] = [];
+  for (const type of types) {
+    const domains = byType.get(type.id);
+    if (!domains || domains.length === 0) continue;
+    const primary = domains.filter((d) => d.count > ONE_OFF_MAX);
+    const oneOff = domains.filter((d) => d.count <= ONE_OFF_MAX);
+    const count = domains.reduce((sum, d) => sum + d.count, 0);
+    groups.push({
+      type,
+      count,
+      domains: primary,
+      otherSites: oneOff.length
+        ? { count: oneOff.reduce((s, d) => s + d.count, 0), domains: oneOff }
+        : undefined,
+    });
+  }
+  return groups;
+}
+
+export interface FolderInfo {
+  name: string;
+  count: number;
+  groupIds: string[];
+}
+
+/**
+ * Group the collection's pages by their Group's NAME, folding same-named groups
+ * across captures into a single folder entry. Excludes archived groups, blank/empty
+ * names, and folders with zero live (non-deleted, non-archived) pages.
+ * Sorted by count descending.
+ */
+export function buildFolderIndex(pages: Page[], groups: Group[]): FolderInfo[] {
+  // Build groupId → group name map, skipping archived and blank-named groups
+  const groupNameMap = new Map<string, string>();
+  for (const g of groups) {
+    if (g.archived) continue;
+    const trimmed = g.name.trim();
+    if (!trimmed) continue;
+    groupNameMap.set(g.id, trimmed);
+  }
+
+  // Tally live pages by folder name, accumulating contributing groupIds
+  const folderMap = new Map<string, { count: number; groupIds: Set<string> }>();
+  for (const page of pages) {
+    if (page.deletedAt || page.archived) continue;
+    const name = groupNameMap.get(page.groupId);
+    if (!name) continue;
+    let entry = folderMap.get(name);
+    if (!entry) {
+      entry = { count: 0, groupIds: new Set() };
+      folderMap.set(name, entry);
+    }
+    entry.count++;
+    entry.groupIds.add(page.groupId);
+  }
+
+  return Array.from(folderMap.entries())
+    .map(([name, { count, groupIds }]) => ({
+      name,
+      count,
+      groupIds: Array.from(groupIds),
     }))
     .sort((a, b) => b.count - a.count);
 }

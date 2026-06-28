@@ -1,6 +1,7 @@
 import {
   createSignal,
   createMemo,
+  createEffect,
   onMount,
   onCleanup,
   For,
@@ -16,12 +17,14 @@ import {
   Calendar,
   Archive,
   Inbox,
+  RefreshCw,
 } from "lucide-solid";
 import UserMenu from "./UserMenu";
 import AddUrlInput from "./AddUrlInput";
 import Tip from "./Tip";
 import EmptyBlock from "./EmptyBlock";
-import { buildDomainIndex, getDomain, extractCreator } from "@/lib/domains";
+import { buildDomainIndex, buildTypeIndex, buildFolderIndex, getDomain, extractCreator } from "@/lib/domains";
+import { isTranscriptPending } from "@/lib/capture-utils";
 import AppSidebar from "./AppSidebar";
 import StorageBadge from "./StorageBadge";
 import type {
@@ -41,7 +44,7 @@ import {
   restorePage,
 } from "@/lib/db";
 import { sendMessage } from "@/lib/messages";
-import { getSettings, updateSettings } from "@/lib/settings";
+import { getSettings, updateSettings, watchSettings } from "@/lib/settings";
 import GroupSection from "./GroupSection";
 import SearchBar from "./SearchBar";
 import FilterPills from "./FilterPills";
@@ -51,6 +54,8 @@ import CapturePreview from "./CapturePreview";
 import EmptyState from "./EmptyState";
 import NoteCard from "./NoteCard";
 import ConfirmDialog from "./ConfirmDialog";
+import MoveToGroupDialog from "./MoveToGroupDialog";
+import { classifyDomain } from "@/lib/media-types";
 
 interface PageCollectionProps {
   viewMode: Settings["viewMode"];
@@ -59,10 +64,18 @@ interface PageCollectionProps {
 
 export default function PageCollection(props: PageCollectionProps) {
   const navigate = useNavigate();
-  const [filter, setFilter] = createSignal<Settings["activeFilter"]>("all");
+  const [filter, setFilterRaw] = createSignal<Settings["activeFilter"]>("all");
+  // Persist the active filter so the chosen tab survives navigation and browser
+  // sessions. Stored in local settings (browser.storage.local), not the synced
+  // DB. Wrapping the setter means every call site persists automatically.
+  const setFilter = (f: Settings["activeFilter"]) => {
+    setFilterRaw(f);
+    void updateSettings({ activeFilter: f });
+  };
   const [deviceFilter, setDeviceFilter] = createSignal<string>("all");
   const [domainFilter, setDomainFilter] = createSignal<string | null>(null);
   const [creatorFilter, setCreatorFilter] = createSignal<string | null>(null);
+  const [activeFolder, setActiveFolder] = createSignal<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
   const [syncError, setSyncError] = createSignal<string | null>(null);
   let searchBarApi: { setSearch: (q: string) => void } | undefined;
@@ -74,8 +87,11 @@ export default function PageCollection(props: PageCollectionProps) {
   const [pastedUrl, setPastedUrl] = createSignal<string | null>(null);
   const [pasteSaving, setPasteSaving] = createSignal(false);
   const [showPasteTip, setShowPasteTip] = createSignal(false);
+  const [showGroupTip, setShowGroupTip] = createSignal(false);
   const [capturePreview, setCapturePreview] =
     createSignal<CapturePreviewData | null>(null);
+  const [moveDomain, setMoveDomain] = createSignal<string | null>(null);
+  const [settings, setSettings] = createSignal<Settings | null>(null);
 
   const [allPages, setAllPages] = createSignal<Page[]>([]);
   const [allGroups, setAllGroups] = createSignal<Group[]>([]);
@@ -107,12 +123,31 @@ export default function PageCollection(props: PageCollectionProps) {
   // Full refresh (for captures, syncs, bulk changes)
   const refresh = () => loadData();
 
+  // Count of YouTube items still waiting on a transcript — drives the live
+  // "queued" cue. Updates automatically as the background queue persists each
+  // result (each one fires DATA_CHANGED → loadData → allPages changes).
+  const pendingTranscriptCount = createMemo(
+    () => (allPages() || []).filter((t) => isTranscriptPending(t)).length,
+  );
+
+  // When the queue drains to zero, drop out of the "queued" filter so the user
+  // isn't left staring at an empty view.
+  createEffect(() => {
+    if (pendingTranscriptCount() === 0 && filter() === "queued") {
+      setFilter("all");
+    }
+  });
+
   // Listen for data changes from background worker
   onMount(() => {
     loadData();
     getSettings().then((s) => {
+      setSettings(s);
       if (s.syncError) setSyncError(s.syncError);
+      setFilterRaw(s.activeFilter);
     });
+    const unwatchSettings = watchSettings((s) => setSettings(s));
+    onCleanup(unwatchSettings);
 
     const listener = (message: any) => {
       if (message.type === "DATA_CHANGED") {
@@ -196,6 +231,35 @@ export default function PageCollection(props: PageCollectionProps) {
 
   const domainIndex = createMemo(() => buildDomainIndex(allPages() || []));
 
+  const groupBy = (): "domain" | "type" | "folders" => settings()?.navGroupBy ?? "domain";
+  // First time the user opens the Type view, surface the easy-to-miss
+  // "Move to group" folder icon. Shown once, persisted in local storage
+  // (mirrors the first-paste tip).
+  const maybeShowGroupTip = async () => {
+    const key = "moveToGroupTipDismissed";
+    const state = await browser.storage.local.get(key);
+    if (!state[key]) {
+      setShowGroupTip(true);
+      await browser.storage.local.set({ [key]: true });
+    }
+  };
+  const setGroupBy = (mode: "domain" | "type" | "folders") => {
+    setSettings((s) => (s ? { ...s, navGroupBy: mode } : s));
+    void updateSettings({ navGroupBy: mode });
+    if (mode === "type") void maybeShowGroupTip();
+    if (mode !== "folders") setActiveFolder(null);
+  };
+
+  const typeIndex = createMemo(() =>
+    buildTypeIndex(
+      allPages() || [],
+      settings()?.domainTypeOverrides ?? {},
+      settings()?.customTypes ?? [],
+    ),
+  );
+
+  const folderIndex = createMemo(() => buildFolderIndex(allPages() || [], allGroups() || []));
+
   const tagIndex = createMemo(() => {
     const pages = allPages() || [];
     const counts = new Map<string, number>();
@@ -242,20 +306,32 @@ export default function PageCollection(props: PageCollectionProps) {
     // All non-trash views exclude soft-deleted pages
     pages = pages.filter((t) => !t.deletedAt);
 
-    // Apply domain filter
-    const domain = domainFilter();
-    if (domain) {
-      pages = pages.filter((t) => getDomain(t.url) === domain);
-      // Apply creator filter within domain
-      const creator = creatorFilter();
-      if (creator) {
-        pages = pages.filter((t) => extractCreator(t) === creator);
+    // Apply folder filter (takes priority over domain/creator when active)
+    const folder = activeFolder();
+    if (folder) {
+      // Build a groupId → name map for lookup
+      const groupNameMap = new Map<string, string>();
+      for (const g of allGroups() || []) {
+        if (!g.archived && g.name.trim()) groupNameMap.set(g.id, g.name.trim());
+      }
+      pages = pages.filter((t) => groupNameMap.get(t.groupId) === folder);
+    } else {
+      // Apply domain filter
+      const domain = domainFilter();
+      if (domain) {
+        pages = pages.filter((t) => getDomain(t.url) === domain);
+        // Apply creator filter within domain
+        const creator = creatorFilter();
+        if (creator) {
+          pages = pages.filter((t) => extractCreator(t) === creator);
+        }
       }
     }
 
     if (f === "archived") return pages.filter((t) => t.archived);
     if (f === "starred") return pages.filter((t) => t.starred && !t.archived);
     if (f === "notes") return pages.filter((t) => t.notes && !t.archived);
+    if (f === "queued") return pages.filter((t) => isTranscriptPending(t) && !t.archived);
     if (f === "duplicates") {
       const live = pages.filter((t) => !t.archived);
       const urlCount = new Map<string, number>();
@@ -405,13 +481,41 @@ export default function PageCollection(props: PageCollectionProps) {
     notifyChanged();
   };
 
-  const handleConfirmCapture = async () => {
-    const preview = capturePreview();
-    if (preview) {
-      await sendMessage({ type: "CONFIRM_CAPTURE", captureData: preview });
-      setCapturePreview(null);
-      loadData(); // Full reload for new captures
-    }
+  const handleConfirmCapture = async (filtered: CapturePreviewData) => {
+    await sendMessage({ type: "CONFIRM_CAPTURE", captureData: filtered });
+    setCapturePreview(null);
+    loadData(); // Full reload for new captures
+  };
+
+  const openMoveDialog = (domain: string) => setMoveDomain(domain);
+
+  const moveItemCount = createMemo(() => {
+    const d = moveDomain();
+    if (!d) return 0;
+    return (allPages() || []).filter(
+      (p) => !p.deletedAt && !p.archived && getDomain(p.url) === d,
+    ).length;
+  });
+
+  const assignDomainType = async (domain: string, typeId: string) => {
+    const cur = settings();
+    const overrides = { ...(cur?.domainTypeOverrides ?? {}), [domain]: typeId };
+    setSettings((s) => (s ? { ...s, domainTypeOverrides: overrides } : s));
+    await updateSettings({ domainTypeOverrides: overrides });
+    setMoveDomain(null);
+  };
+
+  const createTypeAndAssign = async (domain: string, label: string) => {
+    const cur = settings();
+    const id = `custom-${crypto.randomUUID()}`;
+    const customTypes = [
+      ...(cur?.customTypes ?? []),
+      { id, label, color: "#6366f1", builtIn: false },
+    ];
+    const overrides = { ...(cur?.domainTypeOverrides ?? {}), [domain]: id };
+    setSettings((s) => (s ? { ...s, customTypes, domainTypeOverrides: overrides } : s));
+    await updateSettings({ customTypes, domainTypeOverrides: overrides });
+    setMoveDomain(null);
   };
 
   return (
@@ -433,6 +537,17 @@ export default function PageCollection(props: PageCollectionProps) {
           totalCount={
             (allPages() || []).filter((t) => !t.deletedAt && !t.archived).length
           }
+          typeGroups={typeIndex()}
+          groupBy={groupBy()}
+          onSetGroupBy={setGroupBy}
+          onMoveDomain={openMoveDialog}
+          folders={folderIndex()}
+          activeFolder={activeFolder()}
+          onSelectFolder={(name) => {
+            setActiveFolder(name);
+            setDomainFilter(null);
+            setCreatorFilter(null);
+          }}
         />
       </div>
 
@@ -457,6 +572,18 @@ export default function PageCollection(props: PageCollectionProps) {
                 (allPages() || []).filter((t) => !t.deletedAt && !t.archived)
                   .length
               }
+              typeGroups={typeIndex()}
+              groupBy={groupBy()}
+              onSetGroupBy={setGroupBy}
+              onMoveDomain={openMoveDialog}
+              folders={folderIndex()}
+              activeFolder={activeFolder()}
+              onSelectFolder={(name) => {
+                setActiveFolder(name);
+                setDomainFilter(null);
+                setCreatorFilter(null);
+                if (name) setSidebarOpen(false);
+              }}
             />
           </div>
           <div
@@ -481,7 +608,13 @@ export default function PageCollection(props: PageCollectionProps) {
 
           <span class="text-sm font-medium text-foreground truncate flex-1 min-w-0">
             Collections
-            <Show when={domainFilter()}>
+            <Show when={activeFolder()}>
+              <span class="text-muted-foreground font-normal">
+                {" / "}
+                {activeFolder()}
+              </span>
+            </Show>
+            <Show when={!activeFolder() && domainFilter()}>
               <span class="text-muted-foreground font-normal">
                 {" / "}
                 {domainFilter()}
@@ -583,6 +716,23 @@ export default function PageCollection(props: PageCollectionProps) {
           <div class="flex-1 overflow-x-auto scrollbar-hide">
             <FilterPills active={filter()} onChange={setFilter} />
           </div>
+          {/* Live transcript-queue cue: shows the pending count while the
+              background queue works, and filters to those items when clicked.
+              Disappears when the queue drains. */}
+          <Show when={pendingTranscriptCount() > 0}>
+            <button
+              class={`flex items-center gap-1.5 px-3 py-0.5 text-sm font-medium rounded-full transition-colors whitespace-nowrap flex-shrink-0 ${
+                filter() === "queued"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+              onClick={() => setFilter(filter() === "queued" ? "all" : "queued")}
+              title="Transcripts fetching in the background — click to see them"
+            >
+              <RefreshCw size={13} class="animate-spin" />
+              {pendingTranscriptCount()} queued
+            </button>
+          </Show>
           <Show when={uniqueDevices().length > 1}>
             <select
               class="bg-muted/40 text-sm text-foreground rounded-lg px-3 py-1.5 outline-none focus:bg-muted/60 transition-colors flex-shrink-0"
@@ -658,6 +808,7 @@ export default function PageCollection(props: PageCollectionProps) {
                       onEditNotes={setEditingPage}
                       onRenameGroup={() => {}}
                       onToggleStar={handleToggleStar}
+                      onMove={(p) => openMoveDialog(getDomain(p.url))}
                       onOpenSource={handleOpenSource}
                       onSelectCreator={(d, c) => {
                         setDomainFilter(d);
@@ -715,6 +866,7 @@ export default function PageCollection(props: PageCollectionProps) {
                   onEditNotes={setEditingPage}
                   onRenameGroup={() => {}}
                   onToggleStar={handleToggleStar}
+                  onMove={(p) => openMoveDialog(getDomain(p.url))}
                   onRestore={handleRestore}
                   onHardDelete={handleHardDelete}
                   isTrash
@@ -768,6 +920,7 @@ export default function PageCollection(props: PageCollectionProps) {
                           onEditNotes={setEditingPage}
                           onRenameGroup={handleRenameGroup}
                           onToggleStar={handleToggleStar}
+                          onMove={(p) => openMoveDialog(getDomain(p.url))}
                           onOpenSource={handleOpenSource}
                         />
                       </Show>
@@ -795,8 +948,26 @@ export default function PageCollection(props: PageCollectionProps) {
           {(preview) => (
             <CapturePreview
               data={preview()}
+              overrides={settings()?.domainTypeOverrides ?? {}}
+              customTypes={settings()?.customTypes ?? []}
+              defaultTypes={settings()?.captureTypes ?? []}
               onConfirm={handleConfirmCapture}
               onCancel={() => setCapturePreview(null)}
+            />
+          )}
+        </Show>
+
+        {/* Move Domain to Group Dialog */}
+        <Show when={moveDomain()}>
+          {(domain) => (
+            <MoveToGroupDialog
+              domain={domain()}
+              itemCount={moveItemCount()}
+              customTypes={settings()?.customTypes ?? []}
+              currentTypeId={classifyDomain(domain(), settings()?.domainTypeOverrides ?? {})}
+              onPick={(typeId) => assignDomainType(domain(), typeId)}
+              onCreate={(label) => createTypeAndAssign(domain(), label)}
+              onCancel={() => setMoveDomain(null)}
             />
           )}
         </Show>
@@ -844,6 +1015,20 @@ export default function PageCollection(props: PageCollectionProps) {
           ]}
           onDismiss={() => setShowPasteTip(false)}
           onDontShowAgain={() => setShowPasteTip(false)}
+        />
+      </Show>
+
+      {/* First time opening the Type view — teach the Move-to-group icon */}
+      <Show when={showGroupTip()}>
+        <Tip
+          tips={[
+            {
+              title: "Make your own groups",
+              message:
+                "Hover any item — or a domain in the sidebar — and click the folder icon to move its whole site into a group. Future tabs from that site follow, and you can spin up your own groups with “+ New group”.",
+            },
+          ]}
+          onDismiss={() => setShowGroupTip(false)}
         />
       </Show>
     </div>

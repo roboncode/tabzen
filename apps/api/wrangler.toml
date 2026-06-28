@@ -1,6 +1,7 @@
 name = "tab-zen-sync"
 main = "src/index.ts"
 compatibility_date = "2025-04-01"
+account_id = "d1fbd52963af543c9e7b19ee3f05f1bb"  # Jombee
 
 [[d1_databases]]
 binding = "DB"

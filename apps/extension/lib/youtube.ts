@@ -54,13 +54,19 @@ export function parseTimedTextXml(xml: string): { text: string; startMs: number;
 
 function decodeXmlEntities(text: string): string {
   return text
+    // Strip real HTML tags (e.g. YouTube's <font color="..."> subtitle styling)
+    // BEFORE decoding entities, so caption text encoded as &lt;...&gt; survives
+    // instead of being decoded to <...> and then mistaken for a tag and removed.
+    .replace(/<[^>]*>/g, "")
+    // Decode &amp; first: YouTube double-encodes (&amp;#39; for apostrophes,
+    // &amp;quot; for quotes), so this collapses them to a real entity the
+    // following passes can finish decoding.
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&apos;/g, "'")
-    .replace(/<[^>]*>/g, "") // Strip HTML tags (e.g. YouTube's <font color="..."> subtitle styling)
     .replace(/\n/g, " ")
     .trim();
 }
