@@ -8,6 +8,7 @@ import {
 } from "@tab-zen/chat";
 import { sendMessage } from "@/lib/messages";
 import { getDomain } from "@/lib/domains";
+import { getSettings, updateSettings } from "@/lib/settings";
 import type { BookmarkPlan, BookmarkFolder, TabEntry } from "@/lib/bookmark-plan";
 
 function faviconFor(url: string): string {
@@ -32,10 +33,15 @@ export default function OrganizePage() {
   const [confirming, setConfirming] = createSignal(false);
   const [confirmError, setConfirmError] = createSignal<string | null>(null);
   const [successMsg, setSuccessMsg] = createSignal<string | null>(null);
+  const [destination, setDestination] = createSignal<"browser" | "app" | "both">("browser");
 
   onMount(async () => {
     try {
-      const res = await sendMessage({ type: "GET_ORGANIZE_PLAN" });
+      const [res, settings] = await Promise.all([
+        sendMessage({ type: "GET_ORGANIZE_PLAN" }),
+        getSettings(),
+      ]);
+      setDestination(settings.organizeDestination ?? "browser");
       if (res.type === "ORGANIZE_PLAN") {
         setPlan(res.plan);
       } else if (res.type === "ERROR") {
@@ -48,15 +54,29 @@ export default function OrganizePage() {
     }
   });
 
+  const handleDestinationChange = async (value: "browser" | "app" | "both") => {
+    setDestination(value);
+    await updateSettings({ organizeDestination: value });
+  };
+
   const handleConfirm = async () => {
     const p = plan();
     if (!p || confirming()) return;
     setConfirming(true);
     setConfirmError(null);
     try {
-      const res = await sendMessage({ type: "CONFIRM_ORGANIZE", plan: p, destination: "browser" });
+      const res = await sendMessage({ type: "CONFIRM_ORGANIZE", plan: p, destination: destination() });
       if (res.type === "ORGANIZE_DONE") {
-        setSuccessMsg(`Added ${res.created} bookmark${res.created !== 1 ? "s" : ""}`);
+        const dest = destination();
+        let msg: string;
+        if (dest === "both") {
+          msg = `Added ${res.created} bookmark${res.created !== 1 ? "s" : ""} · Saved ${res.saved} to your collection`;
+        } else if (dest === "app") {
+          msg = `Saved ${res.saved} to your collection`;
+        } else {
+          msg = `Added ${res.created} bookmark${res.created !== 1 ? "s" : ""}`;
+        }
+        setSuccessMsg(msg);
         setTimeout(() => navigate("/"), 1500);
       } else if (res.type === "ERROR") {
         setConfirmError(res.message);
@@ -148,6 +168,31 @@ export default function OrganizePage() {
                   >
                     {p.mode === "ai" ? "AI" : "Type-based"}
                   </span>
+                </div>
+
+                {/* Destination selector */}
+                <div class="flex items-center gap-2 mb-5">
+                  <span class="text-sm text-muted-foreground/70 flex-shrink-0">Create in:</span>
+                  <div class="flex gap-1 bg-muted/30 rounded-full p-0.5">
+                    {(
+                      [
+                        { value: "browser", label: "Browser bookmarks" },
+                        { value: "app", label: "Tab Zen" },
+                        { value: "both", label: "Both" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        class={`px-3 py-1 text-sm font-medium rounded-full transition-colors ${
+                          destination() === opt.value
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                        onClick={() => handleDestinationChange(opt.value)}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Folder list */}
