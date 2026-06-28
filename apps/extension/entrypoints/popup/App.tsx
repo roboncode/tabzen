@@ -102,6 +102,31 @@ export default function App() {
   });
   const [confirmingCloseDuplicates, setConfirmingCloseDuplicates] = createSignal(false);
 
+  const hasBookmarks = typeof browser.bookmarks !== "undefined";
+  const [organizing, setOrganizing] = createSignal(false);
+  const [organizeError, setOrganizeError] = createSignal<string | null>(null);
+
+  const handleOrganizeTabs = async () => {
+    setOrganizing(true);
+    setOrganizeError(null);
+    try {
+      const res = await sendMessage({ type: "ORGANIZE_TABS_PREVIEW" });
+      if (res.type === "ORGANIZE_PREVIEW_READY") {
+        await openOrFocusSPA("organize");
+        // openOrFocusSPA calls window.close() internally
+      } else if (res.type === "ERROR") {
+        setOrganizeError(res.message);
+        setOrganizing(false);
+      } else {
+        setOrganizeError("Unexpected response.");
+        setOrganizing(false);
+      }
+    } catch (err) {
+      setOrganizeError(err instanceof Error ? err.message : "Failed to organize.");
+      setOrganizing(false);
+    }
+  };
+
   const domain = () => getDomain(activeTab()?.url || "");
 
   const faviconSrc = () => {
@@ -424,6 +449,22 @@ export default function App() {
                 Cancel
               </button>
             </div>
+          </Show>
+        </div>
+      </Show>
+
+      {/* Organize tabs */}
+      <Show when={hasBookmarks}>
+        <div class="mb-3">
+          <button
+            class="w-full text-sm text-muted-foreground hover:text-foreground bg-muted/20 hover:bg-muted/40 rounded-lg px-3 py-2 transition-colors text-left disabled:opacity-60"
+            onClick={handleOrganizeTabs}
+            disabled={organizing()}
+          >
+            {organizing() ? "Analyzing tabs…" : "Organize tabs"}
+          </button>
+          <Show when={organizeError()}>
+            <p class="text-xs text-red-400 mt-1 px-1">{organizeError()}</p>
           </Show>
         </div>
       </Show>
