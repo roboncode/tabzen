@@ -16,7 +16,7 @@ import {
 } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { normalizeUrl, buildUrlSet, isDuplicate, shouldSkipUrl } from "@/lib/duplicates";
-import { closeableCapturedTabIds, duplicateTabIdsToClose } from "@/lib/tab-status";
+import { closeableCapturedTabIds, duplicateTabIdsToClose, selectUncapturedTabs } from "@/lib/tab-status";
 import { includeUrlForCapture } from "@/lib/media-types";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { CURRENT_CONTENT_VERSION } from "@/lib/page-extract";
@@ -410,6 +410,10 @@ export default defineBackground(() => {
         return handleGetDuplicateTabsCount();
       case "CLOSE_DUPLICATE_TABS":
         return handleCloseDuplicateTabs();
+      case "GET_UNCAPTURED_TABS":
+        return handleGetUncapturedTabs();
+      case "FOCUS_TAB":
+        return handleFocusTab(message.tabId);
       default:
         return { type: "ERROR", message: "Unknown message type" };
     }
@@ -516,6 +520,33 @@ export default defineBackground(() => {
       const ids = duplicateTabIdsToClose(tabs);
       if (ids.length) await browser.tabs.remove(ids);
       return { type: "CLOSE_DUPLICATE_TABS_DONE", closed: ids.length };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleGetUncapturedTabs(): Promise<MessageResponse> {
+    try {
+      const settings = await getSettings();
+      const existingPages = await getAllPages();
+      const capturedUrlSet = buildUrlSet(existingPages.map((p) => p.url));
+      const tabs = await browser.tabs.query({});
+      return {
+        type: "UNCAPTURED_TABS",
+        tabs: selectUncapturedTabs(tabs, capturedUrlSet, settings.blockedDomains),
+      };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleFocusTab(tabId: number): Promise<MessageResponse> {
+    try {
+      const tab = await browser.tabs.update(tabId, { active: true });
+      if (tab?.windowId != null) {
+        await browser.windows.update(tab.windowId, { focused: true });
+      }
+      return { type: "SUCCESS" };
     } catch (e) {
       return { type: "ERROR", message: String(e) };
     }

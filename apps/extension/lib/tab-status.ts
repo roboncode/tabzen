@@ -1,4 +1,4 @@
-import { isDuplicate, normalizeUrl } from "./duplicates";
+import { isDuplicate, normalizeUrl, shouldSkipUrl } from "./duplicates";
 
 export interface DupTabInfo {
   id?: number;
@@ -69,6 +69,47 @@ export function closeableCapturedTabIds(
       isDuplicate(tab.url, capturedUrlSet)
     ) {
       acc.push(tab.id);
+    }
+    return acc;
+  }, []);
+}
+
+export interface OpenTabFull {
+  id?: number;
+  url?: string;
+  title?: string;
+  favIconUrl?: string;
+}
+
+export interface UncapturedTab {
+  id: number;
+  url: string;
+  title: string;
+  favIconUrl: string;
+}
+
+/**
+ * Open tabs that are http(s), not blocked, have a numeric id, and are NOT already captured.
+ */
+export function selectUncapturedTabs(
+  tabs: OpenTabFull[],
+  capturedUrlSet: Set<string>,
+  blockedDomains: string[]
+): UncapturedTab[] {
+  return tabs.reduce<UncapturedTab[]>((acc, tab) => {
+    if (
+      typeof tab.id === "number" &&
+      typeof tab.url === "string" &&
+      /^https?:\/\//i.test(tab.url) &&
+      !shouldSkipUrl(tab.url, blockedDomains) &&
+      !isDuplicate(tab.url, capturedUrlSet)
+    ) {
+      acc.push({
+        id: tab.id,
+        url: tab.url,
+        title: tab.title || tab.url,
+        favIconUrl: tab.favIconUrl || "",
+      });
     }
     return acc;
   }, []);

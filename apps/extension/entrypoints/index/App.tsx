@@ -6,6 +6,7 @@ const PageList = lazy(() => import("@/pages/PageList"));
 const PageDetail = lazy(() => import("@/pages/PageDetail"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 const KbChatPage = lazy(() => import("@/pages/KbChatPage"));
+const OpenTabsPage = lazy(() => import("@/pages/OpenTabsPage"));
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/chat" component={KbChatPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/settings/:section" component={SettingsPage} />
+        <Route path="/open-tabs" component={OpenTabsPage} />
         <Route path="*" component={PageList} />
       </HashRouter>
       <Toaster

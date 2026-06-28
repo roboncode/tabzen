@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildUrlSet } from "@/lib/duplicates";
-import { closeableCapturedTabIds, duplicateTabIdsToClose } from "@/lib/tab-status";
-import type { DupTabInfo } from "@/lib/tab-status";
+import { closeableCapturedTabIds, duplicateTabIdsToClose, selectUncapturedTabs } from "@/lib/tab-status";
+import type { DupTabInfo, OpenTabFull } from "@/lib/tab-status";
 
 describe("closeableCapturedTabIds", () => {
   const capturedUrls = [
@@ -112,5 +112,71 @@ describe("duplicateTabIdsToClose", () => {
       { id: 6, url: "chrome://newtab/", pinned: false },              // non-http → skip
     ];
     expect(duplicateTabIdsToClose(tabs)).toEqual([2, 4]);
+  });
+});
+
+describe("selectUncapturedTabs", () => {
+  const capturedUrlSet = buildUrlSet([
+    "https://example.com/captured",
+    "https://news.ycombinator.com/",
+  ]);
+  const blockedDomains = ["ads.example.com", "tracker.io"];
+
+  it("includes an uncaptured http tab and maps to UncapturedTab shape", () => {
+    const tabs: OpenTabFull[] = [
+      { id: 1, url: "https://github.com/user/repo", title: "User/Repo - GitHub", favIconUrl: "https://github.com/favicon.ico" },
+    ];
+    const result = selectUncapturedTabs(tabs, capturedUrlSet, blockedDomains);
+    expect(result).toEqual([
+      { id: 1, url: "https://github.com/user/repo", title: "User/Repo - GitHub", favIconUrl: "https://github.com/favicon.ico" },
+    ]);
+  });
+
+  it("excludes a tab whose url is already captured", () => {
+    const tabs: OpenTabFull[] = [
+      { id: 2, url: "https://example.com/captured", title: "Captured Page", favIconUrl: "" },
+    ];
+    expect(selectUncapturedTabs(tabs, capturedUrlSet, blockedDomains)).toEqual([]);
+  });
+
+  it("excludes a tab on a blocked domain", () => {
+    const tabs: OpenTabFull[] = [
+      { id: 3, url: "https://ads.example.com/banner", title: "Ad", favIconUrl: "" },
+    ];
+    expect(selectUncapturedTabs(tabs, capturedUrlSet, blockedDomains)).toEqual([]);
+  });
+
+  it("excludes a non-http tab (chrome://newtab/)", () => {
+    const tabs: OpenTabFull[] = [
+      { id: 4, url: "chrome://newtab/", title: "New Tab", favIconUrl: "" },
+    ];
+    expect(selectUncapturedTabs(tabs, capturedUrlSet, blockedDomains)).toEqual([]);
+  });
+
+  it("excludes a tab without a numeric id", () => {
+    const tabs: OpenTabFull[] = [
+      { url: "https://github.com/no-id", title: "No ID", favIconUrl: "" },
+    ];
+    expect(selectUncapturedTabs(tabs, capturedUrlSet, blockedDomains)).toEqual([]);
+  });
+
+  it("uses url as title fallback when title is undefined", () => {
+    const tabs: OpenTabFull[] = [
+      { id: 5, url: "https://github.com/no-title" },
+    ];
+    const result = selectUncapturedTabs(tabs, capturedUrlSet, blockedDomains);
+    expect(result).toEqual([
+      { id: 5, url: "https://github.com/no-title", title: "https://github.com/no-title", favIconUrl: "" },
+    ]);
+  });
+
+  it("uses url as title fallback when title is empty string", () => {
+    const tabs: OpenTabFull[] = [
+      { id: 6, url: "https://github.com/empty-title", title: "" },
+    ];
+    const result = selectUncapturedTabs(tabs, capturedUrlSet, blockedDomains);
+    expect(result).toEqual([
+      { id: 6, url: "https://github.com/empty-title", title: "https://github.com/empty-title", favIconUrl: "" },
+    ]);
   });
 });

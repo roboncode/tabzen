@@ -1,6 +1,6 @@
 import { createSignal, For, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { ChevronDown, ChevronRight, Globe, MessagesSquare, FolderInput, Layers } from "lucide-solid";
+import { ChevronDown, ChevronRight, Globe, MessagesSquare, FolderInput, Layers, AppWindow } from "lucide-solid";
 import type { DomainInfo, TypeGroup } from "@/lib/domains";
 import Avatar from "./Avatar";
 
@@ -140,6 +140,15 @@ export default function AppSidebar(props: AppSidebarProps) {
         >
           <MessagesSquare size={15} class="flex-shrink-0" />
           <span class="flex-1 text-left truncate">Ask Collection</span>
+        </button>
+
+        {/* Open Tabs */}
+        <button
+          class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors mb-2"
+          onClick={() => navigate("/open-tabs")}
+        >
+          <AppWindow size={15} class="flex-shrink-0" />
+          <span class="flex-1 text-left truncate">Open Tabs</span>
         </button>
 
         {/* All domains */}
