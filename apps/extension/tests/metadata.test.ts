@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isMetadataIncomplete, parseOgFromHtml } from "@/lib/metadata";
+import { isMetadataIncomplete, needsMetadataBackfill, parseOgFromHtml } from "@/lib/metadata";
 
 const YT_WATCH_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 const NON_YT_URL = "https://www.example.com/article";
@@ -74,5 +74,25 @@ describe("parseOgFromHtml", () => {
     expect(result.ogDescription).toBeNull();
     expect(result.ogImage).toBeNull();
     expect(result.metaDescription).toBeNull();
+  });
+});
+
+describe("needsMetadataBackfill", () => {
+  it("returns true when metadata is incomplete and no marker set", () => {
+    expect(needsMetadataBackfill({ url: YT_WATCH_URL, ogTitle: null, creator: null })).toBe(true);
+  });
+
+  it("returns false when metadata is incomplete but marker is set", () => {
+    expect(
+      needsMetadataBackfill({ url: YT_WATCH_URL, ogTitle: null, creator: null, metadataCheckedAt: "2024-01-01T00:00:00Z" })
+    ).toBe(false);
+  });
+
+  it("returns false when ogTitle is present (metadata complete)", () => {
+    expect(needsMetadataBackfill({ url: YT_WATCH_URL, ogTitle: "Some Title", creator: null })).toBe(false);
+  });
+
+  it("returns false for non-YouTube URL", () => {
+    expect(needsMetadataBackfill({ url: "https://www.example.com/article", ogTitle: null, creator: null })).toBe(false);
   });
 });

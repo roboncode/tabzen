@@ -37,6 +37,13 @@ export interface Page {
    */
   transcriptCheckedAt?: string | null;
   /**
+   * When the auto metadata queue last *attempted* a backfill for this page
+   * (local-only; not synced). Lets incomplete-metadata pages avoid being
+   * retried forever when the fetch returns nothing useful. Absent = never
+   * attempted.
+   */
+  metadataCheckedAt?: string | null;
+  /**
    * When the auto embed queue last successfully chunked + embedded this page's
    * content into the knowledge base (local-only; not synced). Absent = never
    * embedded. Paired with `embedHash` to detect staleness and skip re-embedding

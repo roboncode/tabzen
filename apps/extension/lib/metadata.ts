@@ -26,3 +26,19 @@ export function parseOgFromHtml(html: string): {
 export function isMetadataIncomplete(page: { url: string; ogTitle: string | null; creator: string | null }): boolean {
   return isYouTubeWatchUrl(page.url) && !page.ogTitle && !page.creator;
 }
+
+/**
+ * Whether a captured page still needs a metadata backfill — drives the
+ * background auto-queue. A YouTube page with incomplete metadata (no ogTitle
+ * and no creator) that the queue hasn't already attempted. Once attempted
+ * (metadataCheckedAt set), it's no longer queued even if the fetch returned
+ * nothing useful.
+ */
+export function needsMetadataBackfill(page: {
+  url: string;
+  ogTitle: string | null;
+  creator: string | null;
+  metadataCheckedAt?: string | null;
+}): boolean {
+  return isMetadataIncomplete(page) && !page.metadataCheckedAt;
+}

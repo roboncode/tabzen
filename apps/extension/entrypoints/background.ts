@@ -21,7 +21,7 @@ import { includeUrlForCapture } from "@/lib/media-types";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { CURRENT_CONTENT_VERSION } from "@/lib/page-extract";
 import { isInjectableTab, mapWithConcurrency, youtubeThumbnailUrl } from "@/lib/capture-utils";
-import { parseOgFromHtml } from "@/lib/metadata";
+import { needsMetadataBackfill, parseOgFromHtml } from "@/lib/metadata";
 import type { TranscriptSegment } from "@tab-zen/shared";
 import { aiSearch, generateTags, generateChapters } from "@/lib/ai";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
@@ -46,6 +46,11 @@ const CAPTURE_EXTRACT_CONCURRENCY = 3;
 // (not inside defineBackground) so the startup trigger can't reference it inside a
 // temporal dead zone before it's initialized.
 let transcriptQueueRunning = false;
+
+// Guards the auto metadata queue so only one drain runs at a time. Module-level
+// (not inside defineBackground) so the startup trigger can't reference it inside
+// a temporal dead zone before it's initialized.
+let metadataQueueRunning = false;
 
 export default defineBackground(() => {
   // --- Notify UI views of data changes ---
@@ -197,6 +202,7 @@ export default defineBackground(() => {
 
   // Drain any pending YouTube transcripts in the background (auto queue).
   processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+  processMetadataQueue().catch((e) => console.warn("[TabZen] Metadata queue failed:", e));
 
   // Embed any pending content into the local knowledge base (rides behind the
   // transcript/content queues, since a page is only embeddable once it has content).
@@ -209,6 +215,7 @@ export default defineBackground(() => {
     // Resume the transcript queue in case a previous drain was interrupted
     // (e.g. the MV3 service worker was suspended mid-run).
     processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+    processMetadataQueue().catch((e) => console.warn("[TabZen] Metadata queue failed:", e));
     // Resume the embed queue (safety net for an interrupted drain / new content).
     processEmbedQueue().catch((e) => console.warn("[TabZen] Embed queue failed:", e));
   }, SYNC_INTERVAL);
@@ -455,6 +462,7 @@ export default defineBackground(() => {
       await confirmCapture(captureData);
       // Auto-fetch transcripts for the newly captured YouTube pages in the background.
       processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+      processMetadataQueue().catch((e) => console.warn("[TabZen] Metadata queue failed:", e));
       // Embed any pages that already have content (transcript pages get embedded
       // on a later drain once their transcript lands).
       processEmbedQueue().catch((e) => console.warn("[TabZen] Embed queue failed:", e));
@@ -762,6 +770,34 @@ export default defineBackground(() => {
     return { fetched, failed, total };
   }
 
+  // Auto metadata backfill queue: drains every YouTube page with missing
+  // metadata (no ogTitle AND no creator) that the queue hasn't attempted yet.
+  // Runs a few at a time; always stamps metadataCheckedAt so each page is
+  // tried at most once (prevents infinite retry loops on truly metadata-less
+  // pages). Re-queries each round so pages captured mid-run are picked up.
+  // Guarded (module-level metadataQueueRunning) so only one drain runs at a time.
+  async function processMetadataQueue(): Promise<void> {
+    if (metadataQueueRunning) return;
+    metadataQueueRunning = true;
+    try {
+      for (;;) {
+        const targets = (await getAllPages()).filter(needsMetadataBackfill);
+        if (targets.length === 0) break;
+        console.log(`[TabZen] Metadata queue: backfilling ${targets.length} page(s)`);
+        await mapWithConcurrency(targets, CAPTURE_EXTRACT_CONCURRENCY, async (page) => {
+          const updates = await refetchMetadataForPage(page);
+          await updatePage(page.id, {
+            ...(updates ?? {}),
+            metadataCheckedAt: new Date().toISOString(),
+          });
+        });
+      }
+      notifyDataChanged();
+    } finally {
+      metadataQueueRunning = false;
+    }
+  }
+
   async function handleBackfillTranscripts(): Promise<MessageResponse> {
     const { fetched, failed, total } = await processTranscriptQueue();
     return { type: "BACKFILL_DONE", fetched, failed, total };
@@ -855,12 +891,12 @@ export default defineBackground(() => {
     return { type: "CONTENT", content: result.content };
   }
 
-  async function handleReExtractMetadata(pageId: string): Promise<MessageResponse> {
+  // Shared helper used by both the manual re-extract handler and the auto
+  // metadata backfill queue. Prefers an awake injectable tab for best fidelity;
+  // falls back to HTTP fetch. Returns the Partial<Page> updates to apply, or
+  // null if nothing was retrieved.
+  async function refetchMetadataForPage(page: Page): Promise<Partial<Page> | null> {
     try {
-      const page = await getPage(pageId);
-      if (!page) return { type: "ERROR", message: "Page not found" };
-
-      // Prefer an awake, injectable open tab for best fidelity; else HTTP fetch
       const openTabs = await browser.tabs.query({ url: page.url });
       const awakeTab = openTabs.find((t) => isInjectableTab(t));
 
@@ -869,8 +905,6 @@ export default defineBackground(() => {
           ? await fetchMetadata(awakeTab.id, page.url)
           : await fetchMetadataViaHttp(page.url);
 
-      // Only overwrite a field when the fresh fetch actually returned a value —
-      // never null-out an existing good value with a missing fetch result.
       const updates: Partial<Page> = {};
       if (meta.ogTitle) updates.ogTitle = meta.ogTitle;
       if (meta.ogDescription) updates.ogDescription = meta.ogDescription;
@@ -880,11 +914,23 @@ export default defineBackground(() => {
       if (meta.creatorAvatar) updates.creatorAvatar = meta.creatorAvatar;
       if (meta.creatorUrl) updates.creatorUrl = meta.creatorUrl;
       if (meta.publishedAt) updates.publishedAt = meta.publishedAt;
-      // The stored title was often the wrong/channel/cached title — replace it
-      // with the fetched og:title whenever we got one.
       if (meta.ogTitle) updates.title = meta.ogTitle;
 
-      if (Object.keys(updates).length > 0) {
+      return Object.keys(updates).length > 0 ? updates : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function handleReExtractMetadata(pageId: string): Promise<MessageResponse> {
+    try {
+      const page = await getPage(pageId);
+      if (!page) return { type: "ERROR", message: "Page not found" };
+
+      // Delegate fetch + field-selection to shared helper (also used by the
+      // auto metadata backfill queue).
+      const updates = await refetchMetadataForPage(page);
+      if (updates && Object.keys(updates).length > 0) {
         await updatePage(pageId, updates);
         notifyDataChanged();
       }
@@ -1212,6 +1258,7 @@ export default defineBackground(() => {
 
       // Auto-fetch transcripts for the newly captured YouTube pages in the background.
       processTranscriptQueue().catch((e) => console.warn("[TabZen] Transcript queue failed:", e));
+      processMetadataQueue().catch((e) => console.warn("[TabZen] Metadata queue failed:", e));
       // Embed any pages that already have content into the knowledge base.
       processEmbedQueue().catch((e) => console.warn("[TabZen] Embed queue failed:", e));
       return { type: "QUICK_CAPTURE_DONE", saved: pages.length, skipped: candidateTabs.length - newBrowserTabs.length };
