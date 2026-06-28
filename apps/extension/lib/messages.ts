@@ -1,5 +1,6 @@
 import type { CapturePreviewData, Page } from "./types";
 import type { UncapturedTab } from "./tab-status";
+import type { BookmarkPlan } from "./bookmark-plan";
 
 export type MessageRequest =
   | { type: "CAPTURE_ALL_TABS" }
@@ -29,7 +30,10 @@ export type MessageRequest =
   | { type: "GET_DUPLICATE_TABS_COUNT" }
   | { type: "CLOSE_DUPLICATE_TABS" }
   | { type: "GET_UNCAPTURED_TABS" }
-  | { type: "FOCUS_TAB"; tabId: number };
+  | { type: "FOCUS_TAB"; tabId: number }
+  | { type: "ORGANIZE_TABS_PREVIEW" }
+  | { type: "GET_ORGANIZE_PLAN" }
+  | { type: "CONFIRM_ORGANIZE"; plan: BookmarkPlan };
 
 export type MessageResponse =
   | { type: "CAPTURE_PREVIEW"; data: CapturePreviewData }
@@ -55,7 +59,10 @@ export type MessageResponse =
   | { type: "CLOSE_CAPTURED_TABS_DONE"; closed: number }
   | { type: "DUPLICATE_TABS_COUNT"; count: number }
   | { type: "CLOSE_DUPLICATE_TABS_DONE"; closed: number }
-  | { type: "UNCAPTURED_TABS"; tabs: UncapturedTab[] };
+  | { type: "UNCAPTURED_TABS"; tabs: UncapturedTab[] }
+  | { type: "ORGANIZE_PREVIEW_READY" }
+  | { type: "ORGANIZE_PLAN"; plan: BookmarkPlan }
+  | { type: "ORGANIZE_DONE"; created: number };
 
 export function sendMessage(message: MessageRequest): Promise<MessageResponse> {
   return browser.runtime.sendMessage(message);

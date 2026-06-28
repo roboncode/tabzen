@@ -23,7 +23,10 @@ import { CURRENT_CONTENT_VERSION } from "@/lib/page-extract";
 import { isInjectableTab, mapWithConcurrency, youtubeThumbnailUrl } from "@/lib/capture-utils";
 import { needsMetadataBackfill, parseOgFromHtml } from "@/lib/metadata";
 import type { TranscriptSegment } from "@tab-zen/shared";
-import { aiSearch, generateTags, generateChapters } from "@/lib/ai";
+import { aiSearch, generateTags, generateChapters, groupTabsForBookmarks } from "@/lib/ai";
+import { buildBookmarkPlan, buildDeterministicAssignments } from "@/lib/bookmark-plan";
+import type { TabFolderAssignment, BookmarkPlan } from "@/lib/bookmark-plan";
+import { executeBookmarkPlan, getOtherBookmarksFolderId } from "@/lib/bookmark-writer";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
 import { encrypt, decrypt } from "@/lib/crypto";
 import { updateSettings } from "@/lib/settings";
@@ -421,8 +424,133 @@ export default defineBackground(() => {
         return handleGetUncapturedTabs();
       case "FOCUS_TAB":
         return handleFocusTab(message.tabId);
+      case "ORGANIZE_TABS_PREVIEW":
+        return handleOrganizeTabsPreview();
+      case "GET_ORGANIZE_PLAN":
+        return handleGetOrganizePlan();
+      case "CONFIRM_ORGANIZE":
+        return handleConfirmOrganize(message.plan);
       default:
         return { type: "ERROR", message: "Unknown message type" };
+    }
+  }
+
+  // --- Bookmark organizer handlers ---
+
+  async function handleOrganizeTabsPreview(): Promise<MessageResponse> {
+    try {
+      const settings = await getSettings();
+      const allTabs = await browser.tabs.query({});
+
+      // Filter out system/blocked URLs
+      const filteredTabs = allTabs.filter(
+        (tab) => tab.url && !shouldSkipUrl(tab.url, settings.blockedDomains),
+      );
+
+      if (filteredTabs.length === 0) {
+        return { type: "ERROR", message: "No organizable tabs found" };
+      }
+
+      // Find existing Tab Zen root bookmark folder. Among folder results
+      // (url undefined), prefer the one whose parent is "Other Bookmarks";
+      // fall back to the first folder result. null → writer creates a new root.
+      const searchResults = await browser.bookmarks.search({ title: "Tab Zen" });
+      const folderResults = searchResults.filter((r) => r.url === undefined);
+      const otherBookmarksId = await getOtherBookmarksFolderId();
+      const rootResult =
+        folderResults.find((r) => r.parentId === otherBookmarksId) ??
+        folderResults[0];
+      const rootId = rootResult?.id ?? null;
+
+      let existingFolders: { id: string; name: string }[] = [];
+      const existingBookmarkUrls = new Set<string>();
+
+      if (rootId) {
+        const children = await browser.bookmarks.getChildren(rootId);
+        existingFolders = children
+          .filter((child) => child.url === undefined)
+          .map((child) => ({ id: child.id, name: child.title }));
+
+        // Recursively collect all bookmark URLs under root
+        async function collectBookmarkUrls(nodeId: string): Promise<void> {
+          const nodeChildren = await browser.bookmarks.getChildren(nodeId);
+          for (const child of nodeChildren) {
+            if (child.url) {
+              existingBookmarkUrls.add(normalizeUrl(child.url));
+            } else {
+              await collectBookmarkUrls(child.id);
+            }
+          }
+        }
+        await collectBookmarkUrls(rootId);
+      }
+
+      // Build tabs array with alreadyBookmarked flag
+      const tabs = filteredTabs.map((tab) => ({
+        title: tab.title || "Untitled",
+        url: tab.url!,
+        alreadyBookmarked: existingBookmarkUrls.has(normalizeUrl(tab.url!)),
+      }));
+
+      // Choose assignment path
+      const existingFolderNames = existingFolders.map((f) => f.name);
+      let assignments: TabFolderAssignment[];
+      let mode: "ai" | "deterministic";
+
+      if (settings.openRouterApiKey) {
+        try {
+          assignments = await groupTabsForBookmarks(
+            settings.openRouterApiKey,
+            settings.aiModel,
+            tabs,
+            existingFolderNames,
+          );
+          mode = "ai";
+        } catch {
+          assignments = buildDeterministicAssignments(tabs, settings.domainTypeOverrides);
+          mode = "deterministic";
+        }
+      } else {
+        assignments = buildDeterministicAssignments(tabs, settings.domainTypeOverrides);
+        mode = "deterministic";
+      }
+
+      // Build plan
+      const plan = buildBookmarkPlan({
+        tabs,
+        existingFolders,
+        assignments,
+        rootId,
+        mode,
+      });
+
+      // Store plan in session storage
+      await browser.storage.session.set({ organize_plan: JSON.stringify(plan) });
+
+      return { type: "ORGANIZE_PREVIEW_READY" };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleGetOrganizePlan(): Promise<MessageResponse> {
+    try {
+      const result = await browser.storage.session.get("organize_plan");
+      if (result.organize_plan) {
+        return { type: "ORGANIZE_PLAN", plan: JSON.parse(result.organize_plan as string) };
+      }
+      return { type: "ERROR", message: "No organize plan found" };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
+  }
+
+  async function handleConfirmOrganize(plan: BookmarkPlan): Promise<MessageResponse> {
+    try {
+      const { created } = await executeBookmarkPlan(plan);
+      return { type: "ORGANIZE_DONE", created };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
     }
   }
 

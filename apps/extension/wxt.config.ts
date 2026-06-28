@@ -21,6 +21,7 @@ export default defineConfig({
       "contextMenus",
       "identity.email",
       "scripting",
+      "bookmarks",
     ],
     host_permissions: [
       "*://*.youtube.com/*",
