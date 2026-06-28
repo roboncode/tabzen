@@ -37,6 +37,8 @@ interface DetailHeaderProps {
   onMenuToggle?: () => void;
   onRefreshContent?: () => void;
   refreshingContent?: boolean;
+  onRefreshDetails?: () => void;
+  refreshingDetails?: boolean;
 }
 
 export default function DetailHeader(props: DetailHeaderProps) {
@@ -262,6 +264,17 @@ export default function DetailHeader(props: DetailHeaderProps) {
                 <span>{props.refreshingContent ? "Refreshing..." : "Refresh content"}</span>
               </button>
             </Show>
+            <button
+              class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+              disabled={props.refreshingDetails}
+              onClick={() => {
+                props.onRefreshDetails?.();
+                setMenuOpen(false);
+              }}
+            >
+              <RefreshCw size={14} class={props.refreshingDetails ? "animate-spin" : ""} />
+              <span>{props.refreshingDetails ? "Refreshing..." : "Refresh details"}</span>
+            </button>
             <button
               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
               onClick={() => {

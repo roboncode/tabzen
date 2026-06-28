@@ -21,6 +21,7 @@ import { includeUrlForCapture } from "@/lib/media-types";
 import { isYouTubeWatchUrl } from "@/lib/youtube";
 import { CURRENT_CONTENT_VERSION } from "@/lib/page-extract";
 import { isInjectableTab, mapWithConcurrency, youtubeThumbnailUrl } from "@/lib/capture-utils";
+import { parseOgFromHtml } from "@/lib/metadata";
 import type { TranscriptSegment } from "@tab-zen/shared";
 import { aiSearch, generateTags, generateChapters } from "@/lib/ai";
 import { pushSync, pullSync, getRemoteStatus } from "@/lib/sync";
@@ -377,6 +378,8 @@ export default defineBackground(() => {
         return handleGetContent(message.pageId);
       case "RE_EXTRACT_CONTENT":
         return handleReExtractContent(message.pageId);
+      case "RE_EXTRACT_METADATA":
+        return handleReExtractMetadata(message.pageId);
       case "BACKFILL_TRANSCRIPTS":
         return handleBackfillTranscripts();
       case "COUNT_MISSING_TRANSCRIPTS":
@@ -821,6 +824,47 @@ export default defineBackground(() => {
     return { type: "CONTENT", content: result.content };
   }
 
+  async function handleReExtractMetadata(pageId: string): Promise<MessageResponse> {
+    try {
+      const page = await getPage(pageId);
+      if (!page) return { type: "ERROR", message: "Page not found" };
+
+      // Prefer an awake, injectable open tab for best fidelity; else HTTP fetch
+      const openTabs = await browser.tabs.query({ url: page.url });
+      const awakeTab = openTabs.find((t) => isInjectableTab(t));
+
+      const meta =
+        awakeTab?.id != null
+          ? await fetchMetadata(awakeTab.id, page.url)
+          : await fetchMetadataViaHttp(page.url);
+
+      // Only overwrite a field when the fresh fetch actually returned a value —
+      // never null-out an existing good value with a missing fetch result.
+      const updates: Partial<Page> = {};
+      if (meta.ogTitle) updates.ogTitle = meta.ogTitle;
+      if (meta.ogDescription) updates.ogDescription = meta.ogDescription;
+      if (meta.ogImage) updates.ogImage = meta.ogImage;
+      if (meta.metaDescription) updates.metaDescription = meta.metaDescription;
+      if (meta.creator) updates.creator = meta.creator;
+      if (meta.creatorAvatar) updates.creatorAvatar = meta.creatorAvatar;
+      if (meta.creatorUrl) updates.creatorUrl = meta.creatorUrl;
+      if (meta.publishedAt) updates.publishedAt = meta.publishedAt;
+      // The stored title was often the wrong/channel/cached title — replace it
+      // with the fetched og:title whenever we got one.
+      if (meta.ogTitle) updates.title = meta.ogTitle;
+
+      if (Object.keys(updates).length > 0) {
+        await updatePage(pageId, updates);
+        notifyDataChanged();
+      }
+
+      const updated = await getPage(pageId);
+      return { type: "METADATA_REFRESHED", page: updated! };
+    } catch (e) {
+      return { type: "ERROR", message: String(e) };
+    }
+  }
+
   async function handleSyncNow(): Promise<MessageResponse> {
     try {
       const settings = await getSettings();
@@ -1254,29 +1298,6 @@ export default defineBackground(() => {
   }
 
   // --- Capture helpers ---
-
-  function parseOgFromHtml(html: string): {
-    ogTitle: string | null;
-    ogDescription: string | null;
-    ogImage: string | null;
-    metaDescription: string | null;
-  } {
-    const getMetaContent = (pattern: RegExp): string | null => {
-      const match = html.match(pattern);
-      return match?.[1]?.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">") || null;
-    };
-
-    return {
-      ogTitle: getMetaContent(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']*)["']/i)
-        || getMetaContent(/<meta[^>]*content=["']([^"']*)["'][^>]*property=["']og:title["']/i),
-      ogDescription: getMetaContent(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']*)["']/i)
-        || getMetaContent(/<meta[^>]*content=["']([^"']*)["'][^>]*property=["']og:description["']/i),
-      ogImage: getMetaContent(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']*)["']/i)
-        || getMetaContent(/<meta[^>]*content=["']([^"']*)["'][^>]*property=["']og:image["']/i),
-      metaDescription: getMetaContent(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i)
-        || getMetaContent(/<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["']/i),
-    };
-  }
 
   function getYoutubeThumbnail(url: string): string | null {
     try {

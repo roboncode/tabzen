@@ -12,6 +12,7 @@ export type MessageRequest =
   | { type: "GET_TRANSCRIPT"; pageId: string }
   | { type: "GET_CONTENT"; pageId: string }
   | { type: "RE_EXTRACT_CONTENT"; pageId: string }
+  | { type: "RE_EXTRACT_METADATA"; pageId: string }
   | { type: "BACKFILL_TRANSCRIPTS" }
   | { type: "COUNT_MISSING_TRANSCRIPTS" }
   | { type: "INDEX_COLLECTION" }
@@ -41,6 +42,7 @@ export type MessageResponse =
   | { type: "PENDING_EMBEDS_COUNT"; count: number }
   | { type: "ERROR"; message: string }
   | { type: "SUCCESS" }
+  | { type: "METADATA_REFRESHED"; page: Page }
   | { type: "SYNC_COMPLETE"; pushed: number; pulled: number }
   | { type: "QUICK_CAPTURE_DONE"; saved: number; skipped: number }
   | { type: "URL_SAVED"; saved: boolean; pageId?: string }

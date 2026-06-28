@@ -79,6 +79,7 @@ export default function DetailPage(props: DetailPageProps) {
   const [hideLeftNav, setHideLeftNav] = createSignal(window.innerWidth < 1100);
   const [copied, setCopied] = createSignal(false);
   const [reExtracting, setReExtracting] = createSignal(false);
+  const [refreshingDetails, setRefreshingDetails] = createSignal(false);
   const [migrationDismissed, setMigrationDismissed] = createSignal(false);
   const [updateSuccess, setUpdateSuccess] = createSignal(false);
   const [tocEntries, setTocEntries] = createSignal<TocEntry[]>([]);
@@ -594,6 +595,26 @@ export default function DetailPage(props: DetailPageProps) {
     }
   };
 
+  const handleRefreshDetails = async () => {
+    setRefreshingDetails(true);
+    try {
+      const response = await sendMessage({
+        type: "RE_EXTRACT_METADATA",
+        pageId: props.page.id,
+      });
+      if (response.type === "ERROR") {
+        console.error("Metadata refresh failed:", response.message);
+      }
+      // On METADATA_REFRESHED, the background broadcasts DATA_CHANGED, which the
+      // existing DATA_CHANGED listener handles to reload/re-render the current
+      // page. No extra local state update needed.
+    } catch (e) {
+      console.error("Metadata refresh failed:", e);
+    } finally {
+      setRefreshingDetails(false);
+    }
+  };
+
 
   const ContentView = () => (
     <>
@@ -677,6 +698,8 @@ export default function DetailPage(props: DetailPageProps) {
           onMenuToggle={hideLeftNav() && hasContent() && templates().length > 0 ? () => setSidebarOpen(!sidebarOpen()) : undefined}
           onRefreshContent={hasContent() ? handleFetchContent : undefined}
           refreshingContent={fetchingContent()}
+          onRefreshDetails={handleRefreshDetails}
+          refreshingDetails={refreshingDetails()}
         />
 
         {/* Narrow: "On this page" TOC button + dropdown */}
