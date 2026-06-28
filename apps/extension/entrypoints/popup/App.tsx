@@ -95,6 +95,13 @@ export default function App() {
 
   const [confirmingClose, setConfirmingClose] = createSignal(false);
 
+  const [duplicateCount] = createResource(async () => {
+    const res = await sendMessage({ type: "GET_DUPLICATE_TABS_COUNT" });
+    if (res.type === "DUPLICATE_TABS_COUNT") return res.count;
+    return 0;
+  });
+  const [confirmingCloseDuplicates, setConfirmingCloseDuplicates] = createSignal(false);
+
   const domain = () => getDomain(activeTab()?.url || "");
 
   const faviconSrc = () => {
@@ -375,6 +382,44 @@ export default function App() {
               <button
                 class="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-0.5"
                 onClick={() => setConfirmingClose(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </Show>
+        </div>
+      </Show>
+
+      {/* Close duplicate tabs */}
+      <Show when={!duplicateCount.loading && (duplicateCount() ?? 0) > 0}>
+        <div class="mb-3">
+          <Show
+            when={confirmingCloseDuplicates()}
+            fallback={
+              <button
+                class="w-full text-sm text-muted-foreground hover:text-foreground bg-muted/20 hover:bg-muted/40 rounded-lg px-3 py-2 transition-colors text-left"
+                onClick={() => setConfirmingCloseDuplicates(true)}
+              >
+                Close duplicates ({duplicateCount()})
+              </button>
+            }
+          >
+            <div class="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+              <span class="text-sm text-foreground flex-1">
+                Close {duplicateCount()} duplicate tabs?
+              </span>
+              <button
+                class="text-sm text-red-400 hover:text-red-300 transition-colors px-2 py-0.5"
+                onClick={async () => {
+                  await sendMessage({ type: "CLOSE_DUPLICATE_TABS" });
+                  window.close();
+                }}
+              >
+                Close
+              </button>
+              <button
+                class="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-0.5"
+                onClick={() => setConfirmingCloseDuplicates(false)}
               >
                 Cancel
               </button>
